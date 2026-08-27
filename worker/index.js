@@ -5,6 +5,7 @@
 
 import CARD_HTML from "./card.html";
 import NOTFOUND_HTML from "./notfound.html";
+import { readSheet, updateCell, listFolder, fetchFile, fileMeta, getAccessToken } from "./google.js";
 
 const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
 
@@ -20,6 +21,9 @@ export default {
     if (path.startsWith("img/")) {
       return imageProxy(path.slice(4), env, ctx);
     }
+
+    // 暫時的自我診斷。要帶 DEBUG_TOKEN 才進得去，B6 驗完就刪掉
+    if (path === "debug") return debug(url, env);
 
     const code = path.toLowerCase();
     if (!CODE_RE.test(code)) return notFound();
@@ -44,45 +48,147 @@ export default {
 };
 
 /* ────────────────────────────────────────────────
-   資料層　—— 施做計畫 B6 完成後換掉這裡
-   現在回傳一筆假資料，讓版面先跑起來
+   資料層　—— 試算表是資料的家，KV 是它前面那層快取
    ──────────────────────────────────────────────── */
 
+const 分頁 = { 邀請: "邀請名單", 活動: "活動", 模板: "信件模板", 附件: "附件" };
+const CACHE_TTL = 300; // 秒。直接改試算表最多五分鐘生效
+
+// 「否」才算停用，空白一律當啟用——欄位沒填不該讓東西消失
+const 有效 = (v) => String(v ?? "").trim() !== "否";
+const 逗號 = (v) => String(v ?? "").split(/[,，]/).map((s) => s.trim()).filter(Boolean);
+
 async function loadInvite(code, env) {
-  // TODO(B6): 先查 KV `inv:<code>`，沒有就讀試算表，讀完寫回 KV（TTL 300 秒）
+  const key = `inv:${code}`;
+  if (env.CACHE) {
+    const hit = await env.CACHE.get(key, "json");
+    if (hit) return hit;
+  }
+
+  const [邀請列, 設定] = await Promise.all([
+    readSheet(env, 分頁.邀請),
+    loadConfig(env),
+  ]);
+
+  const r = 邀請列.find((x) => String(x.代碼 || "").toLowerCase() === code);
+  if (!r) return null;
+
+  const invite = 組合(r, 設定);
+  if (env.CACHE) {
+    await env.CACHE.put(key, JSON.stringify(invite), { expirationTtl: CACHE_TTL });
+  }
+  return invite;
+}
+
+// 活動、模板、附件三張表一起快取。它們被所有邀請共用
+async function loadConfig(env) {
+  if (env.CACHE) {
+    const hit = await env.CACHE.get("cfg:v1", "json");
+    if (hit) return hit;
+  }
+
+  const [活動, 模板, 附件] = await Promise.all([
+    readSheet(env, 分頁.活動),
+    readSheet(env, 分頁.模板),
+    readSheet(env, 分頁.附件),
+  ]);
+
+  // 附件沒填檔案 ID 時，從雲端資料夾照檔名補。
+  // 這樣維護的人只要把圖丟進資料夾，不用一個一個複製 ID
+  let 檔案清單 = [];
+  if (env.ATTACH_FOLDER && 附件.some((a) => !a.檔案)) {
+    try {
+      檔案清單 = await listFolder(env, env.ATTACH_FOLDER);
+    } catch (e) {
+      檔案清單 = []; // 列不出來就算了，有填 ID 的照樣能用
+    }
+  }
+
+  const cfg = { 活動, 模板, 附件, 檔案清單 };
+  if (env.CACHE) {
+    await env.CACHE.put("cfg:v1", JSON.stringify(cfg), { expirationTtl: CACHE_TTL });
+  }
+  return cfg;
+}
+
+function 組合(r, cfg) {
+  const 活動 = 逗號(r.活動)
+    .map((代號) => cfg.活動.find((e) => e.活動代號 === 代號))
+    .filter((e) => e && 有效(e.啟用));
+
+  const 模板 = cfg.模板.find((t) => t.模板代號 === r.信件模板 && 有效(t.啟用));
+  const 信件內文 = 模板 ? String(模板.內文).split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean) : [];
+
+  const 附件 = 逗號(r.附件)
+    .map((代號) => cfg.附件.find((a) => a.附件代號 === 代號))
+    .filter((a) => a && 有效(a.啟用))
+    .map((a) => ({
+      名稱: a.名稱,
+      說明: a.說明,
+      類型: a.類型,
+      檔案: a.檔案 ? 逗號(a.檔案) : 依檔名找(cfg.檔案清單, a),
+      原始檔: a.原始檔 || 找PDF(cfg.檔案清單, a),
+    }));
+
   return {
-    代碼: code,
-    對象姓名: "王小明",
-    稱謂: "先生",
-    邀請人: "陳志成",
-    狀態: "已發送",
-    個人化開場: "",
-    客製內文: "",
-    活動: [
-      {
-        名稱: "黎明教會福音茶會「啡常時刻」",
-        日期: "2026 年 9 月 13 日（日）",
-        時間: "14:00 – 16:00",
-        地點: "黎明教會 二樓會堂",
-        標語: "人生總是在努力，但使生命不再渴的元素是什麼？<br>喝一杯咖啡，認識那位使人永不乾渴的主。",
-        海報: "", // Drive 檔案 ID；空的就不顯示海報（/img 還沒做完之前先留空）
-      },
-    ],
-    附件: [
-      // { 名稱:"蘇真玉姊妹見證", 說明:"6 頁", 類型:"圖片集", 檔案:["id1","id2"], 原始檔:"pdfId" }
-    ],
-    信件內文: [
-      "親愛的{對象}平安：",
-      "有一件生命中很重要的事，我一直想找個機會跟你分享。",
-      "我們平常見面聊天，談工作、家庭、生活中的大小事，彼此雖然熟悉，卻不一定有機會談到生命中最深的感受。",
-      "誠摯邀請你抽空到教會坐坐，一起查考聖經、認識這位賜平安的神。",
-    ],
+    代碼: r.代碼,
+    _row: r._row,
+    對象姓名: r.對象姓名,
+    稱謂: r.稱謂,
+    邀請人: r.邀請人,
+    狀態: r.狀態,
+    個人化開場: r.個人化開場,
+    客製內文: r.客製內文,
+    開啟次數: Number(r.開啟次數) || 0,
+    活動,
+    附件,
+    信件內文,
   };
 }
 
+// 檔名以附件代號或名稱開頭的圖片，依檔名排序就是頁序
+function 依檔名找(清單, a) {
+  const 前綴 = [a.附件代號, a.名稱].filter(Boolean);
+  return 清單
+    .filter((f) => f.mimeType?.startsWith("image/") && 前綴.some((p) => f.name.startsWith(p)))
+    .map((f) => f.id);
+}
+
+function 找PDF(清單, a) {
+  const 前綴 = [a.附件代號, a.名稱].filter(Boolean);
+  const f = 清單.find((x) => x.mimeType === "application/pdf" && 前綴.some((p) => x.name.startsWith(p)));
+  return f ? f.id : "";
+}
+
+/* ── 開啟次數（規格第 3 節）───────────────────── */
+
 async function countOpen(code, invite, env) {
-  // TODO(C5): 開啟次數 +1、最後開啟寫成現在時間
-  // 列號跟著 inv:<code> 一起快取，省一次「找列」的查詢
+  if (!invite._row) return;
+  try {
+    const 次數 = (Number(invite.開啟次數) || 0) + 1;
+    const 現在 = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false });
+
+    // 欄位位置寫死在這裡不安全（欄可能被搬動），所以照標題找欄
+    const 邀請列 = await readSheet(env, 分頁.邀請);
+    const 標題 = Object.keys(邀請列[0] || {}).filter((k) => k !== "_row");
+    const 欄 = (名) => {
+      const i = 標題.indexOf(名);
+      return i < 0 ? null : String.fromCharCode(65 + i);
+    };
+
+    const c1 = 欄("開啟次數");
+    const c2 = 欄("最後開啟");
+    if (c1) await updateCell(env, 分頁.邀請, `${c1}${invite._row}`, 次數);
+    if (c2) await updateCell(env, 分頁.邀請, `${c2}${invite._row}`, 現在);
+
+    // 快取裡的次數也跟上，免得五分鐘內每次開都寫同一個數字
+    if (env.CACHE) {
+      await env.CACHE.put(`inv:${code}`, JSON.stringify({ ...invite, 開啟次數: 次數 }),
+        { expirationTtl: CACHE_TTL });
+    }
+  } catch (e) {
+    // 計數失敗不該影響任何人看卡片
+  }
 }
 
 /* ────────────────────────────────────────────────
@@ -188,6 +294,52 @@ function isPreviewBot(ua) {
 }
 
 /* ────────────────────────────────────────────────
+   自我診斷　—— 驗完就整段刪掉
+   ──────────────────────────────────────────────── */
+
+async function debug(url, env) {
+  if (!env.DEBUG_TOKEN || url.searchParams.get("t") !== env.DEBUG_TOKEN) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  const out = {};
+  const 記 = async (名, fn) => {
+    try { out[名] = await fn(); }
+    catch (e) { out[名] = `✗ ${e.message}`; }
+  };
+
+  await 記("權杖", async () => ((await getAccessToken(env)) ? "✓ 換到了" : "✗"));
+
+  for (const tab of Object.values(分頁)) {
+    await 記(tab, async () => {
+      const rows = await readSheet(env, tab);
+      return {
+        筆數: rows.length,
+        標題列: Object.keys(rows[0] || {}).filter((k) => k !== "_row"),
+        第一筆: rows[0] || null,
+      };
+    });
+  }
+
+  await 記("雲端資料夾", async () => {
+    if (!env.ATTACH_FOLDER) return "（沒設定）";
+    const meta = await fileMeta(env, env.ATTACH_FOLDER);
+    const files = await listFolder(env, env.ATTACH_FOLDER);
+    return {
+      資料夾: meta.name,
+      在共用雲端硬碟: meta.driveId ? `是（${meta.driveId}）` : "否",
+      擁有者: (meta.owners || []).map((o) => o.emailAddress),
+      檔案數: files.length,
+      檔案: files.map((f) => ({ id: f.id, name: f.name, mimeType: f.mimeType })),
+    };
+  });
+
+  return new Response(JSON.stringify(out, null, 2), {
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
+}
+
+/* ────────────────────────────────────────────────
    圖片代理　—— 施做計畫 C3
    ──────────────────────────────────────────────── */
 
@@ -199,20 +351,18 @@ async function imageProxy(fileId, env, ctx) {
   const hit = await cache.match(key);
   if (hit) return hit;
 
-  // TODO(C3): 用服務帳戶權杖打 Drive API
-  // const token = await getAccessToken(env);
-  // const upstream = await fetch(
-  //   `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-  //   { headers: { authorization: `Bearer ${token}` } }
-  // );
-  // const res = new Response(upstream.body, {
-  //   headers: {
-  //     "content-type": upstream.headers.get("content-type") || "image/jpeg",
-  //     "cache-control": "public, max-age=86400",
-  //   },
-  // });
-  // ctx.waitUntil(cache.put(key, res.clone()));
-  // return res;
+  const upstream = await fetchFile(env, fileId);
+  if (!upstream.ok) {
+    return new Response("圖片讀不到", { status: upstream.status === 404 ? 404 : 502 });
+  }
 
-  return new Response("圖片代理還沒接上（C3）", { status: 501 });
+  const res = new Response(upstream.body, {
+    headers: {
+      "content-type": upstream.headers.get("content-type") || "image/jpeg",
+      // 檔案 ID 不變就是同一張圖，放心讓邊緣節點留一天
+      "cache-control": "public, max-age=86400",
+    },
+  });
+  ctx.waitUntil(cache.put(key, res.clone()));
+  return res;
 }

@@ -12,3 +12,7 @@ node_modules/
 *.json
 !package.json
 !package-lock.json
+
+# 診斷路由的臨時密鑰
+.debug-token.txt
+debug.json

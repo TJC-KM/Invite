@@ -23,16 +23,19 @@
     // 部署後把這串換成實際的 workers.dev 網址，之後換子網域時再改一次。
     "SITE_ORIGIN": "https://liming-invite.c3012312.workers.dev",
 
-    "SHEET_ID": "",
+    "SHEET_ID": "19NHEQ-5VRJbuTxZTrWPHJ9FlaTPGw2Rj1ZzBkIyEWik",
     "POSTER_FOLDER": "",
-    "ATTACH_FOLDER": ""
-  }
+    "ATTACH_FOLDER": "1UDdNmla_1XCVXUe5A5sWlGyLJPYsCfM1"
+  },
 
   // 服務帳戶金鑰不放這裡（這個檔案會進 git）：
   //   wrangler secret put GOOGLE_KEY
 
-  // B4 建好 KV 之後補上：
-  // "kv_namespaces": [
-  //   { "binding": "CACHE", "id": "", "preview_id": "" }
-  // ]
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "a1b12d108c5547abad289c1f29fe432d",
+      "preview_id": "d20702f22a4e46d4894eb90c175a6b5e"
+    }
+  ]
 }
