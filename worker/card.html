@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{pageTitle}}</title>
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ogTitle}}">
+<meta property="og:description" content="{{ogDesc}}">
+<meta property="og:image" content="{{ogImage}}">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --paper:#f7f5fa;
+  --surface:#ffffff;
+  --line:#e2dded;
+  --violet:#6a5a96;
+  --violet-soft:#efeaf7;
+  --gold:#8f6220;
+  --mute:#6f6a7d;
+  --ink:#2a2637;
+  --shadow:rgba(40,30,70,.10);
+  --cover-grad:linear-gradient(168deg,#efeaf7 0%,#f8f2ea 58%,#fdf6ec 100%);
+  --cover-ink:#2a2637;
+  --cover-sub:#5d566e;
+  --cover-meta:#6b6579;
+  --cover-violet:#8d7fb5;
+  --cover-en:#6a5a96;
+  --cover-gold:#82643a;
+  --cover-rule:#c9b48c;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#15131e;
+    --surface:#1e1b2b;
+    --line:#312c44;
+    --violet:#a394d4;
+    --violet-soft:#272138;
+    --gold:#d9ab5e;
+    --mute:#948da8;
+    --ink:#e9e5f2;
+    --shadow:rgba(0,0,0,.4);
+    --cover-grad:linear-gradient(168deg,#221d34 0%,#2c2336 58%,#3b2c27 100%);
+    --cover-ink:#f1ecf8;
+    --cover-sub:#b8b0cc;
+    --cover-meta:#9d95b3;
+    --cover-violet:#a99ad6;
+    --cover-en:#b3a3e0;
+    --cover-gold:#d9ab5e;
+    --cover-rule:#6d5836;
+  }
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Noto Sans TC',system-ui,sans-serif;
+  font-weight:300;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* 手機是主戰場：整頁就是一張卡，桌機時置中收窄 */
+.page{max-width:430px;margin:0 auto;background:var(--surface);min-height:100vh;}
+@media (min-width:520px){
+  .page{margin:26px auto;min-height:0;border:1px solid var(--line);
+        border-radius:18px;overflow:hidden;box-shadow:0 14px 44px var(--shadow);}
+}
+
+/* ── 封面 ── */
+.cover{
+  padding:26px 24px 32px;
+  background:var(--cover-grad);
+  color:var(--cover-ink);
+}
+.church{display:flex;flex-direction:column;gap:2px;margin-bottom:34px;}
+.church .en{
+  font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.24em;
+  color:var(--cover-en);font-weight:600;
+}
+.church .zh{font-family:'Noto Serif TC',serif;font-size:.98rem;font-weight:600;color:var(--cover-ink);}
+.church .meta{font-size:.68rem;color:var(--cover-meta);line-height:1.6;margin-top:3px;}
+.for{
+  font-family:'Noto Serif TC',serif;font-size:1.5rem;color:var(--cover-violet);
+  letter-spacing:.06em;margin-bottom:2px;
+}
+.who{
+  font-family:'Noto Serif TC',serif;font-weight:700;
+  font-size:2.35rem;line-height:1.24;color:var(--cover-ink);text-wrap:balance;
+}
+.who .hon{font-size:1.32rem;font-weight:400;margin-left:9px;color:var(--cover-sub);}
+.cover mark{
+  background:linear-gradient(transparent 66%,rgba(138,107,61,.22) 66%);
+  color:inherit;padding:0 1px;
+}
+.dawn{
+  display:flex;align-items:center;gap:10px;margin-top:26px;
+  font-family:'Noto Serif TC',serif;font-size:.83rem;color:var(--cover-gold);letter-spacing:.14em;
+}
+.dawn::before,.dawn::after{content:'';height:1px;background:var(--cover-rule);flex:1;}
+
+/* ── 內文區 ── */
+.sec{padding:26px 24px;border-top:1px solid var(--line);}
+.sec-h{
+  font-family:'JetBrains Mono',monospace;font-size:.63rem;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--violet);font-weight:600;margin-bottom:13px;
+}
+.frm{font-size:.88rem;color:var(--mute);margin-bottom:15px;}
+.frm b{color:var(--ink);font-weight:500;}
+.letter{font-size:.87rem;line-height:2.05;}
+.letter p{margin:0 0 13px;}
+.letter p:last-child{margin-bottom:0;}
+.letter .salut{font-family:'Noto Serif TC',serif;font-size:.96rem;font-weight:600;}
+.letter .sign{text-align:right;font-family:'Noto Serif TC',serif;color:var(--mute);margin-top:17px;}
+.letter mark{
+  background:linear-gradient(transparent 66%,var(--violet-soft) 66%);
+  color:inherit;font-weight:500;padding:0 1px;
+}
+
+.poster{width:100%;height:auto;display:block;border-radius:7px;border:1px solid var(--line);}
+.ev{margin-top:15px;}
+.ev-name{font-family:'Noto Serif TC',serif;font-size:1.02rem;font-weight:600;margin-bottom:9px;}
+.ev dl{display:grid;grid-template-columns:auto 1fr;gap:5px 13px;margin:0;font-size:.85rem;}
+.ev dt{color:var(--mute);}
+.ev dd{margin:0;}
+.ev .tag{
+  margin-top:13px;padding:11px 13px;border-radius:7px;background:var(--violet-soft);
+  font-family:'Noto Serif TC',serif;font-size:.85rem;line-height:1.85;color:var(--ink);
+}
+
+/* 多頁掃描件：一頁一張圖，直式往下捲 */
+.pages{display:flex;flex-direction:column;gap:10px;}
+.pages img{width:100%;height:auto;display:block;border-radius:7px;border:1px solid var(--line);}
+
+.attach{
+  display:flex;align-items:center;gap:12px;padding:13px;
+  border:1px solid var(--line);border-radius:8px;text-decoration:none;color:inherit;
+}
+.attach .ic{
+  width:38px;height:38px;flex:none;border-radius:6px;background:var(--violet-soft);
+  display:grid;place-items:center;font-size:1.1rem;
+}
+.attach .t{font-size:.87rem;font-weight:500;}
+.attach .s{font-size:.75rem;color:var(--mute);}
+
+.cta{display:flex;flex-direction:column;gap:9px;}
+.btn{
+  display:block;text-align:center;padding:12px;border-radius:8px;text-decoration:none;
+  font-size:.9rem;font-weight:500;border:1px solid transparent;
+}
+.btn-1{background:var(--violet);color:#fff;}
+@media (prefers-color-scheme:dark){.btn-1{color:#17141f;}}
+.btn-2{border-color:var(--line);color:var(--ink);}
+
+.foot{
+  padding:17px 24px 26px;text-align:center;font-size:.72rem;color:var(--mute);
+  border-top:1px solid var(--line);
+}
+a:focus-visible,.attach:focus-visible{outline:2px solid var(--violet);outline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <div class="church">
+      <div class="en">{{churchEn}}</div>
+      <div class="zh">{{churchZh}}</div>
+      <div class="meta">{{churchMeta}}</div>
+    </div>
+    <div class="for">For</div>
+    <div class="who"><mark>{{who}}</mark><span class="hon">{{hon}}</span></div>
+    <div class="dawn">黎明將近</div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h">Invitation</div>
+    <div class="frm"><b>{{from}}</b> 誠摯邀請你</div>
+    <div class="letter">
+      {{letter}}
+      <p class="sign">你的朋友　<mark>{{from}}</mark>　敬上</p>
+    </div>
+  </div>
+
+  {{events}}
+
+  {{attachments}}
+
+  <div class="sec">
+    <div class="cta">
+      <a class="btn btn-1" href="{{mapUrl}}" target="_blank" rel="noopener">查看地圖</a>
+      <a class="btn btn-2" href="tel:{{churchPhone}}">打電話問教會</a>
+    </div>
+  </div>
+
+  <div class="foot">{{churchZh}}　li-ming-tjc.org</div>
+
+</div>
+</body>
+</html>

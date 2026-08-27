@@ -1,0 +1,774 @@
+<meta charset="utf-8">
+<title>邀請卡施做計畫</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --paper:#f7f5fa; --surface:#ffffff; --line:#e2dded;
+  --violet:#6a5a96; --violet-soft:#efeaf7;
+  --gold:#8f6220; --gold-soft:#f7efe0;
+  --teal:#2c6e63; --teal-soft:#e4f0ed;
+  --mute:#6f6a7d; --ink:#2a2637;
+  --shadow:rgba(40,30,70,.09);
+  --head:#f0ecf6; --th-fg:#676375;
+  --code-bg:#f4f1f9;
+  --track:#e6e1ee;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#15131e; --surface:#1e1b2b; --line:#312c44;
+    --violet:#a394d4; --violet-soft:#272138;
+    --gold:#d9ab5e; --gold-soft:#2d2418;
+    --teal:#6fc4b3; --teal-soft:#172b28;
+    --mute:#948da8; --ink:#e9e5f2;
+    --shadow:rgba(0,0,0,.4);
+    --head:#242032; --th-fg:#a49db8;
+    --code-bg:#191622;
+    --track:#2b2639;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15131e; --surface:#1e1b2b; --line:#312c44;
+  --violet:#a394d4; --violet-soft:#272138;
+  --gold:#d9ab5e; --gold-soft:#2d2418;
+  --teal:#6fc4b3; --teal-soft:#172b28;
+  --mute:#948da8; --ink:#e9e5f2;
+  --shadow:rgba(0,0,0,.4);
+  --head:#242032; --th-fg:#a49db8;
+  --code-bg:#191622;
+  --track:#2b2639;
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Noto Sans TC',system-ui,sans-serif;font-weight:300;line-height:1.8;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:860px;margin:0 auto;padding:48px 22px 90px;}
+
+.eyebrow{
+  font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--violet);font-weight:600;margin-bottom:12px;
+}
+h1{
+  font-family:'Noto Serif TC',serif;font-weight:700;
+  font-size:clamp(1.85rem,4.4vw,2.6rem);line-height:1.28;margin:0 0 14px;text-wrap:balance;
+}
+.lede{color:var(--mute);font-size:1.02rem;max-width:62ch;margin:0;}
+
+h2{
+  font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.34rem;
+  margin:56px 0 6px;padding-top:22px;border-top:1px solid var(--line);
+  display:flex;align-items:baseline;gap:11px;text-wrap:balance;
+}
+h2 .n{font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--violet);font-weight:600;flex:none;}
+h3{font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.02rem;margin:30px 0 9px;}
+p{margin:0 0 14px;}
+p.sub{color:var(--mute);font-size:.93rem;margin-top:-2px;}
+b,strong{font-weight:500;color:var(--ink);}
+a{color:var(--violet);}
+
+code{
+  font-family:'JetBrains Mono',monospace;font-size:.84em;
+  background:var(--violet-soft);color:var(--violet);padding:1px 5px;border-radius:3px;
+  word-break:break-all;
+}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:14px 16px;overflow-x:auto;margin:10px 0;
+  font-family:'JetBrains Mono',monospace;font-size:.78rem;line-height:1.8;
+  color:var(--ink);font-weight:400;
+}
+pre .c{color:var(--mute);}
+
+/* 倒數看板 */
+.board{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:9px;
+  overflow:hidden;margin:34px 0 0;box-shadow:0 1px 3px var(--shadow);
+}
+.board div{background:var(--surface);padding:14px 16px;}
+.board .lb{
+  font-family:'JetBrains Mono',monospace;font-size:.66rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--th-fg);margin-bottom:3px;
+}
+.board .vl{font-size:1.02rem;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.4;}
+.board .vl.hot{color:var(--gold);}
+.board .nt{font-size:.78rem;color:var(--mute);line-height:1.5;}
+
+.verdict{
+  border-left:3px solid var(--violet);background:var(--violet-soft);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:26px 0;
+}
+.verdict p:last-child{margin-bottom:0;}
+.warn{
+  border-left:3px solid var(--gold);background:var(--gold-soft);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:22px 0;
+}
+.warn p:last-child{margin-bottom:0;}
+.warn .h{font-weight:500;color:var(--gold);margin-bottom:5px;}
+.win{
+  border-left:3px solid var(--teal);background:var(--teal-soft);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:22px 0;
+}
+.win p:last-child{margin-bottom:0;}
+.win .h{font-weight:500;color:var(--teal);margin-bottom:5px;}
+
+/* 決策卡 */
+.dec{
+  border:1px solid var(--line);border-radius:9px;background:var(--surface);
+  padding:17px 20px;margin:14px 0;box-shadow:0 1px 3px var(--shadow);
+}
+.dec .q{font-weight:500;font-size:.98rem;margin-bottom:6px;}
+.dec .q .tag{
+  font-family:'JetBrains Mono',monospace;font-size:.64rem;letter-spacing:.12em;
+  color:var(--violet);border:1px solid var(--violet);border-radius:20px;
+  padding:2px 8px;margin-right:9px;vertical-align:2px;font-weight:600;
+}
+.dec .rec{color:var(--teal);font-size:.9rem;font-weight:500;margin-bottom:4px;}
+.dec .why{font-size:.87rem;color:var(--mute);margin:0;}
+
+/* 表格 */
+.tw{overflow-x:auto;margin:14px 0 8px;border:1px solid var(--line);border-radius:9px;background:var(--surface);}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.87rem;}
+th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;}
+th{background:var(--head);font-weight:500;font-size:.8rem;color:var(--th-fg);white-space:nowrap;}
+tr:last-child td{border-bottom:0;}
+td:first-child{white-space:nowrap;font-weight:500;font-variant-numeric:tabular-nums;}
+td code{white-space:nowrap;}
+
+/* 階段標頭 */
+.phase{
+  display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  margin:38px 0 2px;
+}
+.phase .pid{
+  font-family:'JetBrains Mono',monospace;font-weight:600;font-size:.8rem;
+  color:#fff;background:var(--violet);border-radius:5px;padding:3px 9px;flex:none;
+}
+:root[data-theme="dark"] .phase .pid{color:#17141f;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .phase .pid{color:#17141f;}}
+.phase .pt{font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.06rem;}
+.phase .pw{font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--mute);margin-left:auto;}
+.phase.later .pid{background:var(--mute);}
+
+/* 步驟 */
+.steps{list-style:none;padding:0;margin:12px 0 0;}
+.steps li{
+  display:flex;gap:13px;align-items:flex-start;padding:13px 15px;margin-bottom:8px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);
+  cursor:pointer;transition:border-color .13s,opacity .13s;
+}
+.steps li:hover{border-color:var(--violet);}
+.steps li.done{opacity:.45;}
+.steps li.done .st{text-decoration:line-through;}
+.steps input{margin:5px 0 0;accent-color:var(--violet);flex:none;width:16px;height:16px;cursor:pointer;}
+.steps .bd{flex:1;min-width:0;}
+.steps .st{font-size:.93rem;font-weight:500;}
+.steps .st .id{
+  font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--violet);
+  margin-right:8px;font-weight:600;
+}
+.steps .sd{font-size:.84rem;color:var(--mute);line-height:1.7;margin-top:3px;}
+.steps .sd code{font-size:.77rem;}
+.steps .ok,.steps .snag{font-size:.82rem;line-height:1.65;margin-top:6px;padding-left:14px;position:relative;}
+.steps .ok{color:var(--teal);}
+.steps .snag{color:var(--gold);}
+.steps .ok::before,.steps .snag::before{
+  position:absolute;left:0;top:0;font-family:'JetBrains Mono',monospace;font-size:.8rem;
+}
+.steps .ok::before{content:'✓';}
+.steps .snag::before{content:'!';font-weight:600;}
+.steps .ok b,.steps .snag b{color:inherit;font-weight:500;}
+
+/* 進度 */
+.prog{
+  display:flex;align-items:center;gap:14px;margin:30px 0 0;
+  background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  padding:14px 18px;box-shadow:0 1px 3px var(--shadow);
+}
+.prog .bar{flex:1;height:7px;background:var(--track);border-radius:4px;overflow:hidden;}
+.prog .fill{height:100%;width:0;background:var(--violet);transition:width .2s;}
+.prog .cnt{
+  font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--mute);
+  font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.reset{
+  background:none;border:1px solid var(--line);border-radius:6px;color:var(--mute);
+  font-family:inherit;font-size:.8rem;padding:6px 13px;cursor:pointer;
+}
+.reset:hover{border-color:var(--violet);color:var(--violet);}
+
+ul.plain{list-style:none;padding:0;margin:12px 0;}
+ul.plain li{padding:7px 0 7px 22px;position:relative;font-size:.92rem;border-bottom:1px solid var(--line);}
+ul.plain li:last-child{border-bottom:0;}
+ul.plain li::before{
+  content:'';position:absolute;left:4px;top:16px;width:5px;height:5px;
+  border-radius:50%;background:var(--violet);
+}
+
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+.foot{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:.82rem;color:var(--mute);}
+</style>
+
+<div class="wrap">
+
+<div class="eyebrow">Build Plan · Rev 2 · 2026-08-28</div>
+<h1>邀請卡施做計畫</h1>
+<p class="lede">
+  把規格第 9 節的 15 步，展開成照著做就能上線的順序。每一步都有「怎麼算做完」，
+  卡得住的地方先寫在旁邊。先發得出卡片，維護介面和網域搬家排到活動之後。
+</p>
+
+<div class="board">
+  <div><div class="lb">Today</div><div class="vl">8 月 28 日</div><div class="nt">五</div></div>
+  <div><div class="lb">福音茶會</div><div class="vl">9 月 13 日</div><div class="nt">日 · 14:00</div></div>
+  <div><div class="lb">剩下</div><div class="vl hot">16 天</div><div class="nt">扣掉上班日，實際約 6 個晚上</div></div>
+  <div><div class="lb">連結要發出去</div><div class="vl">9 月 6 日</div><div class="nt">留一週讓對方安排</div></div>
+</div>
+
+<h2><span class="n">00</span>這份計畫的兩個判斷</h2>
+
+<div class="verdict">
+  <p><b>第一，維護介面不是第一版。</b>
+  離活動只剩 16 天，而讀通 Google 試算表那一段是整套最會卡的地方。
+  第一版的「後台」就是試算表本身——你直接在裡面填，代碼用本機小工具產一批貼進去。
+  這樣要寫的程式只剩三件：讀試算表、渲染卡片、代理圖片。維護介面活動後再補，
+  補的時候資料結構已經穩了，反而好做。</p>
+  <p><b>第二，這次不要搬 DNS。</b>
+  搬網域會動到 MX，弄錯就是教會信箱收不到信——這種事不能在趕活動的時候做。
+  第一波邀請直接用 <code>xxx.workers.dev</code> 的網址發，LINE 預覽在上面一樣會出現。
+  等活動結束、心情鬆了再從容搬，而且<b>已經發出去的 workers.dev 連結在掛上子網域之後仍然有效</b>，
+  不用重發。</p>
+</div>
+
+<h2><span class="n">01</span>已經拍板的三件事</h2>
+<p class="sub">8/28 定案，已寫進規格第 10 節。剩下的待決事項（邀請人建表、卡片回覆、活動快報搬家）不影響現在要寫的程式，放著就好。</p>
+
+<div class="dec">
+  <div class="q"><span class="tag">定案 1</span>記「開啟次數」和「最後開啟」兩欄</div>
+  <div class="rec">不記 IP、不記瀏覽器、不記每一次的時間點。</div>
+  <p class="why">
+    對關懷有用的資訊只有「他到底看了沒」，兩欄就夠。做法上有兩件事要注意：
+    <b>預覽爬蟲不能算成開啟</b>——網址貼進 LINE，LINE 自己會抓一次來做預覽卡片，
+    轉貼幾次就抓幾次，不擋的話數字會虛胖；還有<b>寫入要放在回應送出之後</b>
+    （<code>ctx.waitUntil</code>），不要讓訪客等試算表寫完才看到卡片。細節在 C5。
+  </p>
+</div>
+
+<div class="dec">
+  <div class="q"><span class="tag">定案 2</span>見證先當圖片看，圖要夠大</div>
+  <div class="rec">事先轉成 6 張長邊 1600 px 的 JPG，直式往下捲，底下附下載 PDF。</div>
+  <p class="why">
+    幾乎都是手機在看，掃描圖太小會糊到讀不動；1600 px 在高解析螢幕上放大也還清楚，
+    單張約 300～500 KB，走 <code>/img/</code> 代理＋邊緣快取不會慢。
+    PDF 原檔留在雲端硬碟，卡片上放一顆「下載完整 PDF」。
+    <b>轉檔在你自己電腦上做</b>，Worker 不碰 PDF。之後有人願意把內容打成文字再升級網頁版，
+    到時只是多一種附件類型，資料結構不用動。
+  </p>
+</div>
+
+<div class="dec">
+  <div class="q"><span class="tag">定案 3</span>雲端硬碟一律「知道連結的人可檢視」，以好作業為準</div>
+  <div class="rec">維護時只要丟檔案進資料夾、複製連結貼進試算表，不用逐一設權限。</div>
+  <p class="why">
+    Worker 這端仍然<b>用服務帳戶權杖打 Drive API</b>（<code>files.get?alt=media</code>），
+    不靠 <code>uc?export=view</code> 那種公開網址——那條會被導向確認頁也會限流。
+    反正為了讀試算表本來就有權杖，多啟用一個 Drive API 而已。
+    好處是檔案權限怎麼設都不影響程式，你作業方便就好。
+  </p>
+</div>
+
+<h2><span class="n">02</span>時間怎麼分</h2>
+
+<div class="tw">
+<table>
+  <tr><th>日期</th><th>階段</th><th>做完會有什麼</th></tr>
+  <tr><td>8/28</td><td>A　開工</td><td>workers.dev 上有一個會回話的 Worker</td></tr>
+  <tr><td>8/29–8/31</td><td>B　資料通了</td><td>Worker 讀得到試算表——整套最硬的一段，給它三天</td></tr>
+  <tr><td>9/1–9/3</td><td>C　卡片看得到</td><td>網址打開就是完整邀請卡，LINE 有縮圖</td></tr>
+  <tr><td>9/4–9/5</td><td>D　這次的資料</td><td>當次活動、模板、附件、邀請都填好，測過</td></tr>
+  <tr><td>9/6</td><td>發送</td><td>用 LINE 一個一個送出去</td></tr>
+  <tr><td>9/13</td><td>福音茶會</td><td>—</td></tr>
+  <tr><td>活動之後</td><td>E　維護介面<br>F　搬 DNS<br>G　交接</td><td>信徒自己能新增、網址變成 invite.li-ming-tjc.org</td></tr>
+</table>
+</div>
+
+<div class="prog">
+  <span class="cnt" id="cnt">主線 0 / 18</span>
+  <span class="bar"><span class="fill" id="fill"></span></span>
+  <button class="reset" id="reset" type="button">清除打勾</button>
+</div>
+
+<h2><span class="n">03</span>主線 · 這次活動就要用</h2>
+
+<div class="phase">
+  <span class="pid">A</span><span class="pt">開工</span><span class="pw">8/28 · 約 2 小時</span>
+</div>
+<ul class="steps" data-list="main">
+  <li data-k="A1">
+    <input type="checkbox" aria-label="A1">
+    <div class="bd">
+      <div class="st"><span class="id">A1</span>把上面三件事拍板，寫回規格第 10 節</div>
+      <div class="sd">十分鐘的事，但不定的話 B 和 C 會做兩次。</div>
+      <div class="ok">驗收：三個決定都有一行結論寫在規格裡，不是留在腦子裡。</div>
+    </div>
+  </li>
+  <li data-k="A2">
+    <input type="checkbox" aria-label="A2">
+    <div class="bd">
+      <div class="st"><span class="id">A2</span>註冊 Cloudflare、裝 wrangler</div>
+      <div class="sd"><code>npm i -g wrangler</code> → <code>wrangler login</code>。網域先不要動。</div>
+      <div class="ok">驗收：<code>wrangler whoami</code> 認得出你的帳號。</div>
+    </div>
+  </li>
+  <li data-k="A3">
+    <input type="checkbox" aria-label="A3">
+    <div class="bd">
+      <div class="st"><span class="id">A3</span>開 repo <code>tjc-km/invite</code>，建 Worker 骨架</div>
+      <div class="sd">
+        <code>npm create cloudflare@latest invite</code>，選 Hello World。
+        第一件事是把 <code>.gitignore</code> 補上 <code>.dev.vars</code> 和 <code>*.json</code>，再開始寫。
+      </div>
+      <div class="ok">驗收：<code>wrangler deploy</code> 之後，<code>liming-invite.xxx.workers.dev</code> 回得出一句話。</div>
+      <div class="snag">金鑰一旦進過 git 就只能重發一把，所以 <b>.gitignore 先寫，不要之後補</b>。</div>
+    </div>
+  </li>
+  <li data-k="A4">
+    <input type="checkbox" aria-label="A4">
+    <div class="bd">
+      <div class="st"><span class="id">A4</span>把原型的版面切出來備用</div>
+      <div class="sd">
+        <code>docs/原型.html</code> 的 HTML 與 CSS 之後整段搬進 Worker 當樣板，
+        現在先確認它在手機上看起來是對的。<b>不要重畫版面。</b>
+      </div>
+      <div class="ok">驗收：原型在手機瀏覽器開過一次，沒有破版。</div>
+    </div>
+  </li>
+</ul>
+
+<div class="phase">
+  <span class="pid">B</span><span class="pt">資料通了</span><span class="pw">8/29–8/31 · 最硬的一段</span>
+</div>
+<ul class="steps" data-list="main">
+  <li data-k="B1">
+    <input type="checkbox" aria-label="B1">
+    <div class="bd">
+      <div class="st"><span class="id">B1</span>建 Google Cloud 專案與服務帳戶</div>
+      <div class="sd">
+        建專案 → <b>啟用 Sheets API 和 Drive API</b>（兩個都要，決策 3）→
+        建服務帳戶 <code>liming-invite</code> → 建立金鑰，下載 JSON。
+      </div>
+      <div class="ok">驗收：手上有一份 JSON，裡面找得到 <code>client_email</code> 和 <code>private_key</code>。</div>
+    </div>
+  </li>
+  <li data-k="B2">
+    <input type="checkbox" aria-label="B2">
+    <div class="bd">
+      <div class="st"><span class="id">B2</span>建試算表「邀請卡資料」，四個分頁</div>
+      <div class="sd">
+        欄位照規格第 3 節，第一列是標題列。建好後按「共用」，貼上服務帳戶的 email，
+        給<b>編輯者</b>。雲端硬碟那兩個資料夾設成「知道連結的人可檢視」就好（定案 3），
+        不用另外分享給服務帳戶。
+      </div>
+      <div class="ok">驗收：共用名單裡看得到那個 <code>…iam.gserviceaccount.com</code> 的位址。</div>
+      <div class="snag">標題列文字之後不要改——程式是靠標題文字對應欄位的。順序可以調，加欄位也不會壞。</div>
+    </div>
+  </li>
+  <li data-k="B3">
+    <input type="checkbox" aria-label="B3">
+    <div class="bd">
+      <div class="st"><span class="id">B3</span>金鑰存成 Worker secret</div>
+      <div class="sd">
+        <code>wrangler secret put GOOGLE_KEY</code>，把整份 JSON 貼進去。
+        本機開發另外放一份到 <code>.dev.vars</code> 給 <code>wrangler dev</code> 用。
+      </div>
+      <div class="ok">驗收：<code>wrangler secret list</code> 看得到 GOOGLE_KEY，而且 <code>git status</code> 是乾淨的。</div>
+    </div>
+  </li>
+  <li data-k="B4">
+    <input type="checkbox" aria-label="B4">
+    <div class="bd">
+      <div class="st"><span class="id">B4</span>建 KV 命名空間並綁進設定檔</div>
+      <div class="sd">
+        <code>wrangler kv namespace create liming-invite-cache</code>，
+        再加一個 <code>--preview</code> 的給本機用。把回傳的 id 貼進 <code>wrangler.toml</code>，
+        binding 命名 <code>CACHE</code>。
+      </div>
+      <div class="ok">驗收：寫一筆再讀回來，值對得上。</div>
+    </div>
+  </li>
+  <li data-k="B5">
+    <input type="checkbox" aria-label="B5">
+    <div class="bd">
+      <div class="st"><span class="id">B5</span>簽 JWT 換權杖，讀到試算表第一列</div>
+      <div class="sd">
+        整套最容易卡的一步，<b>單獨做通再往下</b>。做一條臨時的 <code>/debug</code> 路由，把讀到的東西印出來。
+<pre><span class="c">// 順序</span>
+private_key 裡的 \n 還原成真正的換行
+PEM 去掉頭尾兩行 → base64 解成 Uint8Array
+crypto.subtle.importKey('pkcs8', …,
+  { name:'RSASSA-PKCS1-v1_5', hash:'SHA-256' }, false, ['sign'])
+claim: iss=client_email
+       scope=spreadsheets ＋ drive.readonly
+       aud=https://oauth2.googleapis.com/token
+       exp=iat+3600
+POST 到 token endpoint 換 access_token → 存 KV，TTL 3300 秒</pre>
+      </div>
+      <div class="ok">驗收：打開 <code>/debug</code>，看得到「邀請名單」那張分頁的標題列文字。</div>
+      <div class="snag">十次有九次錯在金鑰格式——<code>\n</code> 沒還原、或整串多包了一層引號。症狀是 Google 回 <code>invalid_grant</code>。先把 private_key 的前 30 個字印出來看看長得對不對。</div>
+    </div>
+  </li>
+  <li data-k="B6">
+    <input type="checkbox" aria-label="B6">
+    <div class="bd">
+      <div class="st"><span class="id">B6</span>寫讀取層與快取層</div>
+      <div class="sd">
+        一支 <code>readSheet(名稱)</code> 把分頁讀成物件陣列（第一列標題當 key），
+        四張表包成一次 <code>loadConfig()</code>。快取鍵：設定用 <code>cfg:v1</code>、
+        單筆邀請用 <code>inv:&lt;代碼&gt;</code>，TTL 5 分鐘。
+      </div>
+      <div class="ok">驗收：<code>/debug</code> 印得出活動、模板、附件三張表各幾筆；第二次開明顯變快。</div>
+    </div>
+  </li>
+</ul>
+
+<div class="phase">
+  <span class="pid">C</span><span class="pt">卡片看得到</span><span class="pw">9/1–9/3 · 做起來最有成就感</span>
+</div>
+<ul class="steps" data-list="main">
+  <li data-k="C1">
+    <input type="checkbox" aria-label="C1">
+    <div class="bd">
+      <div class="st"><span class="id">C1</span>路由骨架</div>
+      <div class="sd">
+        <code>/&lt;代碼&gt;</code> 渲染卡片、<code>/img/&lt;檔案 ID&gt;</code> 代理圖片、
+        <code>/</code> 導到教會官網、其他一律 404。代碼比對不分大小寫。
+        狀態是「已停用」的顯示「連結已失效」，「草稿」的只有你自己預覽時看得到。
+      </div>
+      <div class="ok">驗收：亂打一串代碼，看到的是「連結已失效」的頁面，不是白畫面或錯誤訊息。</div>
+    </div>
+  </li>
+  <li data-k="C2">
+    <input type="checkbox" aria-label="C2">
+    <div class="bd">
+      <div class="st"><span class="id">C2</span>渲染邀請卡</div>
+      <div class="sd">
+        把原型版面改成 <code>render(邀請, 設定)</code> 樣板函式。變數代入
+        <code>{對象}{稱謂}{對象全稱}{邀請人}{活動名稱}{活動日期}</code>，
+        信件依序組成：個人化開場 → 模板內文；有客製內文就整封取代。
+        多場活動時活動名稱用「、」串起來。
+      </div>
+      <div class="ok">驗收：手動在試算表填一筆（含兩場活動），網址打開是完整、變數都代進去的卡片。</div>
+    </div>
+  </li>
+  <li data-k="C3">
+    <input type="checkbox" aria-label="C3">
+    <div class="bd">
+      <div class="st"><span class="id">C3</span>圖片代理 <code>/img/&lt;檔案 ID&gt;</code></div>
+      <div class="sd">
+        用服務帳戶權杖打 Drive API 的 <code>files.get?alt=media</code>，
+        回應丟進 Cache API，加上 <code>Cache-Control: public, max-age=86400</code>。
+      </div>
+      <div class="ok">驗收：海報在手機上載得出來；重新整理一次，第二次明顯更快。</div>
+      <div class="snag">別用 <code>uc?export=view</code> 那種網址——會被導向確認頁，也會限流。</div>
+    </div>
+  </li>
+  <li data-k="C4">
+    <input type="checkbox" aria-label="C4">
+    <div class="bd">
+      <div class="st"><span class="id">C4</span>LINE 預覽標籤</div>
+      <div class="sd">
+        每張卡自己的 <code>og:title</code>（誰邀請你參加什麼）、
+        <code>og:description</code>（日期時間地點）、
+        <code>og:image</code> 指向自家的 <code>/img/</code> 網址。
+      </div>
+      <div class="ok">驗收：把網址貼到自己的 LINE，出現標題＋海報縮圖，而不是一條乾巴巴的網址。</div>
+      <div class="snag">LINE 對同一個網址的預覽會<b>快取很久</b>。改完標籤要驗證，請換一個沒發過的代碼再貼一次。</div>
+    </div>
+  </li>
+  <li data-k="C5">
+    <input type="checkbox" aria-label="C5">
+    <div class="bd">
+      <div class="st"><span class="id">C5</span>開啟次數與最後開啟</div>
+      <div class="sd">
+        卡片渲染完、回應送出之後，用 <code>ctx.waitUntil()</code> 把那一列的「開啟次數」＋1、
+        「最後開啟」寫成現在時間。為了不用每次都去找列號，把列號一起存在
+        <code>inv:&lt;代碼&gt;</code> 的快取值裡。
+        <b>User-Agent 是預覽爬蟲就只渲染不計數</b>（LINE、Facebook 那幾種），
+        自己預覽時也跳過。不記 IP。
+      </div>
+      <div class="ok">驗收：用手機開一次，試算表 +1；把同一個網址在 LINE 裡轉貼一次，數字<b>不動</b>。</div>
+      <div class="snag">別把寫入放在渲染前面——訪客會多等一次試算表寫入的時間，那正是我們花力氣避開的東西。</div>
+    </div>
+  </li>
+</ul>
+
+<div class="phase">
+  <span class="pid">D</span><span class="pt">這次的資料與試發</span><span class="pw">9/4–9/6</span>
+</div>
+<ul class="steps" data-list="main">
+  <li data-k="D1">
+    <input type="checkbox" aria-label="D1">
+    <div class="bd">
+      <div class="st"><span class="id">D1</span>產一批代碼</div>
+      <div class="sd">
+        規格第 8 節那段函式先做成本機小工具，一次產 20 個貼進試算表備用。
+        維護介面之後接的是同一支函式。
+      </div>
+      <div class="ok">驗收：20 個代碼，各 12 碼、全小寫、沒有 <code>0 1 i l o</code>、彼此不重複。</div>
+    </div>
+  </li>
+  <li data-k="D2">
+    <input type="checkbox" aria-label="D2">
+    <div class="bd">
+      <div class="st"><span class="id">D2</span>把〈給慕道者的信〉改成模板，填進去</div>
+      <div class="sd">
+        原稿的 ＸＸ 換成 <code>{對象}</code> 和 <code>{邀請人}</code>，整封貼進「信件模板」分頁，段落用空行分隔。
+      </div>
+      <div class="ok">驗收：卡片上讀起來是一封完整的信，沒有殘留的 ＸＸ，也沒有沒代到的變數。</div>
+    </div>
+  </li>
+  <li data-k="D3">
+    <input type="checkbox" aria-label="D3">
+    <div class="bd">
+      <div class="st"><span class="id">D3</span>把見證 PDF 轉成 6 張圖上傳</div>
+      <div class="sd">
+        在自己電腦上轉，長邊 1600 px、JPG，檔名帶頁碼（<code>見證-01.jpg</code>…）好排序。
+        上傳到附件資料夾，把 6 個檔案 ID 依頁序逗號分隔填進附件那列的「檔案」欄，
+        類型填「圖片集」，「原始檔」欄填 PDF 的檔案 ID。
+      </div>
+      <div class="ok">驗收：手機上從頭捲到尾，六頁順序正確、字看得清楚、不用放大也能讀個大概。</div>
+      <div class="snag">別想讓 Worker 去轉 PDF——那不是它做得來的事，而且每次開卡都要轉一次。</div>
+    </div>
+  </li>
+  <li data-k="D4">
+    <input type="checkbox" aria-label="D4">
+    <div class="bd">
+      <div class="st"><span class="id">D4</span>建這次活動的資料</div>
+      <div class="sd">
+        海報上傳雲端硬碟 → 活動分頁填 <code>2609-福音茶會</code> 一筆；
+        附件分頁的〈見證-蘇真玉〉在 D3 已經填好；
+        邀請名單一位一列，逐一填對象、稱謂、邀請人、活動、開場白。
+      </div>
+      <div class="ok">驗收：每一筆的網址都親自打開看過一次。</div>
+    </div>
+  </li>
+  <li data-k="D5">
+    <input type="checkbox" aria-label="D5">
+    <div class="bd">
+      <div class="st"><span class="id">D5</span>端到端測試，然後發送</div>
+      <div class="sd">
+        用<b>另一支手機</b>、從 LINE 點進去測三張不同的卡片：一場活動的、兩場活動的、有個人化開場的。
+        確認秒開、縮圖有出來、見證六頁看得清楚、開啟次數只加該加的那幾次。沒問題就用
+        <code>https://line.me/R/msg/text/?</code> 帶訊息送出，並把狀態改成「已發送」。
+      </div>
+      <div class="ok">驗收：三張都通過，且是用行動網路測的（不是家裡的 Wi-Fi）。</div>
+    </div>
+  </li>
+</ul>
+
+<h2><span class="n">04</span>落後了怎麼辦</h2>
+<p class="sub">兩個檢查點，時間到了就照著判斷，不要硬撐到活動前一天。</p>
+
+<div class="tw">
+<table>
+  <tr><th>檢查點</th><th>要達成的狀態</th><th>沒達成就這樣做</th></tr>
+  <tr><td>9/1 晚上</td><td>B5 通了：<code>/debug</code> 讀得到試算表</td><td>這次活動的邀請沿用現在的手動作法，系統的目標日改成秋季靈恩會</td></tr>
+  <tr><td>9/4 晚上</td><td>C2 通了：卡片在 workers.dev 上開得出來</td><td>同上。已經做完的 A、B 不會白費，那是整套的地基</td></tr>
+</table>
+</div>
+
+<div class="win">
+  <div class="h">延後不等於白做</div>
+  <p>
+    A 到 C 做完，整套就完成八成了——剩下的維護介面只是把你手動在試算表做的事包成表單。
+    這次來不及，下一場活動就是現成的。倒是<b>不要為了趕活動去搬 DNS</b>，
+    那是唯一一件出錯會波及教會其他事情的動作。
+  </p>
+</div>
+
+<h2><span class="n">05</span>補完 · 活動之後</h2>
+<p class="sub">不趕，一次做一個階段。這些不打勾也不影響第一波邀請。</p>
+
+<div class="phase later">
+  <span class="pid">E</span><span class="pt">維護介面</span><span class="pw">信徒自己能新增</span>
+</div>
+<ul class="steps" data-list="later">
+  <li data-k="E1">
+    <input type="checkbox" aria-label="E1">
+    <div class="bd">
+      <div class="st"><span class="id">E1</span>寫入 API</div>
+      <div class="sd">新增用 <code>values.append</code>、修改用 <code>values.update</code>；<b>寫試算表的同時就更新 KV</b>，連結產生當下就是對的。</div>
+      <div class="ok">驗收：新增一筆，馬上開那個網址就看得到，不用等 5 分鐘。</div>
+    </div>
+  </li>
+  <li data-k="E2">
+    <input type="checkbox" aria-label="E2">
+    <div class="bd">
+      <div class="st"><span class="id">E2</span>「邀請名單」頁籤</div>
+      <div class="sd">列表＋新增表單，每列有複製連結、預覽、編輯、停用；另放一顆「立即重新整理快取」。</div>
+      <div class="ok">驗收：全程不碰試算表，就能新增一筆並拿到連結。</div>
+    </div>
+  </li>
+  <li data-k="E3">
+    <input type="checkbox" aria-label="E3">
+    <div class="bd">
+      <div class="st"><span class="id">E3</span>另外三個頁籤</div>
+      <div class="sd">活動、信件模板、附件都是同樣的「列表＋表單」，共用同一套元件。</div>
+      <div class="ok">驗收：新增一場活動，不用開試算表。</div>
+    </div>
+  </li>
+  <li data-k="E4">
+    <input type="checkbox" aria-label="E4">
+    <div class="bd">
+      <div class="st"><span class="id">E4</span>Cloudflare Access 擋住 <code>/admin</code> 和 <code>/api/*</code></div>
+      <div class="sd">後台設定，零行程式碼，列出允許的 email。</div>
+      <div class="ok">驗收：用無痕視窗開 <code>/admin</code>，被擋在驗證畫面外。</div>
+      <div class="snag"><b>Access 設好之前，<code>/admin</code> 和 <code>/api</code> 不要部署上去。</b>主線階段完全不需要它們。</div>
+    </div>
+  </li>
+</ul>
+
+<div class="phase later">
+  <span class="pid">F</span><span class="pt">搬 DNS、掛子網域</span><span class="pw">挑一個沒有活動的週末</span>
+</div>
+<ul class="steps" data-list="later">
+  <li data-k="F1">
+    <input type="checkbox" aria-label="F1">
+    <div class="bd">
+      <div class="st"><span class="id">F1</span>把 Wix 現有的 DNS 記錄全部抄下來</div>
+      <div class="sd">A、CNAME、<b>MX</b>、TXT（SPF、驗證用的那幾筆都算）。存成一份表，一筆都不能漏。</div>
+      <div class="ok">驗收：抄完的清單筆數，和 Wix 後台顯示的筆數一致。</div>
+    </div>
+  </li>
+  <li data-k="F2">
+    <input type="checkbox" aria-label="F2">
+    <div class="bd">
+      <div class="st"><span class="id">F2</span>Cloudflare 加站台，逐筆核對匯入結果</div>
+      <div class="sd">它會自動掃一遍，但掃不全。拿 F1 的清單一筆一筆對。活動快報那幾筆指向 GitHub Pages 的設成<b>僅 DNS（灰雲）</b>。</div>
+      <div class="ok">驗收：每一筆都在，而且值一模一樣。</div>
+    </div>
+  </li>
+  <li data-k="F3">
+    <input type="checkbox" aria-label="F3">
+    <div class="bd">
+      <div class="st"><span class="id">F3</span>換名稱伺服器，等生效</div>
+      <div class="sd">改完當天寄一封信到教會信箱，確認收得到；再開一次活動快報，確認還在。</div>
+      <div class="ok">驗收：收信正常、活動快報正常。這兩件比子網域重要。</div>
+    </div>
+  </li>
+  <li data-k="F4">
+    <input type="checkbox" aria-label="F4">
+    <div class="bd">
+      <div class="st"><span class="id">F4</span>把 <code>invite.li-ming-tjc.org</code> 掛到 Worker</div>
+      <div class="sd">在 Worker 設定裡加自訂網域。<b>保留 workers.dev 網址</b>，第一波已經發出去的連結才不會壞。</div>
+      <div class="ok">驗收：新舊兩個網址都打得開同一張卡片。</div>
+    </div>
+  </li>
+</ul>
+
+<div class="phase later">
+  <span class="pid">G</span><span class="pt">交出去</span><span class="pw">讓它不只有你能維護</span>
+</div>
+<ul class="steps" data-list="later">
+  <li data-k="G1">
+    <input type="checkbox" aria-label="G1">
+    <div class="bd">
+      <div class="st"><span class="id">G1</span>寫一頁給信徒的操作說明</div>
+      <div class="sd">怎麼新增一筆、怎麼停用、直接改試算表之後要按「重新整理快取」。一頁就好，附截圖。</div>
+      <div class="ok">驗收：找一位沒碰過的信徒照著做一次，全程不用問你。</div>
+    </div>
+  </li>
+  <li data-k="G2">
+    <input type="checkbox" aria-label="G2">
+    <div class="bd">
+      <div class="st"><span class="id">G2</span>備份</div>
+      <div class="sd">試算表本身有版本紀錄，但誤刪整張分頁還是會痛。每季匯出一份 CSV 收著。</div>
+      <div class="ok">驗收：手上有一份離線的資料副本。</div>
+    </div>
+  </li>
+  <li data-k="G3">
+    <input type="checkbox" aria-label="G3">
+    <div class="bd">
+      <div class="st"><span class="id">G3</span>把規格第 10 節剩下的決定排進下一輪</div>
+      <div class="sd">邀請人要不要建表、卡片要不要能回覆「我想參加」（要開放公開路徑寫入，得先想防灌水）、活動快報要不要也搬過來。</div>
+      <div class="ok">驗收：每一項都有結論或明確的「這一輪不做」。</div>
+    </div>
+  </li>
+</ul>
+
+<h2><span class="n">06</span>會卡住的地方，先看一眼</h2>
+<ul class="plain">
+  <li><b>金鑰格式</b>　B5 卡關十之八九是這個。<code>\n</code> 要還原成真換行，錯了 Google 回 <code>invalid_grant</code>。</li>
+  <li><b>雲端硬碟圖片</b>　用服務帳戶權杖打 Drive API，別用公開的 <code>uc?export=view</code>。資料夾記得也分享給服務帳戶。</li>
+  <li><b>LINE 預覽快取</b>　同一個網址的預覽會被 LINE 記很久。要驗證改動，換一個沒發過的代碼。</li>
+  <li><b>預覽爬蟲會灌高開啟次數</b>　貼一次 LINE 就抓一次網頁。看 User-Agent 擋掉，否則這欄的數字沒有意義。</li>
+  <li><b>PDF 不要交給 Worker 轉</b>　自己電腦上先轉成圖片再上傳，長邊 1600 px，手機才讀得動。</li>
+  <li><b>MX 記錄</b>　搬 DNS 唯一真正危險的地方。抄漏一筆，教會就收不到信。</li>
+  <li><b>代碼絕不能有規律</b>　不放姓名縮寫、不放日期、不用流水號。有規律就等於別人能翻到其他人的卡片。</li>
+  <li><b>卡片上不要放敏感資料</b>　拿到網址的人都看得到。邀請函和活動資訊可以，電話、地址、奉獻紀錄不行。</li>
+</ul>
+
+<div class="foot">
+  施做計畫 Rev 2 · 2026-08-28　|　搭配規格 Rev 4 使用　|　打勾進度存在這台裝置的瀏覽器裡
+</div>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var KEY = 'invite-build-steps-v1';
+  var lists = document.querySelectorAll('.steps');
+  var reset = document.getElementById('reset');
+  var cnt = document.getElementById('cnt');
+  var fill = document.getElementById('fill');
+
+  function load(){
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}'); }
+    catch(e){ return {}; }
+  }
+  function save(s){
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e){}
+  }
+
+  var state = load();
+
+  function paint(){
+    var mainDone = 0, mainTotal = 0;
+    [].forEach.call(lists, function(list){
+      var isMain = list.dataset.list === 'main';
+      [].forEach.call(list.children, function(li){
+        var on = !!state[li.dataset.k];
+        li.classList.toggle('done', on);
+        li.querySelector('input').checked = on;
+        if (isMain){ mainTotal++; if (on) mainDone++; }
+      });
+    });
+    cnt.textContent = '主線 ' + mainDone + ' / ' + mainTotal;
+    fill.style.width = (mainTotal ? (mainDone / mainTotal * 100) : 0) + '%';
+  }
+
+  [].forEach.call(lists, function(list){
+    list.addEventListener('click', function(e){
+      var li = e.target.closest('li[data-k]');
+      if (!li) return;
+      var k = li.dataset.k;
+      if (state[k]) delete state[k]; else state[k] = true;
+      save(state);
+      paint();
+    });
+  });
+
+  reset.addEventListener('click', function(){
+    state = {};
+    save(state);
+    paint();
+  });
+
+  paint();
+})();
+</script>

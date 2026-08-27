@@ -1,0 +1,790 @@
+<meta charset="utf-8">
+<title>邀請卡系統規格</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --paper:#f7f5fa; --surface:#ffffff; --line:#e2dded;
+  --violet:#6a5a96; --violet-soft:#efeaf7;
+  --gold:#8f6220; --gold-soft:#f7efe0;
+  --teal:#2c6e63; --teal-soft:#e4f0ed;
+  --mute:#6f6a7d; --ink:#2a2637;
+  --shadow:rgba(40,30,70,.09);
+  --head:#f0ecf6; --th-fg:#676375;
+  --code-bg:#f4f1f9;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#15131e; --surface:#1e1b2b; --line:#312c44;
+    --violet:#a394d4; --violet-soft:#272138;
+    --gold:#d9ab5e; --gold-soft:#2d2418;
+    --teal:#6fc4b3; --teal-soft:#172b28;
+    --mute:#948da8; --ink:#e9e5f2;
+    --shadow:rgba(0,0,0,.4);
+    --head:#242032; --th-fg:#a49db8;
+    --code-bg:#191622;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15131e; --surface:#1e1b2b; --line:#312c44;
+  --violet:#a394d4; --violet-soft:#272138;
+  --gold:#d9ab5e; --gold-soft:#2d2418;
+  --teal:#6fc4b3; --teal-soft:#172b28;
+  --mute:#948da8; --ink:#e9e5f2;
+  --shadow:rgba(0,0,0,.4);
+  --head:#242032; --th-fg:#a49db8;
+  --code-bg:#191622;
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Noto Sans TC',system-ui,sans-serif;font-weight:300;line-height:1.8;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:860px;margin:0 auto;padding:48px 22px 90px;}
+
+.eyebrow{
+  font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--violet);font-weight:600;margin-bottom:12px;
+}
+h1{
+  font-family:'Noto Serif TC',serif;font-weight:700;
+  font-size:clamp(1.85rem,4.4vw,2.6rem);line-height:1.28;margin:0 0 14px;text-wrap:balance;
+}
+.lede{color:var(--mute);font-size:1.02rem;max-width:62ch;margin:0;}
+
+h2{
+  font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.34rem;
+  margin:56px 0 6px;padding-top:22px;border-top:1px solid var(--line);
+  display:flex;align-items:baseline;gap:11px;text-wrap:balance;
+}
+h2 .n{font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--violet);font-weight:600;flex:none;}
+h3{font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.02rem;margin:30px 0 9px;}
+h4{font-family:'Noto Serif TC',serif;font-weight:600;font-size:.95rem;margin:24px 0 6px;}
+p{margin:0 0 14px;}
+p.sub{color:var(--mute);font-size:.93rem;margin-top:-2px;}
+b,strong{font-weight:500;color:var(--ink);}
+a{color:var(--violet);}
+
+code{
+  font-family:'JetBrains Mono',monospace;font-size:.84em;
+  background:var(--violet-soft);color:var(--violet);padding:1px 5px;border-radius:3px;
+}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:15px 17px;overflow-x:auto;margin:12px 0;
+  font-family:'JetBrains Mono',monospace;font-size:.79rem;line-height:1.85;
+  color:var(--ink);font-weight:400;
+}
+pre .c{color:var(--mute);}
+pre .k{color:var(--violet);font-weight:600;}
+
+.toc{
+  background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  padding:18px 22px;margin:34px 0 0;box-shadow:0 1px 3px var(--shadow);
+}
+.toc ol{margin:0;padding-left:20px;columns:2;column-gap:30px;}
+@media (max-width:600px){.toc ol{columns:1;}}
+.toc li{font-size:.9rem;margin-bottom:5px;break-inside:avoid;}
+.toc a{text-decoration:none;}
+.toc a:hover{text-decoration:underline;}
+
+.verdict{
+  border-left:3px solid var(--violet);background:var(--violet-soft);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:26px 0;
+}
+.verdict p:last-child{margin-bottom:0;}
+.warn{
+  border-left:3px solid var(--gold);background:var(--gold-soft);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:22px 0;
+}
+.warn p:last-child{margin-bottom:0;}
+.warn .h{font-weight:500;color:var(--gold);margin-bottom:5px;}
+.win{
+  border-left:3px solid var(--teal);background:var(--teal-soft);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:22px 0;
+}
+.win p:last-child{margin-bottom:0;}
+.win .h{font-weight:500;color:var(--teal);margin-bottom:5px;}
+
+.arch{display:flex;flex-direction:column;align-items:center;margin:26px 0 8px;}
+.abox{
+  width:100%;max-width:440px;border:1px solid var(--line);border-radius:9px;
+  background:var(--surface);padding:15px 18px;box-shadow:0 1px 3px var(--shadow);
+}
+.abox .t{font-weight:500;font-size:.97rem;margin-bottom:3px;}
+.abox .d{font-size:.82rem;color:var(--mute);line-height:1.65;}
+.abox.db{border-color:var(--teal);background:var(--teal-soft);}
+.abox.db .t{color:var(--teal);}
+.abox.wk{border-color:var(--violet);background:var(--violet-soft);}
+.abox.wk .t{color:var(--violet);}
+.arr{color:var(--mute);font-size:.75rem;padding:9px 0;text-align:center;font-family:'JetBrains Mono',monospace;}
+.pair{display:flex;gap:16px;width:100%;justify-content:center;flex-wrap:wrap;}
+.pair .abox{max-width:300px;}
+
+.tw{overflow-x:auto;margin:14px 0 8px;border:1px solid var(--line);border-radius:9px;background:var(--surface);}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.87rem;}
+th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;}
+th{background:var(--head);font-weight:500;font-size:.8rem;color:var(--th-fg);white-space:nowrap;}
+tr:last-child td{border-bottom:0;}
+td:first-child{white-space:nowrap;font-weight:500;}
+td code{white-space:nowrap;}
+.req{color:var(--violet);font-weight:600;}
+
+.form{
+  border:1px solid var(--line);border-radius:9px;background:var(--surface);
+  padding:20px;box-shadow:0 1px 3px var(--shadow);margin:16px 0;
+}
+.fld{margin-bottom:15px;}
+.fld:last-child{margin-bottom:0;}
+.fld label{display:block;font-size:.83rem;font-weight:500;margin-bottom:5px;}
+.fld label .st{color:var(--violet);}
+.fld .in{
+  border:1px solid var(--line);border-radius:6px;padding:9px 12px;
+  font-size:.87rem;color:var(--mute);background:var(--paper);
+}
+.fld .in.sel::after{content:' ▾';float:right;}
+.fld .chips{display:flex;gap:7px;flex-wrap:wrap;}
+.fld .chip{border:1px solid var(--line);border-radius:20px;padding:5px 13px;font-size:.82rem;color:var(--mute);}
+.fld .chip.on{border-color:var(--violet);background:var(--violet-soft);color:var(--violet);font-weight:500;}
+.fld .hint{font-size:.77rem;color:var(--mute);margin-top:4px;}
+.fbtn{
+  margin-top:4px;background:var(--violet);color:#fff;border-radius:7px;
+  padding:11px;text-align:center;font-size:.9rem;font-weight:500;
+}
+:root[data-theme="dark"] .fbtn{color:#17141f;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fbtn{color:#17141f;}}
+
+.tabs{display:flex;border-bottom:2px solid var(--line);margin:16px 0 0;overflow-x:auto;}
+.tabs span{
+  padding:9px 15px;font-size:.87rem;color:var(--mute);white-space:nowrap;
+  border-bottom:2px solid transparent;margin-bottom:-2px;
+}
+.tabs span.on{color:var(--violet);border-bottom-color:var(--violet);font-weight:500;}
+
+ul.plain{list-style:none;padding:0;margin:12px 0;}
+ul.plain li{padding:7px 0 7px 22px;position:relative;font-size:.92rem;border-bottom:1px solid var(--line);}
+ul.plain li:last-child{border-bottom:0;}
+ul.plain li::before{
+  content:'';position:absolute;left:4px;top:16px;width:5px;height:5px;
+  border-radius:50%;background:var(--violet);
+}
+
+.steps{list-style:none;padding:0;margin:16px 0;}
+.steps li{
+  display:flex;gap:13px;align-items:flex-start;padding:12px 14px;margin-bottom:8px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);
+  cursor:pointer;transition:border-color .13s,opacity .13s;
+}
+.steps li:hover{border-color:var(--violet);}
+.steps li.done{opacity:.5;}
+.steps li.done .st{text-decoration:line-through;}
+.steps input{margin:5px 0 0;accent-color:var(--violet);flex:none;width:16px;height:16px;cursor:pointer;}
+.steps .bd{flex:1;min-width:0;}
+.steps .st{font-size:.92rem;font-weight:500;}
+.steps .sd{font-size:.82rem;color:var(--mute);line-height:1.65;margin-top:2px;}
+.steps .sd code{font-size:.78rem;}
+.reset{
+  background:none;border:1px solid var(--line);border-radius:6px;color:var(--mute);
+  font-family:inherit;font-size:.8rem;padding:6px 13px;cursor:pointer;
+}
+.reset:hover{border-color:var(--violet);color:var(--violet);}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+.foot{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:.82rem;color:var(--mute);}
+</style>
+
+<div class="wrap">
+
+<div class="eyebrow">Build Spec · Rev 4</div>
+<h1>邀請卡系統規格</h1>
+<p class="lede">
+  個人化邀請卡的資料結構、命名規則與建置步驟。
+  資料放 Google 試算表，前面用 Cloudflare Workers 擋著跑，獨立於活動快報。
+  <a href="https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89">先看可行性原型 →</a>
+</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#s1">為什麼另開專案</a></li>
+    <li><a href="#s2">系統架構</a></li>
+    <li><a href="#s3">資料表與設定</a></li>
+    <li><a href="#s4">模板變數</a></li>
+    <li><a href="#s5">維護介面</a></li>
+    <li><a href="#s6">網址與 LINE 預覽</a></li>
+    <li><a href="#s7">權限設計</a></li>
+    <li><a href="#s8">命名規則</a></li>
+    <li><a href="#s9">建置步驟</a></li>
+    <li><a href="#s10">已定案與尚未決定</a></li>
+  </ol>
+</nav>
+
+
+<h2 id="s1"><span class="n">01</span>為什麼另開專案</h2>
+
+<div class="verdict">
+  <p><b>技術棧完全不同。</b>活動快報是 GAS ＋ GitHub Pages，這套是 Cloudflare Workers。
+  兩者沒有任何共用程式碼，硬綁在一起只會互相拖累。</p>
+</div>
+
+<ul class="plain">
+  <li><b>爆炸半徑</b>　邀請卡會持續改版，不該有機會弄壞已經穩定上線的活動快報</li>
+  <li><b>權限模型不同</b>　活動快報全公開；這套的維護介面必須擋住外人</li>
+  <li><b>改動頻率差太多</b>　活動快報幾乎不動，新專案初期會天天改</li>
+</ul>
+
+
+<h2 id="s2"><span class="n">02</span>系統架構</h2>
+
+<h3>為什麼不用 GAS</h3>
+<p>你的活動快報裡有個 <code>keepWarm()</code> 觸發器每 5 分鐘跑一次，就是在對抗 GAS 冷啟動——
+這代表你已經吃過這個虧。</p>
+<p>邀請卡是<b>陌生人從 LINE 點開</b>的。開場如果空白三秒，人就走了，沒有第二次機會。
+Workers 幾乎沒有冷啟動，而且跑在離使用者最近的節點上。</p>
+
+<div class="win">
+  <div class="h">換掉 GAS 順便解決了一個原本的妥協</div>
+  <p>靜態網站沒辦法針對每張卡產生不同的 LINE 預覽。Worker 是在伺服器端組出 HTML 的，
+  所以可以<b>每張卡有自己的標題和預覽圖</b>——而且網址也能做成乾淨的形式。詳見<a href="#s6">第 6 節</a>。</p>
+</div>
+
+<h3>組成</h3>
+
+<div class="arch">
+  <div class="pair">
+    <div class="abox">
+      <div class="t">公開邀請卡</div>
+      <div class="d">免登入、秒開<br>對方從 LINE 點進來</div>
+    </div>
+    <div class="abox">
+      <div class="t">維護介面</div>
+      <div class="d">Cloudflare Access 擋著<br>只有白名單 email 進得去</div>
+    </div>
+  </div>
+  <div class="arr">↓　　同一個 Worker　　↓</div>
+  <div class="abox wk">
+    <div class="t">Cloudflare Worker</div>
+    <div class="d">路由、伺服器端渲染、圖片快取</div>
+  </div>
+  <div class="arr">↓　　先查 KV 快取　　↓</div>
+  <div class="abox db">
+    <div class="t">Google 試算表</div>
+    <div class="d">資料的家——邀請名單、活動、信件模板、附件清單<br>信徒看得到、必要時能直接改</div>
+  </div>
+  <div class="arr">＋ 海報與附件 PDF 放 Google 雲端硬碟</div>
+</div>
+
+<p class="sub">
+  只有<b>一個 Worker</b>，用路徑分流。維護介面不是另一個服務，是同一個 Worker 上被 Access 保護的一條路徑。
+</p>
+
+<h3>Worker 怎麼讀試算表</h3>
+
+<p>試算表是資料的家，但 <b>Sheets API 不是一個快的資料庫</b>——一次讀取大概 200～400 毫秒，
+而且有每分鐘請求上限。直接讓每個訪客去打 Sheets API，就等於把 GAS 的慢換了個地方發生。</p>
+
+<p>所以中間掛一層 <b>KV 快取</b>：</p>
+
+<div class="tw"><table>
+  <thead><tr><th>情境</th><th>發生什麼</th><th>速度</th></tr></thead>
+  <tbody>
+    <tr><td>快取命中<br><span style="font-weight:400;color:var(--mute);font-size:.85em;">（絕大多數情況）</span></td><td>Worker 直接從 KV 拿資料渲染</td><td>約 5 毫秒</td></tr>
+    <tr><td>快取沒有</td><td>讀 Sheets API，順手寫進 KV</td><td>約 300 毫秒</td></tr>
+    <tr><td>維護介面新增／修改</td><td>寫進試算表，<b>同時寫進 KV</b></td><td>連結產生當下就是對的</td></tr>
+    <tr><td>直接在試算表改</td><td>等快取過期（5 分鐘）後生效</td><td>最多 5 分鐘</td></tr>
+  </tbody>
+</table></div>
+
+<p class="sub">維護介面再放一顆「立即重新整理快取」，臨時改試算表時不用等。</p>
+
+<h3>存取試算表要用服務帳戶</h3>
+<p>Worker 不是人，沒辦法用 Google 帳號登入。做法是在 Google Cloud 建一個<b>服務帳戶</b>，
+把試算表分享給它的 email（給編輯權限），Worker 用它的金鑰換取存取權杖。</p>
+<p class="sub">Workers 內建 WebCrypto，簽 JWT 換權杖大約三十行程式。
+權杖有效一小時，一樣快取起來，不用每次重換。</p>
+
+<h3>免費額度</h3>
+<div class="tw"><table>
+  <thead><tr><th>服務</th><th>免費額度</th><th>教會實際用量</th></tr></thead>
+  <tbody>
+    <tr><td>Workers</td><td>每天 10 萬次請求</td><td>遠遠用不完</td></tr>
+    <tr><td>KV</td><td>每天 10 萬次讀、1000 次寫</td><td>寫入只發生在新增邀請和快取更新</td></tr>
+    <tr><td>Access</td><td>50 個使用者</td><td>維護的信徒不會超過</td></tr>
+    <tr><td>Sheets API</td><td>每分鐘 300 次請求</td><td>有快取擋著，碰不到</td></tr>
+  </tbody>
+</table></div>
+
+
+<h2 id="s3"><span class="n">03</span>資料表與設定</h2>
+
+<p>會變動的資料放試算表，幾乎不變的放設定檔。</p>
+
+<h3>設定檔（<code>wrangler.toml</code>）</h3>
+<p>教會資訊和雲端硬碟資料夾 ID 都在這裡，不進試算表。</p>
+
+<pre><span class="c"># wrangler.toml</span>
+[vars]
+CHURCH_NAME    = <span class="k">"真耶穌教會　黎明教會"</span>
+CHURCH_NAME_EN = <span class="k">"TRUE JESUS CHURCH"</span>
+CHURCH_ADDRESS = <span class="k">"台中市南屯區大墩四街 460 號"</span>
+CHURCH_PHONE   = <span class="k">"04-2380-9800"</span>
+CHURCH_MAP     = <span class="k">"https://maps.app.goo.gl/..."</span>
+
+SHEET_ID       = <span class="k">"&lt;試算表 ID&gt;"</span>
+POSTER_FOLDER  = <span class="k">"&lt;海報資料夾 ID&gt;"</span>
+ATTACH_FOLDER  = <span class="k">"&lt;附件資料夾 ID&gt;"</span>
+OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</span></pre>
+
+<p class="sub">改這些要重新部署，但教會地址電話幾年才變一次，不值得為它做一張後台表。</p>
+
+<div class="warn">
+  <div class="h">服務帳戶金鑰不能放這裡</div>
+  <p><code>wrangler.toml</code> 會進 git。金鑰要用 <code>wrangler secret put GOOGLE_KEY</code> 存成密文，
+  它只存在 Cloudflare 上，不會出現在程式碼裡。</p>
+</div>
+
+<h3>試算表分頁</h3>
+<p>四個分頁。<b>第一列是標題列</b>，程式用標題文字對應欄位——
+所以標題不要改，但欄位順序可以隨意調、之後要加欄位也不會壞。</p>
+
+<h4>分頁 1：邀請名單</h4>
+<div class="tw"><table>
+  <thead><tr><th>欄位</th><th>誰填</th><th>說明</th></tr></thead>
+  <tbody>
+    <tr><td>代碼</td><td>系統</td><td>隨機 12 碼，就是網址最後那串</td></tr>
+    <tr><td>對象姓名 <span class="req">*</span></td><td>人</td><td>簡嘉雯</td></tr>
+    <tr><td>稱謂 <span class="req">*</span></td><td>人</td><td>先生／小姐／弟兄／姊妹／平安</td></tr>
+    <tr><td>邀請人 <span class="req">*</span></td><td>人</td><td>信件署名用</td></tr>
+    <tr><td>活動</td><td>人</td><td>活動代號，逗號分隔。<b>一個人可邀多場</b></td></tr>
+    <tr><td>信件模板</td><td>人</td><td>模板代號</td></tr>
+    <tr><td>個人化開場</td><td>人</td><td>選填。插在信件最前面，用邀請人自己的語氣</td></tr>
+    <tr><td>客製內文</td><td>人</td><td>選填。填了就整封取代模板</td></tr>
+    <tr><td>附件</td><td>人</td><td>附件代號，逗號分隔</td></tr>
+    <tr><td>狀態</td><td>人</td><td>草稿／已發送／已停用。停用後開啟顯示「連結已失效」</td></tr>
+    <tr><td>建立時間</td><td>系統</td><td></td></tr>
+    <tr><td>建立者</td><td>系統</td><td>登入者 email</td></tr>
+    <tr><td>開啟次數</td><td>系統</td><td>每開啟一次 +1。<b>不記 IP</b></td></tr>
+    <tr><td>最後開啟</td><td>系統</td><td>最近一次開啟的時間</td></tr>
+  </tbody>
+</table></div>
+
+<div class="warn">
+  <div class="h">預覽抓取不能算成開啟</div>
+  <p>把網址貼進 LINE，LINE 會先自己抓一次網頁來做預覽卡片——那不是人在看。
+  同一則訊息被轉貼幾次就抓幾次，不擋的話次數會虛胖，這欄就失去意義了。</p>
+  <p>渲染時看 <code>User-Agent</code>，是預覽爬蟲（LINE、Facebook 那幾種）就只渲染不計數。
+  計數本身放在回應送出之後做（<code>ctx.waitUntil</code>），不要讓訪客等寫入。</p>
+</div>
+
+<div class="warn">
+  <div class="h">活動欄不能只放一個值</div>
+  <p>你要能<b>選擇活動 ×2</b>——一個人可能同時被邀去福音茶會和靈恩佈道會。
+  存成 <code>2609-福音茶會,2609-秋季靈恩會</code>。</p>
+  <p>這個決定要現在做，之後改資料結構很痛。</p>
+</div>
+
+<h4>分頁 2：活動</h4>
+<p class="sub">原型裡的活動名稱、時間、標語是我從你的海報圖上讀出來寫死的。真正要做，這些得是資料。</p>
+<div class="tw"><table>
+  <thead><tr><th>欄位</th><th>範例</th></tr></thead>
+  <tbody>
+    <tr><td>活動代號</td><td><code>2609-福音茶會</code></td></tr>
+    <tr><td>名稱</td><td>黎明教會福音茶會「啡常時刻」</td></tr>
+    <tr><td>標語</td><td>喝一杯咖啡，認識那位使人永不乾渴的主。</td></tr>
+    <tr><td>日期</td><td>2026 年 9 月 13 日（日）</td></tr>
+    <tr><td>時間</td><td>14:00 – 16:00</td></tr>
+    <tr><td>地點</td><td>黎明教會 二樓會堂</td></tr>
+    <tr><td>海報</td><td>雲端硬碟檔案 ID</td></tr>
+    <tr><td>地圖連結</td><td>Google 地圖網址</td></tr>
+    <tr><td>啟用</td><td>是／否　（過期就關掉，不用刪）</td></tr>
+    <tr><td>排序</td><td>數字</td></tr>
+  </tbody>
+</table></div>
+
+<h4>分頁 3：信件模板</h4>
+<div class="tw"><table>
+  <thead><tr><th>欄位</th><th>範例</th></tr></thead>
+  <tbody>
+    <tr><td>模板代號</td><td><code>慕道者</code></td></tr>
+    <tr><td>名稱</td><td>給慕道者的信</td></tr>
+    <tr><td>適用對象</td><td>慕道者／久未聚會／信徒</td></tr>
+    <tr><td>內文</td><td>含變數的全文，段落用空行分隔</td></tr>
+    <tr><td>啟用</td><td>是／否</td></tr>
+  </tbody>
+</table></div>
+
+<h4>分頁 4：附件</h4>
+<div class="tw"><table>
+  <thead><tr><th>欄位</th><th>範例</th></tr></thead>
+  <tbody>
+    <tr><td>附件代號</td><td><code>見證-蘇真玉</code></td></tr>
+    <tr><td>名稱</td><td>蘇真玉姊妹見證</td></tr>
+    <tr><td>類型</td><td>圖片集／PDF／外部連結</td></tr>
+    <tr><td>檔案</td><td>雲端硬碟檔案 ID。<b>圖片集是多個 ID，逗號分隔，順序就是頁序</b></td></tr>
+    <tr><td>原始檔</td><td>選填。PDF 的檔案 ID，卡片上放一顆「下載完整 PDF」</td></tr>
+    <tr><td>說明</td><td>6 頁</td></tr>
+    <tr><td>啟用</td><td>是／否</td></tr>
+  </tbody>
+</table></div>
+
+<h4>多頁掃描件怎麼呈現</h4>
+<p>〈蘇真玉見證〉是 6 頁掃描圖、沒有文字層，手機上沒辦法像文章一樣重排。第一版當圖片看：</p>
+<ul class="plain">
+  <li><b>事先轉成圖片</b>　在自己電腦上把 PDF 轉成 6 張 JPG 再上傳。Worker 不轉 PDF，那不是它擅長的事</li>
+  <li><b>長邊 1600 px</b>　幾乎所有人都用手機看，太小的掃描圖會糊到讀不動。1600 px 在高解析螢幕上放大也還清楚，單張大約 300～500 KB</li>
+  <li><b>直式往下捲，不做左右翻頁</b>　手機上捲動比翻頁自然，也不會有人卡在第一頁不知道要滑</li>
+  <li><b>底下放一顆「下載完整 PDF」</b>　想印出來或轉寄的人用得到</li>
+</ul>
+<p class="sub">之後真的有人願意把內容打成文字，再升級成能重排、能搜尋的網頁版——那時只是多一種類型，資料結構不用動。</p>
+
+<h3>雲端硬碟的檔案怎麼進來</h3>
+<p>資料夾設成<b>「知道連結的人可檢視」</b>，維護介面貼分享連結，系統用正規式抽出檔案 ID 存進 <code>file_id</code>。</p>
+<p>設定檔裡的資料夾 ID 用來在維護介面放一顆「開啟雲端資料夾」按鈕，方便上傳。</p>
+
+<div class="warn">
+  <div class="h">「從資料夾直接挑檔案」要另外確認</div>
+  <p>要做成下拉選單列出資料夾內容，Worker 得呼叫 Drive API。
+  用 API key 能不能列出公開資料夾我沒實測過，<b>先別假設可行</b>。
+  第一版就貼連結，這是最穩的做法。</p>
+</div>
+
+<h3>圖片走 Worker 代理</h3>
+<p>不要讓瀏覽器直接連雲端硬碟——慢，而且 Google 會限流。改成：</p>
+<pre>invite.li-ming-tjc.org/img/&lt;檔案 ID&gt;</pre>
+<p class="sub">Worker 抓一次後快取在邊緣節點，之後所有人都吃快取。
+順帶好處是圖片變成同網域，LINE 預覽圖也能直接用這個網址。</p>
+
+<p>Worker 這邊<b>用讀試算表的那把服務帳戶權杖去打 Drive API</b>
+（<code>files.get?alt=media</code>），建服務帳戶時多啟用一個 Drive API、多要一個
+<code>drive.readonly</code> 範圍就好。</p>
+
+<div class="warn">
+  <div class="h">不要用 <code>uc?export=view</code> 那種公開網址</div>
+  <p>檔案雖然設成「知道連結的人可檢視」，但那條網址 Google 會導向確認頁、也會限流，
+  用在正式流程上不穩。反正權杖本來就有，走 API 反而省事。</p>
+</div>
+
+
+<h2 id="s4"><span class="n">04</span>模板變數</h2>
+
+<p>你的〈給慕道者的信〉原稿已經是模板了——裡面寫 <code>親愛的ＸＸ平安</code>、<code>你的朋友ＸＸ敬上</code>。
+把 <code>ＸＸ</code> 換成變數就能自動代入。</p>
+
+<div class="tw"><table>
+  <thead><tr><th>變數</th><th>代入</th></tr></thead>
+  <tbody>
+    <tr><td><code>{對象}</code></td><td>簡嘉雯</td></tr>
+    <tr><td><code>{稱謂}</code></td><td>小姐</td></tr>
+    <tr><td><code>{對象全稱}</code></td><td>簡嘉雯小姐</td></tr>
+    <tr><td><code>{邀請人}</code></td><td>陳志成</td></tr>
+    <tr><td><code>{活動名稱}</code></td><td>多場時自動用「、」串起來</td></tr>
+    <tr><td><code>{活動日期}</code></td><td>同上</td></tr>
+  </tbody>
+</table></div>
+
+<p>所以原稿改成：<code>親愛的{對象}平安：</code>　⋯⋯　<code>你的朋友　{邀請人}　敬上</code></p>
+
+<h3>信件組成順序</h3>
+<ul class="plain">
+  <li><b>個人化開場</b>（有填才出現）　例：「小雯，好久不見！上次聊到⋯⋯」</li>
+  <li><b>模板內文</b>　變數已代入</li>
+  <li>若填了<b>客製內文</b>，則直接取代上面兩者</li>
+</ul>
+
+
+<h2 id="s5"><span class="n">05</span>維護介面</h2>
+
+<div class="tabs">
+  <span class="on">邀請名單</span><span>活動設定</span><span>信件模板</span><span>附件管理</span>
+</div>
+
+<p class="sub" style="margin-top:14px;">
+  後面三個頁籤都是同樣的「列表 ＋ 新增／編輯」，做一套共用的就好。
+  教會資訊不在這裡——它在設定檔（<a href="#s3">第 3 節</a>）。
+</p>
+
+<h3>新增邀請</h3>
+<div class="form">
+  <div class="fld"><label>對象姓名 <span class="st">*</span></label><div class="in">簡嘉雯</div></div>
+  <div class="fld"><label>稱謂 <span class="st">*</span></label><div class="in sel">小姐</div></div>
+  <div class="fld"><label>邀請人 <span class="st">*</span></label><div class="in">陳志成</div></div>
+  <div class="fld">
+    <label>邀請參加（可複選）</label>
+    <div class="chips">
+      <span class="chip on">福音茶會「啡常時刻」</span>
+      <span class="chip on">秋季靈恩佈道會</span>
+    </div>
+    <div class="hint">只列出「啟用」的活動</div>
+  </div>
+  <div class="fld"><label>信件模板</label><div class="in sel">給慕道者的信</div></div>
+  <div class="fld">
+    <label>個人化開場</label>
+    <div class="in" style="min-height:56px;">小雯，好久不見！上次聊到工作的壓力，我一直記在心上⋯⋯</div>
+    <div class="hint">選填。會放在信件最前面</div>
+  </div>
+  <div class="fld">
+    <label>附件（可複選）</label>
+    <div class="chips"><span class="chip on">蘇真玉姊妹見證</span><span class="chip">給見證者的信</span></div>
+  </div>
+  <div class="fbtn">產生邀請連結</div>
+</div>
+
+<p>送出後顯示產生的網址，並提供三顆按鈕：<b>複製連結</b>、<b>預覽卡片</b>、<b>用 LINE 傳送</b>。</p>
+
+<h3>名單列表</h3>
+<p class="sub">欄位：對象、邀請人、活動、狀態、建立時間、開啟次數。<br>
+每列的動作：複製連結、預覽、編輯、停用。<br>
+另外放一顆<b>立即重新整理快取</b>——直接改試算表後不用等 5 分鐘。</p>
+
+
+<h2 id="s6"><span class="n">06</span>網址與 LINE 預覽</h2>
+
+<div class="verdict">
+  <p><b>乾淨網址，而且每張卡有自己的 LINE 預覽。</b></p>
+  <p><code>invite.li-ming-tjc.org/k7m2xq9v4bt3</code></p>
+</div>
+
+<p>這是換掉 GAS 最大的收穫。原本用 GitHub Pages 靜態託管時，
+乾淨網址要靠 <code>404.html</code> 接管，代價是 HTTP 狀態碼真的是 404，LINE 預覽縮圖不會出現——
+所以當初只能退而求其次用 <code>?k=</code> 查詢字串。</p>
+
+<p>Worker 是在伺服器端組 HTML 的，路由自己決定，<b>狀態碼正常、網址乾淨、預覽標籤還能客製</b>：</p>
+
+<pre>&lt;meta property="og:title"       content=<span class="k">"陳志成 邀請你參加福音茶會"</span>&gt;
+&lt;meta property="og:description" content=<span class="k">"9/13（日）14:00　黎明教會二樓會堂"</span>&gt;
+&lt;meta property="og:image"       content=<span class="k">"https://invite.li-ming-tjc.org/img/&lt;海報 ID&gt;"</span>&gt;</pre>
+
+<p>對方在 LINE 收到的不是一條乾巴巴的網址，而是<b>寫著他被誰邀請、海報縮圖在旁邊</b>的卡片。
+對點開機率的影響很大。</p>
+
+<div class="warn">
+  <div class="h">這需要把網域 DNS 搬到 Cloudflare</div>
+  <p>Worker 要掛在 <code>invite.li-ming-tjc.org</code> 上，網域的 DNS 必須由 Cloudflare 管理。
+  你現在在 Wix。</p>
+  <p>搬之前<b>先把 Wix 上現有的 DNS 記錄全部抄下來</b>，尤其是 MX（收信）——漏掉會斷信。
+  活動快報那幾筆指向 GitHub Pages 的記錄要設成「僅 DNS」（灰雲），不要開 Cloudflare 代理。</p>
+  <p>開發階段先用免費的 <code>xxx.workers.dev</code> 網址，等整套跑順了再搬 DNS。</p>
+</div>
+
+<h3>路由</h3>
+<div class="tw"><table>
+  <thead><tr><th>路徑</th><th>做什麼</th><th>誰能進</th></tr></thead>
+  <tbody>
+    <tr><td><code>/&lt;代碼&gt;</code></td><td>渲染邀請卡</td><td>任何人</td></tr>
+    <tr><td><code>/img/&lt;檔案 ID&gt;</code></td><td>代理雲端硬碟圖片並快取</td><td>任何人</td></tr>
+    <tr><td><code>/admin</code></td><td>維護介面</td><td>Access 白名單</td></tr>
+    <tr><td><code>/api/*</code></td><td>維護介面的讀寫</td><td>Access 白名單</td></tr>
+    <tr><td><code>/</code></td><td>導到教會官網</td><td>任何人</td></tr>
+  </tbody>
+</table></div>
+
+<h3>用 LINE 傳送</h3>
+<p>維護介面那顆按鈕可以直接開啟 LINE 並帶好訊息：</p>
+<p><code>https://line.me/R/msg/text/?</code> 後面接編碼過的邀請文字＋網址。</p>
+
+
+<h2 id="s7"><span class="n">07</span>權限設計</h2>
+
+<div class="verdict">
+  <p><b>維護介面用 Cloudflare Access 擋，不要自己寫登入。</b></p>
+  <p>在 Cloudflare 後台把 <code>/admin</code> 和 <code>/api/*</code> 設成需要驗證，列出允許的 email。
+  對方輸入 email 後收到一次性驗證碼就能進。<b>零行程式碼</b>，50 個使用者以內免費。</p>
+</div>
+
+<div class="tw"><table>
+  <thead><tr><th></th><th>維護介面</th><th>公開邀請卡</th></tr></thead>
+  <tbody>
+    <tr><td>路徑</td><td><code>/admin</code>、<code>/api/*</code></td><td><code>/&lt;代碼&gt;</code>、<code>/img/*</code></td></tr>
+    <tr><td>驗證</td><td>Cloudflare Access</td><td>無</td></tr>
+    <tr><td>可做的事</td><td>讀 ＋ 寫</td><td><b>只讀單一筆</b></td></tr>
+  </tbody>
+</table></div>
+
+<p>公開路徑只接受「完整正確的代碼」，一次回傳一筆，不提供列表。沒有代碼就什麼都拿不到。</p>
+
+<div class="warn">
+  <div class="h">隨機碼是「猜不到」，不是「有權限管制」</div>
+  <p>拿到網址的人都看得到。適合放邀請函、活動資訊；<b>不要放</b>電話、地址、奉獻紀錄。</p>
+  <p>代碼至少 12 位、要用亂數，<b>絕不能用流水號</b>——否則改個數字就翻到別人的卡片。</p>
+</div>
+
+
+<h2 id="s8"><span class="n">08</span>命名規則</h2>
+
+<h3>放哪個 GitHub 帳號</h3>
+<div class="verdict">
+  <p><b>建議放 <code>tjc-km</code></b>——那是你主要在管的帳號，詩歌本、禱告記錄板、聚會紀錄都在那裡。
+  <code>tjcliming</code> 你說是協助管理性質，把會長期維護的新專案放那邊不合理。</p>
+</div>
+
+<h3>專案與資源</h3>
+<div class="tw"><table>
+  <thead><tr><th>項目</th><th>建議命名</th><th>為什麼</th></tr></thead>
+  <tbody>
+    <tr><td>GitHub repo</td><td><code>tjc-km/invite</code></td><td>跟子網域同名，看到網址就知道去哪找</td></tr>
+    <tr><td>Worker</td><td><code>liming-invite</code></td><td>workers.dev 網址是全球共用的，要加教會前綴避免撞名</td></tr>
+    <tr><td>KV 命名空間</td><td><code>liming-invite-cache</code></td><td>名字裡寫明是快取，提醒自己這裡的資料隨時可以丟掉重建</td></tr>
+    <tr><td>Google 試算表</td><td>邀請卡資料</td><td>資料的家</td></tr>
+    <tr><td>服務帳戶</td><td><code>liming-invite@…</code></td><td>只分享這一份試算表給它，不要給整個雲端硬碟</td></tr>
+    <tr><td>子網域</td><td><code>invite.li-ming-tjc.org</code></td><td>這串會出現在陌生人的 LINE 裡，看得懂比短重要</td></tr>
+    <tr><td>雲端資料夾</td><td>邀請卡-海報　邀請卡-附件</td><td>同前綴，在雲端硬碟裡排在一起</td></tr>
+  </tbody>
+</table></div>
+
+<h3>各種代號</h3>
+<p>代號是內部識別用，<b>不會出現在網址上</b>，所以用中文反而讓資料庫自己會說話。</p>
+
+<div class="tw"><table>
+  <thead><tr><th>類型</th><th>格式</th><th>範例</th></tr></thead>
+  <tbody>
+    <tr><td>活動代號</td><td>年月 ＋ 名稱</td><td><code>2609-福音茶會</code><br><code>2609-秋季靈恩會</code></td></tr>
+    <tr><td>模板代號</td><td>適用對象</td><td><code>慕道者</code>　<code>久未聚會</code>　<code>信徒</code></td></tr>
+    <tr><td>附件代號</td><td>類型 ＋ 名稱</td><td><code>見證-蘇真玉</code><br><code>信-給見證者</code></td></tr>
+  </tbody>
+</table></div>
+
+<p><b>活動代號用年月開頭有兩個好處：</b>排序自動變成時間順序，累積幾年後還找得到東西；
+而且多場活動是逗號串起來存的，中文代號一眼就看得懂：</p>
+<p><code>2609-福音茶會,2609-秋季靈恩會</code>　比　<code>tea2609,revival2609</code>　好維護太多。</p>
+
+<h3>網址代碼</h3>
+<p>就是網址最後那串，<b>整個系統唯一對外的識別碼</b>，規則要定死。</p>
+
+<div class="tw"><table>
+  <thead><tr><th>項目</th><th>規則</th></tr></thead>
+  <tbody>
+    <tr><td>長度</td><td>12 碼</td></tr>
+    <tr><td>字集</td><td><code>23456789abcdefghjkmnpqrstuvwxyz</code>（31 字）</td></tr>
+    <tr><td>大小寫</td><td>一律小寫，比對時不分大小寫</td></tr>
+    <tr><td>組合數</td><td>約 8×10<sup>17</sup></td></tr>
+  </tbody>
+</table></div>
+
+<p class="sub">字集刻意拿掉 <code>0</code> <code>1</code> <code>i</code> <code>l</code> <code>o</code>——
+萬一有人要口頭念或手打，這幾個最容易搞混。</p>
+
+<div class="warn">
+  <div class="h">代碼裡不能編進任何有意義的東西</div>
+  <p>不要放姓名縮寫、日期、流水號。只要有規律，別人就能推算出其他人的卡片。</p>
+</div>
+
+<p>Worker 產生代碼的寫法：</p>
+<pre><span class="k">function</span> newCode() {
+  <span class="k">const</span> A = <span class="k">'23456789abcdefghjkmnpqrstuvwxyz'</span>;
+  <span class="k">const</span> bytes = crypto.getRandomValues(<span class="k">new</span> Uint8Array(12));
+  <span class="k">return</span> [...bytes].map(b =&gt; A[b % A.length]).join(<span class="k">''</span>);
+  <span class="c">// 寫入前仍要查一次 invites，確認沒撞到</span>
+}</pre>
+
+<p class="sub">Workers 內建 WebCrypto，<code>crypto.getRandomValues()</code> 是密碼學等級的亂數，
+不像 <code>Math.random()</code> 有被推算的疑慮。</p>
+
+<h3>環境變數</h3>
+<p>設定值放 <code>wrangler.toml</code> 的 <code>[vars]</code>，命名沿用全大寫底線慣例（見<a href="#s3">第 3 節</a>）。</p>
+
+
+<h2 id="s9"><span class="n">09</span>建置步驟</h2>
+<p class="sub">可以打勾，進度存在這台裝置的瀏覽器裡。<br>
+展開成每步的做法、驗收條件與活動前的回推時程，見
+<a href="https://claude.ai/code/artifact/bcbcbc21-e866-4552-ab71-cc75651378a2">邀請卡施做計畫</a>。</p>
+
+<ol class="steps" id="steps">
+  <li data-k="1"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">註冊 Cloudflare 帳號，裝 wrangler</div><div class="sd"><code>npm i -g wrangler</code>，然後 <code>wrangler login</code>。<b>先不要動網域</b></div></div></li>
+  <li data-k="2"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">建立 repo <code>tjc-km/invite</code> 與 Worker 骨架</div><div class="sd"><code>wrangler init</code>，先讓 <code>xxx.workers.dev</code> 回一句 Hello 就好</div></div></li>
+  <li data-k="3"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">建立 Google 試算表「邀請卡資料」，開 4 個分頁</div><div class="sd">欄位照<a href="#s3">第 3 節</a>。第一列是標題列，程式靠標題文字對應</div></div></li>
+  <li data-k="4"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">建立服務帳戶，把試算表分享給它</div><div class="sd">Google Cloud 建專案 → 建服務帳戶 → 啟用 Sheets API → 下載 JSON 金鑰。<br>試算表按「共用」，貼上服務帳戶 email，給<b>編輯者</b>權限</div></div></li>
+  <li data-k="5"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">金鑰存成 Worker secret</div><div class="sd"><code>wrangler secret put GOOGLE_KEY</code>。<b>絕對不要貼進 wrangler.toml</b>，那個會進 git</div></div></li>
+  <li data-k="6"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">建立 KV 命名空間</div><div class="sd"><code>wrangler kv namespace create liming-invite-cache</code>，綁進 <code>wrangler.toml</code></div></div></li>
+  <li data-k="7"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">先讓 Worker 讀得到試算表</div><div class="sd">簽 JWT → 換權杖 → 讀一列印出來。<b>這是整套最容易卡的一步，先單獨做通</b></div></div></li>
+  <li data-k="8"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">雲端硬碟建兩個資料夾，權限設「知道連結的人可檢視」</div><div class="sd">海報、附件各一個，資料夾 ID 填進 <code>wrangler.toml</code></div></div></li>
+  <li data-k="9"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">把〈給慕道者的信〉改成模板，塞測試資料</div><div class="sd">原稿的 <code>ＸＸ</code> 換成 <code>{對象}</code> 和 <code>{邀請人}</code>。順便手動填 2 筆活動、1 筆附件、1 筆邀請</div></div></li>
+  <li data-k="10"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">做公開邀請卡的渲染 ＋ KV 快取</div><div class="sd">原型的版面直接沿用，改成 Worker 在伺服器端組 HTML。<b>先做這個</b>，看得到東西才有動力</div></div></li>
+  <li data-k="11"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">做圖片代理 <code>/img/&lt;檔案 ID&gt;</code></div><div class="sd">用 Cache API 快取，確認海報載得出來</div></div></li>
+  <li data-k="12"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">做維護介面的「邀請名單」頁籤</div><div class="sd">能新增、能產生代碼、能複製連結就夠了，其他頁籤之後再補。<br>寫入時記得同步更新 KV</div></div></li>
+  <li data-k="13"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">搬 DNS 到 Cloudflare，掛上子網域</div><div class="sd"><b>先抄下 Wix 現有的所有 DNS 記錄</b>，尤其 MX。GitHub Pages 那幾筆設成「僅 DNS」</div></div></li>
+  <li data-k="14"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">設定 Cloudflare Access</div><div class="sd">保護 <code>/admin</code> 和 <code>/api/*</code>，列出允許的 email。<b>用無痕視窗確認擋得住</b></div></div></li>
+  <li data-k="15"><input type="checkbox" tabindex="-1"><div class="bd"><div class="st">端到端測試</div><div class="sd">新增一筆 → 複製連結 → 用另一支手機從 LINE 開 → 確認預覽縮圖和標題有出來</div></div></li>
+</ol>
+<button class="reset" id="reset" type="button">清除打勾</button>
+
+
+<h2 id="s10"><span class="n">10</span>已定案與尚未決定</h2>
+
+<h3>2026-08-28 定案</h3>
+
+<div class="win">
+  <div class="h">記錄開啟次數與最後開啟</div>
+  <p>只記這兩欄，<b>不記 IP、不記每一次的時間點</b>。對關懷有用的資訊就是「他到底看了沒」。
+  預覽爬蟲不計數，寫入放在回應之後——見第 3 節。</p>
+</div>
+
+<div class="win">
+  <div class="h">見證先當圖片看，之後可能升級網頁版</div>
+  <p>PDF 留在雲端硬碟，事先轉成 6 張長邊 1600 px 的圖片。
+  <b>幾乎都是手機在看，圖不能小</b>。呈現方式與尺寸見第 3 節。</p>
+</div>
+
+<div class="win">
+  <div class="h">雲端硬碟檔案一律「知道連結的人可檢視」，以好作業為準</div>
+  <p>維護時只要把檔案丟進資料夾、複製連結貼進試算表，不用逐一設權限。
+  Worker 讀檔走服務帳戶權杖 ＋ Drive API，不靠公開網址。</p>
+</div>
+
+<h3>還沒決定</h3>
+
+<ul class="plain">
+  <li><b>邀請人要不要建一張表</b>　現在是自由輸入。建表可以避免「陳志成／陳誌成」這種不一致，但多一層維護</li>
+  <li><b>卡片要不要能回覆</b>　「我想參加」如果要真的能按，就需要再開一張表，公開路徑也必須開放寫入——會需要防灌水機制</li>
+  <li><b>要不要順便把活動快報也搬到 Cloudflare</b>　DNS 搬過去之後這件事會變得很容易，但那是另一個決定，不要跟這個專案綁在一起</li>
+</ul>
+
+<div class="foot">
+  規格 Rev 4 · 2026-08-28　|　原型：<a href="https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89">黎明邀請卡</a>
+</div>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var KEY = 'invite-spec-steps-v2';
+  var list = document.getElementById('steps');
+  var reset = document.getElementById('reset');
+
+  function load(){
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}'); }
+    catch(e){ return {}; }
+  }
+  function save(s){
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e){}
+  }
+
+  var state = load();
+
+  function paint(){
+    [].forEach.call(list.children, function(li){
+      var on = !!state[li.dataset.k];
+      li.classList.toggle('done', on);
+      li.querySelector('input').checked = on;
+    });
+  }
+
+  list.addEventListener('click', function(e){
+    var li = e.target.closest('li[data-k]');
+    if (!li) return;
+    var k = li.dataset.k;
+    if (state[k]) delete state[k]; else state[k] = true;
+    save(state);
+    paint();
+  });
+
+  reset.addEventListener('click', function(){
+    state = {};
+    save(state);
+    paint();
+  });
+
+  paint();
+})();
+</script>

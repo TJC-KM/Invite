@@ -1,0 +1,14 @@
+# Claude Code 本機工作階段設定
+.claude/
+
+# Node / Wrangler
+node_modules/
+.wrangler/
+
+# 本機開發用的設定與密鑰（絕對不要進版控）
+.dev.vars
+
+# 服務帳戶金鑰。下載下來的檔名通常長這樣，寧可全擋
+*.json
+!package.json
+!package-lock.json

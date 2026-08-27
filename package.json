@@ -1,0 +1,13 @@
+{
+  "name": "liming-invite",
+  "private": true,
+  "version": "0.1.0",
+  "description": "黎明教會 個人化邀請卡（Cloudflare Worker + Google 試算表）",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

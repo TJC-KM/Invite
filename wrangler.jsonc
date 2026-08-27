@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "liming-invite",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-08-01",
+  "observability": {
+    "enabled": true
+  },
+
+  // 註：wrangler 預設就把 .html 當文字模組，
+  // 所以 worker/index.js 裡的 import CARD from "./card.html" 不需要額外設定。
+  // 版面留在 .html 檔裡，就不會被 JS 的反引號和 ${} 咬到。
+
+  "vars": {
+    "CHURCH_NAME": "真耶穌教會　黎明教會",
+    "CHURCH_NAME_EN": "TRUE JESUS CHURCH",
+    "CHURCH_ADDRESS": "台中市南屯區大墩四街 460 號",
+    "CHURCH_PHONE": "04-2380-9800",
+    "CHURCH_MAP": "https://maps.app.goo.gl/",
+    "CHURCH_SITE": "https://li-ming-tjc.org",
+
+    // og:image 要絕對網址，LINE 不吃相對路徑。
+    // 部署後把這串換成實際的 workers.dev 網址，之後換子網域時再改一次。
+    "SITE_ORIGIN": "https://liming-invite.c3012312.workers.dev",
+
+    "SHEET_ID": "",
+    "POSTER_FOLDER": "",
+    "ATTACH_FOLDER": ""
+  }
+
+  // 服務帳戶金鑰不放這裡（這個檔案會進 git）：
+  //   wrangler secret put GOOGLE_KEY
+
+  // B4 建好 KV 之後補上：
+  // "kv_namespaces": [
+  //   { "binding": "CACHE", "id": "", "preview_id": "" }
+  // ]
+}
