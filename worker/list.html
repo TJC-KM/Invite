@@ -1,0 +1,124 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>邀請名單</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --paper:#f7f5fa; --surface:#fff; --line:#e2dded; --violet:#6a5a96;
+  --violet-soft:#efeaf7; --mute:#6f6a7d; --ink:#2a2637; --teal:#2c6e63;
+  --gold:#8f6220; --shadow:rgba(40,30,70,.09); --head:#f0ecf6;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#15131e; --surface:#1e1b2b; --line:#312c44; --violet:#a394d4;
+    --violet-soft:#272138; --mute:#948da8; --ink:#e9e5f2; --teal:#6fc4b3;
+    --gold:#d9ab5e; --shadow:rgba(0,0,0,.4); --head:#242032;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15131e; --surface:#1e1b2b; --line:#312c44; --violet:#a394d4;
+  --violet-soft:#272138; --mute:#948da8; --ink:#e9e5f2; --teal:#6fc4b3;
+  --gold:#d9ab5e; --shadow:rgba(0,0,0,.4); --head:#242032;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;background:var(--paper);color:var(--ink);line-height:1.7;
+  font-family:'Noto Sans TC',system-ui,sans-serif;font-weight:300;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px;margin:0 auto;padding:30px 18px 70px;}
+h1{font-size:1.3rem;font-weight:700;margin:0 0 4px;}
+.sub{color:var(--mute);font-size:.86rem;margin:0 0 20px;}
+.bar{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px;}
+button,.lnk{
+  font-family:inherit;font-size:.83rem;font-weight:500;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  border-radius:7px;padding:7px 13px;text-decoration:none;display:inline-block;
+}
+button:hover,.lnk:hover{border-color:var(--violet);color:var(--violet);}
+button.go{background:var(--violet);border-color:var(--violet);color:#fff;}
+:root[data-theme="dark"] button.go{color:#17141f;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.go{color:#17141f;}}
+
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:15px 17px;margin-bottom:10px;box-shadow:0 1px 3px var(--shadow);
+}
+.top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+.who{font-size:1.02rem;font-weight:500;}
+.pill{
+  font-size:.72rem;padding:2px 9px;border-radius:20px;border:1px solid var(--line);
+  color:var(--mute);white-space:nowrap;
+}
+.pill.sent{border-color:var(--teal);color:var(--teal);}
+.pill.off{border-color:var(--gold);color:var(--gold);}
+.pill.opened{border-color:var(--violet);color:var(--violet);}
+.meta{font-size:.82rem;color:var(--mute);margin:3px 0 10px;}
+.url{
+  font-family:'JetBrains Mono',monospace;font-size:.74rem;color:var(--violet);
+  background:var(--violet-soft);border-radius:5px;padding:3px 7px;
+  display:inline-block;margin-bottom:11px;word-break:break-all;
+}
+.acts{display:flex;gap:8px;flex-wrap:wrap;}
+.empty{color:var(--mute);font-size:.9rem;padding:26px 0;text-align:center;}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+  background:var(--violet);color:#fff;border-radius:8px;padding:9px 18px;
+  font-size:.86rem;opacity:0;transition:opacity .18s;pointer-events:none;
+}
+.toast.on{opacity:1;}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+
+<div class="wrap">
+  <h1>邀請名單</h1>
+  <p class="sub">{{count}} 筆　·　資料來自試算表，這頁只是好按　·　臨時頁面，維護介面做好就撤掉</p>
+
+  <div class="bar">
+    <button class="go" onclick="location.search='?t={{token}}&refresh=1'">重新整理快取</button>
+    <a class="lnk" href="{{sheetUrl}}" target="_blank" rel="noopener">開啟試算表</a>
+  </div>
+
+  {{rows}}
+</div>
+
+<div class="toast" id="toast">已複製</div>
+
+<script>
+(function(){
+  "use strict";
+  var toast = document.getElementById("toast");
+  function say(msg){
+    toast.textContent = msg;
+    toast.classList.add("on");
+    setTimeout(function(){ toast.classList.remove("on"); }, 1400);
+  }
+
+  document.addEventListener("click", function(e){
+    var btn = e.target.closest("[data-copy]");
+    if (!btn) return;
+    var text = btn.getAttribute("data-copy");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){ say("已複製"); },
+        function(){ fallback(text); });
+    } else {
+      fallback(text);
+    }
+  });
+
+  // LINE 內建瀏覽器等環境沒有 clipboard API，退回選取法
+  function fallback(text){
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); say("已複製"); }
+    catch (err) { say("複製失敗，請長按網址手動複製"); }
+    document.body.removeChild(ta);
+  }
+})();
+</script>

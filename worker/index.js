@@ -5,6 +5,7 @@
 
 import CARD_HTML from "./card.html";
 import NOTFOUND_HTML from "./notfound.html";
+import LIST_HTML from "./list.html";
 import { readSheet, updateCell, listFolder, fetchFile, fileMeta, getAccessToken } from "./google.js";
 
 const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
@@ -24,6 +25,10 @@ export default {
 
     // 暫時的自我診斷。要帶 DEBUG_TOKEN 才進得去，B6 驗完就刪掉
     if (path === "debug") return debug(url, env);
+
+    // 發送用的名單頁。同樣要帶金鑰——這頁看得到所有人的連結，
+    // 等 Cloudflare Access 上線（E4）就改成正式的 /admin
+    if (path === "list") return listPage(url, env);
 
     const code = path.toLowerCase();
     if (!CODE_RE.test(code)) return notFound();
@@ -258,16 +263,20 @@ function renderCard(inv, env) {
           .map((id, n) => `<img src="/img/${esc(id)}" alt="${esc(a.名稱)} 第 ${n + 1} 頁" loading="lazy">`)
           .join("")}</div>`
       : "";
-    const 下載 = a.原始檔
-      ? `<a class="attach" href="/img/${esc(a.原始檔)}" target="_blank" rel="noopener">
-        <div class="ic">📄</div>
-        <div><div class="t">下載完整 PDF</div><div class="s">${esc(a.說明 || "")}</div></div>
+    // PDF 走 Google 的預覽頁，不走自家代理：
+    // 這些見證是 6 頁掃描、單檔十幾 MB，整份丟給手機下載要等十幾秒。
+    // Drive 的檢視器會逐頁串流，點下去就看得到第一頁
+    const 主檔 = a.原始檔 || (a.類型 !== "圖片集" ? (a.檔案 || [])[0] : "");
+    const 下載 = 主檔
+      ? `<a class="attach" href="https://drive.google.com/file/d/${esc(主檔)}/preview" target="_blank" rel="noopener">
+        <div class="ic">📖</div>
+        <div><div class="t">${esc(a.名稱)}</div><div class="s">${esc(a.說明 || "點開閱讀")}</div></div>
       </a>`
       : "";
     return `
   <div class="sec">
     <div class="sec-h">Enclosed</div>
-    <div class="ev-name">${esc(a.名稱)}</div>
+    ${頁 ? `<div class="ev-name">${esc(a.名稱)}</div>` : ""}
     ${頁}
     ${下載}
   </div>`;
@@ -315,6 +324,81 @@ function notFound() {
 // LINE、Facebook 那類預覽爬蟲：照樣給網頁，但不算開啟次數
 function isPreviewBot(ua) {
   return /line|facebookexternalhit|twitterbot|slackbot|whatsapp|discordbot|bot|crawler|spider/i.test(ua || "");
+}
+
+/* ────────────────────────────────────────────────
+   名單頁　—— 複製連結、預覽、用 LINE 傳送
+   ──────────────────────────────────────────────── */
+
+async function listPage(url, env) {
+  if (!env.DEBUG_TOKEN || url.searchParams.get("t") !== env.DEBUG_TOKEN) {
+    return notFound();
+  }
+
+  const 站台 = env.SITE_ORIGIN || url.origin;
+
+  if (url.searchParams.get("refresh") === "1" && env.CACHE) {
+    const 列 = await readSheet(env, 分頁.邀請);
+    await Promise.all([
+      env.CACHE.delete("cfg:v1"),
+      ...列.map((r) => env.CACHE.delete(`inv:${String(r.代碼 || "").toLowerCase()}`)),
+    ]);
+  }
+
+  const [列, cfg] = await Promise.all([readSheet(env, 分頁.邀請), loadConfig(env)]);
+
+  const rows = 列
+    .filter((r) => r.代碼)
+    .map((r) => {
+      const inv = 組合(r, cfg);
+      const 網址 = `${站台}/${r.代碼}`;
+      const 活動名 = inv.活動.map((e) => e.名稱).join("、") || "聚會";
+      const 訊息 =
+        `${r.對象姓名}${r.稱謂 || ""}平安，我是${r.邀請人}。
+` +
+        `誠摯邀請你參加${活動名}，這是給你的邀請卡：
+${網址}`;
+
+      const 狀態類 = r.狀態 === "已發送" ? "sent" : r.狀態 === "已停用" ? "off" : "";
+      const 次數 = Number(r.開啟次數) || 0;
+
+      return `
+  <div class="card">
+    <div class="top">
+      <span class="who">${esc(r.對象姓名)}${esc(r.稱謂 || "")}</span>
+      <span class="pill ${狀態類}">${esc(r.狀態 || "草稿")}</span>
+      ${次數 ? `<span class="pill opened">開啟 ${次數} 次</span>` : ""}
+    </div>
+    <div class="meta">${esc(r.邀請人)} 邀請　·　${esc(活動名)}${
+      inv.附件.length ? `　·　附 ${esc(inv.附件[0].名稱)}` : ""
+    }</div>
+    <div class="url">${esc(網址)}</div>
+    <div class="acts">
+      <button data-copy="${esc(網址)}">複製連結</button>
+      <a class="lnk" href="${esc(網址)}" target="_blank" rel="noopener">預覽</a>
+      <a class="lnk" href="https://line.me/R/msg/text/?${encodeURIComponent(訊息)}"
+         target="_blank" rel="noopener">用 LINE 傳送</a>
+      <button data-copy="${esc(訊息)}">複製訊息</button>
+    </div>
+  </div>`;
+    })
+    .join("\n");
+
+  const html = fill(LIST_HTML, {
+    count: 列.length,
+    token: esc(env.DEBUG_TOKEN),
+    sheetUrl: `https://docs.google.com/spreadsheets/d/${env.SHEET_ID}/edit`,
+    rows: rows || `<div class="empty">試算表裡還沒有邀請</div>`,
+  });
+
+  return new Response(html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      // 這頁列得出所有人的連結，別讓它被存進任何中間層
+      "x-robots-tag": "noindex, nofollow",
+    },
+  });
 }
 
 /* ────────────────────────────────────────────────
