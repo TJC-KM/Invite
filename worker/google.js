@@ -192,3 +192,32 @@ export async function fetchFile(env, fileId) {
     headers: { authorization: `Bearer ${token}` },
   });
 }
+
+// 新增一列。照標題列的順序組值，所以欄位順序被調動也不會錯位
+export async function appendRow(env, tab, 資料) {
+  const token = await getAccessToken(env);
+
+  const head = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${env.SHEET_ID}` +
+      `/values/${encodeURIComponent(`${tab}!A1:Z1`)}`,
+    { headers: { authorization: `Bearer ${token}` } }
+  ).then((r) => r.json());
+
+  const 標題 = (head.values && head.values[0]) || [];
+  if (!標題.length) throw new Error(`分頁「${tab}」沒有標題列`);
+  const values = [標題.map((h) => 資料[String(h).trim()] ?? "")];
+
+  const url =
+    `https://sheets.googleapis.com/v4/spreadsheets/${env.SHEET_ID}` +
+    `/values/${encodeURIComponent(`${tab}!A1`)}:append` +
+    `?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ values }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`新增到「${tab}」失敗 ${res.status}：${JSON.stringify(data)}`);
+  return data;
+}

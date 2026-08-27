@@ -1,0 +1,293 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>邀請卡維護</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --paper:#f7f5fa; --surface:#fff; --line:#e2dded; --violet:#6a5a96;
+  --violet-soft:#efeaf7; --mute:#6f6a7d; --ink:#2a2637; --teal:#2c6e63;
+  --gold:#8f6220; --shadow:rgba(40,30,70,.09); --head:#f0ecf6; --field:#fbfafd;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#15131e; --surface:#1e1b2b; --line:#312c44; --violet:#a394d4;
+    --violet-soft:#272138; --mute:#948da8; --ink:#e9e5f2; --teal:#6fc4b3;
+    --gold:#d9ab5e; --shadow:rgba(0,0,0,.4); --head:#242032; --field:#191622;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15131e; --surface:#1e1b2b; --line:#312c44; --violet:#a394d4;
+  --violet-soft:#272138; --mute:#948da8; --ink:#e9e5f2; --teal:#6fc4b3;
+  --gold:#d9ab5e; --shadow:rgba(0,0,0,.4); --head:#242032; --field:#191622;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;background:var(--paper);color:var(--ink);line-height:1.7;
+  font-family:'Noto Sans TC',system-ui,sans-serif;font-weight:300;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 18px 80px;}
+h1{font-size:1.32rem;font-weight:700;margin:0 0 3px;}
+.sub{color:var(--mute);font-size:.85rem;margin:0 0 22px;}
+h2{font-size:1rem;font-weight:500;margin:0 0 12px;}
+
+.cols{display:grid;grid-template-columns:380px minmax(0,1fr);gap:26px;align-items:start;}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr);}}
+.panel{position:sticky;top:20px;}
+@media (max-width:860px){.panel{position:static;}}
+
+.box{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:18px;box-shadow:0 1px 3px var(--shadow);
+}
+label{display:block;font-size:.81rem;font-weight:500;margin:0 0 4px;}
+label .opt{color:var(--mute);font-weight:400;}
+input[type=text],textarea,select{
+  width:100%;font-family:inherit;font-size:.87rem;font-weight:300;color:var(--ink);
+  background:var(--field);border:1px solid var(--line);border-radius:7px;padding:8px 10px;
+}
+textarea{resize:vertical;min-height:62px;line-height:1.6;}
+.fld{margin-bottom:13px;}
+.hint{font-size:.75rem;color:var(--mute);margin-top:3px;}
+.checks{display:flex;flex-direction:column;gap:6px;}
+.check{
+  display:flex;align-items:flex-start;gap:8px;font-size:.85rem;
+  border:1px solid var(--line);border-radius:7px;padding:8px 10px;cursor:pointer;
+}
+.check:hover{border-color:var(--violet);}
+.check input{margin:4px 0 0;accent-color:var(--violet);flex:none;}
+.check .d{color:var(--mute);font-size:.76rem;}
+
+button,.lnk{
+  font-family:inherit;font-size:.83rem;font-weight:500;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  border-radius:7px;padding:7px 13px;text-decoration:none;display:inline-block;
+}
+button:hover,.lnk:hover{border-color:var(--violet);color:var(--violet);}
+button.go{background:var(--violet);border-color:var(--violet);color:#fff;width:100%;padding:11px;font-size:.9rem;}
+:root[data-theme="dark"] button.go{color:#17141f;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.go{color:#17141f;}}
+button.go:hover{opacity:.88;color:#fff;}
+:root[data-theme="dark"] button.go:hover{color:#17141f;}
+button[disabled]{opacity:.5;cursor:default;}
+
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:14px 16px;margin-bottom:9px;box-shadow:0 1px 3px var(--shadow);
+}
+.card.off{opacity:.55;}
+.top{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;}
+.who{font-size:1rem;font-weight:500;}
+.pill{font-size:.71rem;padding:2px 9px;border-radius:20px;border:1px solid var(--line);color:var(--mute);white-space:nowrap;}
+.pill.sent{border-color:var(--teal);color:var(--teal);}
+.pill.off{border-color:var(--gold);color:var(--gold);}
+.pill.opened{border-color:var(--violet);color:var(--violet);}
+.meta{font-size:.81rem;color:var(--mute);margin:2px 0 9px;}
+.url{
+  font-family:'JetBrains Mono',monospace;font-size:.73rem;color:var(--violet);
+  background:var(--violet-soft);border-radius:5px;padding:3px 7px;
+  display:inline-block;margin-bottom:10px;word-break:break-all;
+}
+.acts{display:flex;gap:7px;flex-wrap:wrap;}
+.empty{color:var(--mute);font-size:.9rem;padding:26px 0;text-align:center;}
+
+.done{
+  border:1px solid var(--teal);background:var(--surface);border-radius:10px;
+  padding:16px;margin-bottom:14px;
+}
+.done .h{color:var(--teal);font-weight:500;font-size:.92rem;margin-bottom:7px;}
+.err{border-left:3px solid var(--gold);background:var(--surface);border-radius:0 8px 8px 0;padding:12px 15px;margin-bottom:13px;font-size:.85rem;color:var(--gold);}
+.hide{display:none;}
+.toast{
+  position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+  background:var(--violet);color:#fff;border-radius:8px;padding:9px 18px;
+  font-size:.85rem;opacity:0;transition:opacity .18s;pointer-events:none;
+}
+.toast.on{opacity:1;}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+
+<div class="wrap">
+  <h1>邀請卡維護</h1>
+  <p class="sub">{{count}} 筆邀請　·　資料存在試算表，這裡只是好操作</p>
+
+  <div class="cols">
+    <div class="panel">
+      <div class="box">
+        <h2>新增邀請</h2>
+
+        <div class="err hide" id="err"></div>
+        <div class="done hide" id="done">
+          <div class="h">連結產生好了</div>
+          <div class="url" id="doneUrl"></div>
+          <div class="acts">
+            <button data-copy id="doneCopy">複製連結</button>
+            <a class="lnk" id="donePreview" target="_blank" rel="noopener">預覽</a>
+            <a class="lnk" id="doneLine" target="_blank" rel="noopener">用 LINE 傳送</a>
+          </div>
+        </div>
+
+        <form id="f">
+          <div class="fld">
+            <label for="name">對象姓名</label>
+            <input type="text" id="name" name="對象姓名" required autocomplete="off">
+          </div>
+
+          <div class="fld">
+            <label for="hon">稱謂</label>
+            <select id="hon" name="稱謂">
+              <option>先生</option><option>小姐</option>
+              <option>弟兄</option><option>姊妹</option><option>平安</option>
+            </select>
+          </div>
+
+          <div class="fld">
+            <label for="from">邀請人</label>
+            <input type="text" id="from" name="邀請人" required autocomplete="off" list="fromList">
+            <datalist id="fromList">{{fromOptions}}</datalist>
+            <div class="hint">信末署名用這個</div>
+          </div>
+
+          <div class="fld">
+            <label>邀請參加<span class="opt">（可複選）</span></label>
+            <div class="checks">{{eventChecks}}</div>
+          </div>
+
+          <div class="fld">
+            <label for="tmpl">信件模板</label>
+            <select id="tmpl" name="信件模板">{{tmplOptions}}</select>
+          </div>
+
+          <div class="fld">
+            <label for="open">個人化開場 <span class="opt">選填</span></label>
+            <textarea id="open" name="個人化開場" placeholder="小雯，好久不見！上次聊到工作的壓力，我一直記在心上……"></textarea>
+            <div class="hint">放在信的最前面。收到的人一眼就知道不是群發</div>
+          </div>
+
+          <div class="fld">
+            <label for="att">附件 <span class="opt">選填</span></label>
+            <select id="att" name="附件">
+              <option value="">（不附）</option>
+              {{attachOptions}}
+            </select>
+            <div class="hint">挑一篇跟對方處境接近的見證</div>
+          </div>
+
+          <button class="go" type="submit" id="submit">產生邀請連結</button>
+        </form>
+      </div>
+    </div>
+
+    <div>
+      <div class="bar">
+        <button onclick="location.search='?t={{token}}&refresh=1'">重新整理快取</button>
+        <a class="lnk" href="{{sheetUrl}}" target="_blank" rel="noopener">開啟試算表</a>
+      </div>
+      {{rows}}
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已複製</div>
+
+<script>
+(function(){
+  "use strict";
+  var TOKEN = "{{token}}";
+  var ORIGIN = "{{origin}}";
+  var toast = document.getElementById("toast");
+
+  function say(msg){
+    toast.textContent = msg;
+    toast.classList.add("on");
+    setTimeout(function(){ toast.classList.remove("on"); }, 1400);
+  }
+
+  function copy(text){
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){ say("已複製"); }, function(){ fallback(text); });
+    } else { fallback(text); }
+  }
+  function fallback(text){
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); say("已複製"); }
+    catch (e) { say("複製失敗，請長按網址手動複製"); }
+    document.body.removeChild(ta);
+  }
+
+  document.addEventListener("click", function(e){
+    var c = e.target.closest("[data-copy]");
+    if (c && c.getAttribute("data-copy")) { copy(c.getAttribute("data-copy")); return; }
+
+    var act = e.target.closest("[data-act]");
+    if (act) {
+      var code = act.getAttribute("data-code");
+      var 狀態 = act.getAttribute("data-act");
+      act.disabled = true;
+      act.textContent = "處理中…";
+      fetch("/api/status?t=" + encodeURIComponent(TOKEN), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ 代碼: code, 狀態: 狀態 })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.ok) { location.reload(); }
+        else { say(d.error || "改不動"); act.disabled = false; }
+      }).catch(function(){ say("連線失敗"); act.disabled = false; });
+    }
+  });
+
+  var f = document.getElementById("f");
+  var err = document.getElementById("err");
+  var done = document.getElementById("done");
+
+  f.addEventListener("submit", function(e){
+    e.preventDefault();
+    err.classList.add("hide");
+    var btn = document.getElementById("submit");
+    btn.disabled = true;
+    btn.textContent = "產生中…";
+
+    var data = {};
+    ["對象姓名","稱謂","邀請人","信件模板","個人化開場","附件"].forEach(function(k){
+      var el = f.querySelector('[name="' + k + '"]');
+      data[k] = el ? el.value.trim() : "";
+    });
+    data["活動"] = [].slice.call(f.querySelectorAll('input[name="活動"]:checked'))
+      .map(function(i){ return i.value; }).join(",");
+
+    fetch("/api/invite?t=" + encodeURIComponent(TOKEN), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(data)
+    }).then(function(r){ return r.json(); }).then(function(d){
+      btn.disabled = false;
+      btn.textContent = "產生邀請連結";
+      if (!d.ok) {
+        err.textContent = d.error || "新增失敗";
+        err.classList.remove("hide");
+        return;
+      }
+      var url = ORIGIN + "/" + d.代碼;
+      document.getElementById("doneUrl").textContent = url;
+      document.getElementById("doneCopy").setAttribute("data-copy", url);
+      document.getElementById("donePreview").href = url;
+      document.getElementById("doneLine").href =
+        "https://line.me/R/msg/text/?" + encodeURIComponent(d.訊息);
+      done.classList.remove("hide");
+      f.reset();
+      say("已新增");
+      setTimeout(function(){ location.reload(); }, 2500);
+    }).catch(function(){
+      btn.disabled = false;
+      btn.textContent = "產生邀請連結";
+      err.textContent = "連線失敗，請再試一次";
+      err.classList.remove("hide");
+    });
+  });
+})();
+</script>

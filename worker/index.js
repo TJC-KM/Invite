@@ -5,8 +5,8 @@
 
 import CARD_HTML from "./card.html";
 import NOTFOUND_HTML from "./notfound.html";
-import LIST_HTML from "./list.html";
-import { readSheet, updateCell, listFolder, fetchFile } from "./google.js";
+import ADMIN_HTML from "./admin.html";
+import { readSheet, updateCell, appendRow, listFolder, fetchFile } from "./google.js";
 
 const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
 
@@ -23,9 +23,9 @@ export default {
       return imageProxy(path.slice(4), env, ctx);
     }
 
-    // 發送用的名單頁。同樣要帶金鑰——這頁看得到所有人的連結，
-    // 等 Cloudflare Access 上線（E4）就改成正式的 /admin，金鑰那層也拿掉
-    if (path === "list") return listPage(url, env);
+    // 維護介面與它的讀寫 API。現在用金鑰擋，Access 上線（E4）後改用 email 白名單
+    if (path === "admin" || path === "list") return adminPage(url, env);
+    if (path.startsWith("api/")) return api(path.slice(4), request, url, env);
 
     const code = path.toLowerCase();
     if (!CODE_RE.test(code)) return notFound();
@@ -324,10 +324,10 @@ function isPreviewBot(ua) {
 }
 
 /* ────────────────────────────────────────────────
-   名單頁　—— 複製連結、預覽、用 LINE 傳送
+   維護介面　—— 新增邀請、複製連結、用 LINE 傳送、停用
    ──────────────────────────────────────────────── */
 
-async function listPage(url, env) {
+async function adminPage(url, env) {
   if (!env.LIST_TOKEN || url.searchParams.get("t") !== env.LIST_TOKEN) {
     return notFound();
   }
@@ -356,11 +356,12 @@ async function listPage(url, env) {
         `誠摯邀請你參加${活動名}，這是給你的邀請卡：
 ${網址}`;
 
-      const 狀態類 = r.狀態 === "已發送" ? "sent" : r.狀態 === "已停用" ? "off" : "";
+      const 停用了 = r.狀態 === "已停用";
+      const 狀態類 = r.狀態 === "已發送" ? "sent" : 停用了 ? "off" : "";
       const 次數 = Number(r.開啟次數) || 0;
 
       return `
-  <div class="card">
+  <div class="card${停用了 ? " off" : ""}">
     <div class="top">
       <span class="who">${esc(r.對象姓名)}${esc(r.稱謂 || "")}</span>
       <span class="pill ${狀態類}">${esc(r.狀態 || "草稿")}</span>
@@ -376,16 +377,40 @@ ${網址}`;
       <a class="lnk" href="https://line.me/R/msg/text/?${encodeURIComponent(訊息)}"
          target="_blank" rel="noopener">用 LINE 傳送</a>
       <button data-copy="${esc(訊息)}">複製訊息</button>
+      ${停用了
+        ? `<button data-act="草稿" data-code="${esc(r.代碼)}">恢復</button>`
+        : `<button data-act="已發送" data-code="${esc(r.代碼)}">標記已發送</button>
+      <button data-act="已停用" data-code="${esc(r.代碼)}">停用</button>`}
     </div>
   </div>`;
     })
     .join("\n");
 
-  const html = fill(LIST_HTML, {
+  const 啟用中 = (清單) => 清單.filter((x) => 有效(x.啟用));
+
+  const html = fill(ADMIN_HTML, {
     count: 列.length,
     token: esc(env.LIST_TOKEN),
+    origin: esc(站台),
     sheetUrl: `https://docs.google.com/spreadsheets/d/${env.SHEET_ID}/edit`,
-    rows: rows || `<div class="empty">試算表裡還沒有邀請</div>`,
+    rows: rows || `<div class="empty">還沒有邀請。用左邊的表單加第一筆</div>`,
+
+    eventChecks: 啟用中(cfg.活動).map((e) => `
+      <label class="check">
+        <input type="checkbox" name="活動" value="${esc(e.活動代號)}">
+        <span>${esc(e.名稱)}<br><span class="d">${esc(e.日期 || "")} ${esc(e.時間 || "")}</span></span>
+      </label>`).join(""),
+
+    tmplOptions: 啟用中(cfg.模板)
+      .map((t) => `<option value="${esc(t.模板代號)}">${esc(t.名稱 || t.模板代號)}</option>`)
+      .join(""),
+
+    // 54 篇見證照主題分組，不然選單會是一條看不完的長清單
+    attachOptions: 分組附件(啟用中(cfg.附件)),
+
+    // 邀請人打過一次就會出現在建議清單裡，避免「陳志成／陳誌成」
+    fromOptions: [...new Set(列.map((r) => r.邀請人).filter(Boolean))]
+      .map((n) => `<option value="${esc(n)}"></option>`).join(""),
   });
 
   return new Response(html, {
@@ -395,6 +420,132 @@ ${網址}`;
       // 這頁列得出所有人的連結，別讓它被存進任何中間層
       "x-robots-tag": "noindex, nofollow",
     },
+  });
+}
+
+// 附件代號長這樣：04-04-禱告生活-蘇真玉。中間那段是主題，拿來分組
+function 分組附件(附件) {
+  const 群 = new Map();
+  for (const a of 附件) {
+    const m = String(a.附件代號).match(/^\d+-\d+-([^-]+)-/);
+    const 主題 = m ? m[1] : "其他";
+    if (!群.has(主題)) 群.set(主題, []);
+    群.get(主題).push(a);
+  }
+  return [...群]
+    .map(([主題, 清單]) => `<optgroup label="${esc(主題)}">${清單
+      .map((a) => `<option value="${esc(a.附件代號)}">${esc(a.名稱)}</option>`)
+      .join("")}</optgroup>`)
+    .join("");
+}
+
+/* ────────────────────────────────────────────────
+   寫入 API　—— 施做計畫 E1
+   ──────────────────────────────────────────────── */
+
+async function api(動作, request, url, env) {
+  if (!env.LIST_TOKEN || url.searchParams.get("t") !== env.LIST_TOKEN) return notFound();
+  if (request.method !== "POST") return json({ ok: false, error: "只收 POST" }, 405);
+
+  try {
+    const body = await request.json();
+    if (動作 === "invite") return await 新增邀請(body, env, url);
+    if (動作 === "status") return await 改狀態(body, env);
+    return notFound();
+  } catch (e) {
+    return json({ ok: false, error: e.message }, 500);
+  }
+}
+
+async function 新增邀請(body, env, url) {
+  const 姓名 = String(body.對象姓名 || "").trim();
+  const 邀請人 = String(body.邀請人 || "").trim();
+  if (!姓名) return json({ ok: false, error: "要填對象姓名" }, 400);
+  if (!邀請人) return json({ ok: false, error: "要填邀請人" }, 400);
+
+  const 既有 = await readSheet(env, 分頁.邀請);
+  const 用過 = new Set(既有.map((r) => String(r.代碼 || "").toLowerCase()));
+
+  let 代碼 = "";
+  for (let i = 0; i < 20 && !代碼; i++) {
+    const 試 = 產生代碼();
+    if (!用過.has(試)) 代碼 = 試;
+  }
+  if (!代碼) return json({ ok: false, error: "產不出沒撞到的代碼，再試一次" }, 500);
+
+  await appendRow(env, 分頁.邀請, {
+    代碼,
+    對象姓名: 姓名,
+    稱謂: String(body.稱謂 || "").trim(),
+    邀請人,
+    活動: String(body.活動 || "").trim(),
+    信件模板: String(body.信件模板 || "").trim(),
+    個人化開場: String(body.個人化開場 || "").trim(),
+    客製內文: "",
+    附件: String(body.附件 || "").trim(),
+    狀態: "草稿",
+    建立時間: 台北時間(),
+    建立者: "維護介面",
+    開啟次數: 0,
+    最後開啟: "",
+  });
+
+  // 寫進試算表的同時就把快取清掉，連結產生當下就是對的（規格第 2 節）
+  if (env.CACHE) await env.CACHE.delete("cfg:v1");
+
+  const cfg = await loadConfig(env);
+  const 活動名 = 逗號(body.活動)
+    .map((代號) => (cfg.活動.find((e) => e.活動代號 === 代號) || {}).名稱)
+    .filter(Boolean)
+    .join("、") || "聚會";
+  const 網址 = `${env.SITE_ORIGIN || url.origin}/${代碼}`;
+
+  return json({
+    ok: true,
+    代碼,
+    網址,
+    訊息:
+      `${姓名}${body.稱謂 || ""}平安，我是${邀請人}。\n` +
+      `誠摯邀請你參加${活動名}，這是給你的邀請卡：\n${網址}`,
+  });
+}
+
+async function 改狀態(body, env) {
+  const 代碼 = String(body.代碼 || "").toLowerCase();
+  const 狀態 = String(body.狀態 || "").trim();
+  if (!["草稿", "已發送", "已停用"].includes(狀態)) {
+    return json({ ok: false, error: "狀態只能是草稿／已發送／已停用" }, 400);
+  }
+
+  const 列 = await readSheet(env, 分頁.邀請);
+  const r = 列.find((x) => String(x.代碼 || "").toLowerCase() === 代碼);
+  if (!r) return json({ ok: false, error: "找不到這筆邀請" }, 404);
+
+  const 標題 = Object.keys(列[0]).filter((k) => k !== "_row");
+  const i = 標題.indexOf("狀態");
+  if (i < 0) return json({ ok: false, error: "試算表沒有「狀態」欄" }, 500);
+
+  await updateCell(env, 分頁.邀請, `${String.fromCharCode(65 + i)}${r._row}`, 狀態);
+  if (env.CACHE) await env.CACHE.delete(`inv:${代碼}`);
+
+  return json({ ok: true, 狀態 });
+}
+
+// 字集刻意拿掉 0 1 i l o，念出來或手打才不會混（規格第 8 節）
+function 產生代碼() {
+  const A = "23456789abcdefghjkmnpqrstuvwxyz";
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  return [...bytes].map((b) => A[b % A.length]).join("");
+}
+
+function 台北時間() {
+  return new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false });
+}
+
+function json(obj, status = 200) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
   });
 }
 
