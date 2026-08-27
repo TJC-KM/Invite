@@ -95,16 +95,18 @@ async function loadConfig(env) {
 
   // 附件沒填檔案 ID 時，從雲端資料夾照檔名補。
   // 這樣維護的人只要把圖丟進資料夾，不用一個一個複製 ID
-  let 檔案清單 = [];
-  if (env.ATTACH_FOLDER && 附件.some((a) => !a.檔案)) {
-    try {
-      檔案清單 = await listFolder(env, env.ATTACH_FOLDER);
-    } catch (e) {
-      檔案清單 = []; // 列不出來就算了，有填 ID 的照樣能用
-    }
-  }
+  const 列資料夾 = async (id) => {
+    if (!id) return [];
+    try { return await listFolder(env, id); }
+    catch (e) { return []; } // 列不出來就算了，有填 ID 的照樣能用
+  };
 
-  const cfg = { 活動, 模板, 附件, 檔案清單 };
+  const [檔案清單, 海報清單] = await Promise.all([
+    附件.some((a) => !是ID(a.檔案)) ? 列資料夾(env.ATTACH_FOLDER) : [],
+    活動.some((e) => e.海報 && !是ID(e.海報)) ? 列資料夾(env.POSTER_FOLDER) : [],
+  ]);
+
+  const cfg = { 活動, 模板, 附件, 檔案清單, 海報清單 };
   if (env.CACHE) {
     await env.CACHE.put("cfg:v1", JSON.stringify(cfg), { expirationTtl: CACHE_TTL });
   }
@@ -114,7 +116,8 @@ async function loadConfig(env) {
 function 組合(r, cfg) {
   const 活動 = 逗號(r.活動)
     .map((代號) => cfg.活動.find((e) => e.活動代號 === 代號))
-    .filter((e) => e && 有效(e.啟用));
+    .filter((e) => e && 有效(e.啟用))
+    .map((e) => ({ ...e, 海報: 解析檔案(e.海報, cfg.海報清單) }));
 
   const 模板 = cfg.模板.find((t) => t.模板代號 === r.信件模板 && 有效(t.啟用));
   const 信件內文 = 模板 ? String(模板.內文).split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean) : [];
@@ -126,7 +129,9 @@ function 組合(r, cfg) {
       名稱: a.名稱,
       說明: a.說明,
       類型: a.類型,
-      檔案: a.檔案 ? 逗號(a.檔案) : 依檔名找(cfg.檔案清單, a),
+      檔案: a.檔案
+        ? 逗號(a.檔案).map((v) => 解析檔案(v, cfg.檔案清單)).filter(Boolean)
+        : 依檔名找(cfg.檔案清單, a),
       原始檔: a.原始檔 || 找PDF(cfg.檔案清單, a),
     }));
 
@@ -144,6 +149,25 @@ function 組合(r, cfg) {
     附件,
     信件內文,
   };
+}
+
+// 雲端硬碟的檔案 ID 長這樣：25 個字以上的英數與 - _
+const 是ID = (v) => /^[\w-]{25,}$/.test(String(v ?? "").trim());
+
+// 「海報」和「檔案」欄可以填三種東西，維護的人用哪種順手就用哪種：
+//   1. 檔案 ID
+//   2. 雲端硬碟的分享連結（貼上就好，程式自己抽 ID）
+//   3. 檔名開頭，例如 2026-09-20 —— 海報資料夾本來就用日期當檔名
+function 解析檔案(值, 清單) {
+  const v = String(值 ?? "").trim();
+  if (!v) return "";
+  if (是ID(v)) return v;
+
+  const 連結 = v.match(/\/d\/([\w-]{25,})|[?&]id=([\w-]{25,})/);
+  if (連結) return 連結[1] || 連結[2];
+
+  const f = (清單 || []).find((x) => x.name.startsWith(v));
+  return f ? f.id : "";
 }
 
 // 檔名以附件代號或名稱開頭的圖片，依檔名排序就是頁序
@@ -320,6 +344,12 @@ async function debug(url, env) {
       };
     });
   }
+
+  await 記("海報資料夾", async () => {
+    if (!env.POSTER_FOLDER) return "（沒設定）";
+    const files = await listFolder(env, env.POSTER_FOLDER);
+    return files.map((f) => ({ id: f.id, name: f.name, mimeType: f.mimeType }));
+  });
 
   await 記("雲端資料夾", async () => {
     if (!env.ATTACH_FOLDER) return "（沒設定）";
