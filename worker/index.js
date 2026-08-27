@@ -342,7 +342,20 @@ async function adminPage(url, env) {
     ]);
   }
 
-  const [列, cfg] = await Promise.all([readSheet(env, 分頁.邀請), loadConfig(env)]);
+  const [全部, cfg] = await Promise.all([readSheet(env, 分頁.邀請), loadConfig(env)]);
+
+  // 邀請人清單先算出來，這是唯一會無條件出現在頁面上的名單
+  const 邀請人們 = [...全部.reduce((m, r) => {
+    const n = String(r.邀請人 || "").trim();
+    if (n) m.set(n, (m.get(n) || 0) + 1);
+    return m;
+  }, new Map())].sort((a, b) => b[1] - a[1]);
+
+  // 沒指定邀請人就什麼都不列。名單是別人的個資，不該一打開就攤在畫面上
+  const 查詢 = String(url.searchParams.get("from") || "").trim();
+  const 列 = 查詢
+    ? 全部.filter((r) => String(r.邀請人 || "").trim() === 查詢)
+    : [];
 
   const rows = 列
     .filter((r) => r.代碼)
@@ -388,12 +401,22 @@ ${網址}`;
 
   const 啟用中 = (清單) => 清單.filter((x) => 有效(x.啟用));
 
+  const 提示 = 查詢
+    ? `<div class="ask">${esc(查詢)} 目前沒有邀請</div>`
+    : `<div class="ask">選一位邀請人，或在上面輸入姓名<br>
+      <span style="font-size:.82rem">名單不會一次全部列出來——那是別人的個資</span></div>`;
+
   const html = fill(ADMIN_HTML, {
-    count: 列.length,
+    count: 全部.length,
     token: esc(env.LIST_TOKEN),
     origin: esc(站台),
-    sheetUrl: `https://docs.google.com/spreadsheets/d/${env.SHEET_ID}/edit`,
-    rows: rows || `<div class="empty">還沒有邀請。用左邊的表單加第一筆</div>`,
+    from: esc(查詢),
+    rows: rows || 提示,
+
+    fromChips: 邀請人們
+      .map(([n, c]) =>
+        `<a class="chip${n === 查詢 ? " on" : ""}" href="/admin?t=${encodeURIComponent(env.LIST_TOKEN)}&from=${encodeURIComponent(n)}">${esc(n)}<span class="n">${c}</span></a>`)
+      .join(""),
 
     eventChecks: 啟用中(cfg.活動).map((e) => `
       <label class="check">
@@ -409,8 +432,8 @@ ${網址}`;
     attachOptions: 分組附件(啟用中(cfg.附件)),
 
     // 邀請人打過一次就會出現在建議清單裡，避免「陳志成／陳誌成」
-    fromOptions: [...new Set(列.map((r) => r.邀請人).filter(Boolean))]
-      .map((n) => `<option value="${esc(n)}"></option>`).join(""),
+    fromOptions: 邀請人們
+      .map(([n]) => `<option value="${esc(n)}"></option>`).join(""),
   });
 
   return new Response(html, {

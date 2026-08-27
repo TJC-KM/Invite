@@ -73,6 +73,25 @@ button.go:hover{opacity:.88;color:#fff;}
 button[disabled]{opacity:.5;cursor:default;}
 
 .bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.find{
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+  padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 3px var(--shadow);
+}
+.findrow{display:flex;gap:8px;}
+.findrow input{flex:1;}
+.findrow button{white-space:nowrap;}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+.chip{
+  font-size:.8rem;border:1px solid var(--line);border-radius:20px;padding:4px 12px;
+  text-decoration:none;color:var(--mute);white-space:nowrap;
+}
+.chip:hover{border-color:var(--violet);color:var(--violet);}
+.chip.on{border-color:var(--violet);background:var(--violet-soft);color:var(--violet);font-weight:500;}
+.chip .n{font-family:'JetBrains Mono',monospace;font-size:.72rem;opacity:.7;margin-left:5px;}
+.ask{
+  color:var(--mute);font-size:.88rem;padding:34px 20px;text-align:center;
+  border:1px dashed var(--line);border-radius:10px;line-height:1.9;
+}
 .card{
   background:var(--surface);border:1px solid var(--line);border-radius:10px;
   padding:14px 16px;margin-bottom:9px;box-shadow:0 1px 3px var(--shadow);
@@ -112,7 +131,7 @@ button[disabled]{opacity:.5;cursor:default;}
 
 <div class="wrap">
   <h1>邀請卡維護</h1>
-  <p class="sub">{{count}} 筆邀請　·　資料存在試算表，這裡只是好操作</p>
+  <p class="sub">共 {{count}} 筆邀請　·　資料存在試算表，這裡只是好操作</p>
 
   <div class="cols">
     <div class="panel">
@@ -182,10 +201,18 @@ button[disabled]{opacity:.5;cursor:default;}
     </div>
 
     <div>
-      <div class="bar">
-        <button onclick="location.search='?t={{token}}&refresh=1'">重新整理快取</button>
-        <a class="lnk" href="{{sheetUrl}}" target="_blank" rel="noopener">開啟試算表</a>
-      </div>
+      <form class="find" method="get" action="/admin">
+        <input type="hidden" name="t" value="{{token}}">
+        <label for="findFrom">看誰的名單</label>
+        <div class="findrow">
+          <input type="text" id="findFrom" name="from" value="{{from}}"
+                 list="fromList2" placeholder="輸入邀請人姓名" autocomplete="off">
+          <button type="submit">查詢</button>
+        </div>
+        <datalist id="fromList2">{{fromOptions}}</datalist>
+        <div class="chips">{{fromChips}}</div>
+      </form>
+
       {{rows}}
     </div>
   </div>
@@ -281,7 +308,10 @@ button[disabled]{opacity:.5;cursor:default;}
       done.classList.remove("hide");
       f.reset();
       say("已新增");
-      setTimeout(function(){ location.reload(); }, 2500);
+      setTimeout(function(){
+        location.search = "?t=" + encodeURIComponent(TOKEN) +
+          "&from=" + encodeURIComponent(data["邀請人"]);
+      }, 2500);
     }).catch(function(){
       btn.disabled = false;
       btn.textContent = "產生邀請連結";

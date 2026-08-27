@@ -1,0 +1,15 @@
+{
+ "註冊商": "Tucows Domains Inc.",
+ "expiration": "2027-07-09",
+ "registration": "2024-07-09",
+ "last changed": "2026-08-12",
+ "last update of RDAP database": "2026-08-27",
+ "名稱伺服器": [
+  "ns2.wixdns.net",
+  "ns3.wixdns.net"
+ ],
+ "狀態": [
+  "client transfer prohibited",
+  "client update prohibited"
+ ]
+}
