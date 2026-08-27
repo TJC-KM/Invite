@@ -6,7 +6,7 @@
 import CARD_HTML from "./card.html";
 import NOTFOUND_HTML from "./notfound.html";
 import LIST_HTML from "./list.html";
-import { readSheet, updateCell, listFolder, fetchFile, fileMeta, getAccessToken } from "./google.js";
+import { readSheet, updateCell, listFolder, fetchFile } from "./google.js";
 
 const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
 
@@ -23,11 +23,8 @@ export default {
       return imageProxy(path.slice(4), env, ctx);
     }
 
-    // 暫時的自我診斷。要帶 DEBUG_TOKEN 才進得去，B6 驗完就刪掉
-    if (path === "debug") return debug(url, env);
-
     // 發送用的名單頁。同樣要帶金鑰——這頁看得到所有人的連結，
-    // 等 Cloudflare Access 上線（E4）就改成正式的 /admin
+    // 等 Cloudflare Access 上線（E4）就改成正式的 /admin，金鑰那層也拿掉
     if (path === "list") return listPage(url, env);
 
     const code = path.toLowerCase();
@@ -331,7 +328,7 @@ function isPreviewBot(ua) {
    ──────────────────────────────────────────────── */
 
 async function listPage(url, env) {
-  if (!env.DEBUG_TOKEN || url.searchParams.get("t") !== env.DEBUG_TOKEN) {
+  if (!env.LIST_TOKEN || url.searchParams.get("t") !== env.LIST_TOKEN) {
     return notFound();
   }
 
@@ -386,7 +383,7 @@ ${網址}`;
 
   const html = fill(LIST_HTML, {
     count: 列.length,
-    token: esc(env.DEBUG_TOKEN),
+    token: esc(env.LIST_TOKEN),
     sheetUrl: `https://docs.google.com/spreadsheets/d/${env.SHEET_ID}/edit`,
     rows: rows || `<div class="empty">試算表裡還沒有邀請</div>`,
   });
@@ -398,58 +395,6 @@ ${網址}`;
       // 這頁列得出所有人的連結，別讓它被存進任何中間層
       "x-robots-tag": "noindex, nofollow",
     },
-  });
-}
-
-/* ────────────────────────────────────────────────
-   自我診斷　—— 驗完就整段刪掉
-   ──────────────────────────────────────────────── */
-
-async function debug(url, env) {
-  if (!env.DEBUG_TOKEN || url.searchParams.get("t") !== env.DEBUG_TOKEN) {
-    return new Response("Not found", { status: 404 });
-  }
-
-  const out = {};
-  const 記 = async (名, fn) => {
-    try { out[名] = await fn(); }
-    catch (e) { out[名] = `✗ ${e.message}`; }
-  };
-
-  await 記("權杖", async () => ((await getAccessToken(env)) ? "✓ 換到了" : "✗"));
-
-  for (const tab of Object.values(分頁)) {
-    await 記(tab, async () => {
-      const rows = await readSheet(env, tab);
-      return {
-        筆數: rows.length,
-        標題列: Object.keys(rows[0] || {}).filter((k) => k !== "_row"),
-        第一筆: rows[0] || null,
-      };
-    });
-  }
-
-  await 記("海報資料夾", async () => {
-    if (!env.POSTER_FOLDER) return "（沒設定）";
-    const files = await listFolder(env, env.POSTER_FOLDER);
-    return files.map((f) => ({ id: f.id, name: f.name, mimeType: f.mimeType }));
-  });
-
-  await 記("雲端資料夾", async () => {
-    if (!env.ATTACH_FOLDER) return "（沒設定）";
-    const meta = await fileMeta(env, env.ATTACH_FOLDER);
-    const files = await listFolder(env, env.ATTACH_FOLDER);
-    return {
-      資料夾: meta.name,
-      在共用雲端硬碟: meta.driveId ? `是（${meta.driveId}）` : "否",
-      擁有者: (meta.owners || []).map((o) => o.emailAddress),
-      檔案數: files.length,
-      檔案: files.map((f) => ({ id: f.id, name: f.name, mimeType: f.mimeType })),
-    };
-  });
-
-  return new Response(JSON.stringify(out, null, 2), {
-    headers: { "content-type": "application/json; charset=utf-8" },
   });
 }
 

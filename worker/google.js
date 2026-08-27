@@ -192,16 +192,3 @@ export async function fetchFile(env, fileId) {
     headers: { authorization: `Bearer ${token}` },
   });
 }
-
-// 診斷用：確認服務帳戶看不看得到這個資料夾本身
-export async function fileMeta(env, fileId) {
-  const token = await getAccessToken(env);
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${fileId}` +
-    `?fields=id,name,mimeType,driveId,owners(emailAddress)&supportsAllDrives=true`,
-    { headers: { authorization: `Bearer ${token}` } }
-  );
-  const data = await res.json();
-  if (!res.ok) throw new Error(`讀檔案資訊失敗 ${res.status}：${JSON.stringify(data)}`);
-  return data;
-}
