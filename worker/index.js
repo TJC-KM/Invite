@@ -63,7 +63,7 @@ export default {
    ──────────────────────────────────────────────── */
 
 const 分頁 = { 邀請: "邀請名單", 活動: "活動", 模板: "信件模板", 附件: "附件", 設定: "設定檔" };
-const CACHE_TTL = 300; // 秒。直接改試算表最多五分鐘生效
+const CACHE_TTL = 120; // 秒。只作用在公開卡片；維護介面一律讀即時資料
 
 // 「否」才算停用，空白一律當啟用——欄位沒填不該讓東西消失
 const 有效 = (v) => String(v ?? "").trim() !== "否";
@@ -92,8 +92,10 @@ async function loadInvite(code, env) {
 }
 
 // 活動、模板、附件三張表一起快取。它們被所有邀請共用
-async function loadConfig(env) {
-  if (env.CACHE) {
+// 維護介面一律傳 { 即時: true }：那裡的人剛改完試算表，
+// 看到五分鐘前的舊資料只會以為壞了。公開卡片才需要快取擋在前面
+async function loadConfig(env, { 即時 = false } = {}) {
+  if (env.CACHE && !即時) {
     const hit = await env.CACHE.get("cfg:v1", "json");
     if (hit) return hit;
   }
@@ -403,7 +405,10 @@ async function adminPage(url, env) {
     ]);
   }
 
-  const [全部, cfg] = await Promise.all([readSheet(env, 分頁.邀請), loadConfig(env)]);
+  const [全部, cfg] = await Promise.all([
+    readSheet(env, 分頁.邀請),
+    loadConfig(env, { 即時: true }),
+  ]);
 
   // 邀請人清單先算出來，這是唯一會無條件出現在頁面上的名單
   const 邀請人們 = [...全部.reduce((m, r) => {
@@ -626,7 +631,9 @@ async function 匯入活動(body, env) {
   const 要的 = new Set((body.檔案 || []).map(String));
   if (!要的.size) return json({ ok: false, error: "沒有勾選任何海報" }, 400);
 
-  const cfg = await loadConfig(env);
+  // 這裡讀快取會出事：兩個人同時匯入，晚的那個看到的是舊清單，
+  // 就會把同一場再寫一次
+  const cfg = await loadConfig(env, { 即時: true });
   const { 可匯入 } = await 海報候選(env, cfg);
   const 地點 = 文案(cfg.文案, "預設地點", {}) || "黎明教會";
 
@@ -726,7 +733,7 @@ async function 新增邀請(body, env, url) {
   // 寫進試算表的同時就把快取清掉，連結產生當下就是對的（規格第 2 節）
   if (env.CACHE) await env.CACHE.delete("cfg:v1");
 
-  const cfg = await loadConfig(env);
+  const cfg = await loadConfig(env, { 即時: true });
   const 活動名 = 逗號(body.活動)
     .map((代號) => (cfg.活動.find((e) => e.活動代號 === 代號) || {}).名稱)
     .filter(Boolean)
