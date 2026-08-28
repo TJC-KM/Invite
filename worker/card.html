@@ -157,6 +157,12 @@ body{
 .btn-1{background:var(--violet);color:#fff;}
 @media (prefers-color-scheme:dark){.btn-1{color:#17141f;}}
 .btn-2{border-color:var(--line);color:var(--ink);}
+button.btn{width:100%;font-family:inherit;cursor:pointer;}
+button.btn[disabled]{opacity:.55;cursor:default;}
+.joined{
+  border:1px solid var(--teal,#2c6e63);color:var(--teal,#2c6e63);
+  border-radius:8px;padding:12px;text-align:center;font-size:.87rem;line-height:1.6;
+}
 
 .foot{
   padding:17px 24px 26px;text-align:center;font-size:.72rem;color:var(--mute);
@@ -194,13 +200,57 @@ a:focus-visible,.attach:focus-visible{outline:2px solid var(--violet);outline-of
 
   <div class="sec">
     <div class="cta">
-      <a class="btn btn-1" href="{{mapUrl}}" target="_blank" rel="noopener">查看地圖</a>
-      <a class="btn btn-2" href="tel:{{churchPhone}}">打電話問教會</a>
+      <button class="btn btn-1" id="join" type="button" data-code="{{code}}">我要參加</button>
+      <div class="joined" id="joined" hidden>
+        已經收到了，{{from}}會再跟你聯絡　🙏
+      </div>
+      <a class="btn btn-2" href="{{mapUrl}}" target="_blank" rel="noopener">查看地圖</a>
     </div>
   </div>
 
   <div class="foot">{{churchZh}}　li-ming-tjc.org</div>
-
 </div>
+
+<script>
+(function(){
+  "use strict";
+  var btn = document.getElementById("join");
+  var ok = document.getElementById("joined");
+  if (!btn) return;
+  var code = btn.getAttribute("data-code");
+  var mark = "joined:" + code;
+
+  // 已經按過就直接顯示結果，不讓人重複按（伺服器端也擋，這裡只是體貼）
+  try { if (localStorage.getItem(mark)) { show(); return; } } catch (e) {}
+
+  function show(){
+    btn.hidden = true;
+    ok.hidden = false;
+  }
+
+  btn.addEventListener("click", function(){
+    btn.disabled = true;
+    btn.textContent = "送出中…";
+    fetch("/api/rsvp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ 代碼: code })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (d && d.ok) {
+        try { localStorage.setItem(mark, "1"); } catch (e) {}
+        show();
+      } else {
+        btn.disabled = false;
+        btn.textContent = "再試一次";
+      }
+    }).catch(function(){
+      btn.disabled = false;
+      btn.textContent = "再試一次";
+    });
+  });
+})();
+</script>
+
+
 </body>
 </html>

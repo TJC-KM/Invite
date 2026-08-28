@@ -21,7 +21,7 @@
 
     // og:image 要絕對網址，LINE 不吃相對路徑。
     // 部署後把這串換成實際的 workers.dev 網址，之後換子網域時再改一次。
-    "SITE_ORIGIN": "https://liming-invite.c3012312.workers.dev",
+    "SITE_ORIGIN": "https://invite.liming-tjc.org",
 
     "SHEET_ID": "19NHEQ-5VRJbuTxZTrWPHJ9FlaTPGw2Rj1ZzBkIyEWik",
     "POSTER_FOLDER": "1kkkt_UT-ZYT36ti_nlXnChKjKVm6Hu00",
@@ -30,6 +30,15 @@
 
   // 服務帳戶金鑰不放這裡（這個檔案會進 git）：
   //   wrangler secret put GOOGLE_KEY
+
+  // 加了 routes 之後 workers.dev 預設會被關掉，這裡明確留著它：
+  // 新網域的 DNS 生效前不能有空窗，之前發出去的連結也還要能開
+  "workers_dev": true,
+
+  // 自訂網域。custom_domain 會順便在 DNS 建好記錄並簽憑證
+  "routes": [
+    { "pattern": "invite.liming-tjc.org", "custom_domain": true }
+  ],
 
   "kv_namespaces": [
     {

@@ -25,6 +25,8 @@ export default {
 
     // 維護介面與它的讀寫 API。現在用金鑰擋，Access 上線（E4）後改用 email 白名單
     if (path === "admin" || path === "list") return adminPage(url, env);
+    // 「我要參加」是公開的，不帶金鑰——但只認得完整正確的代碼
+    if (path === "api/rsvp") return rsvp(request, env);
     if (path.startsWith("api/")) return api(path.slice(4), request, url, env);
 
     const code = path.toLowerCase();
@@ -199,7 +201,7 @@ async function countOpen(code, invite, env) {
     const 標題 = Object.keys(邀請列[0] || {}).filter((k) => k !== "_row");
     const 欄 = (名) => {
       const i = 標題.indexOf(名);
-      return i < 0 ? null : String.fromCharCode(65 + i);
+      return i < 0 ? null : 欄名(i);
     };
 
     const c1 = 欄("開啟次數");
@@ -282,6 +284,7 @@ function renderCard(inv, env) {
   const 活動名 = 活動.map((e) => e.名稱).join("、");
 
   return fill(CARD_HTML, {
+    code: esc(inv.代碼 || ""),
     pageTitle: `${inv.邀請人} 邀請你參加${首場 ? 首場.名稱 : "聚會"}`,
     ogTitle: `${inv.邀請人} 邀請你參加${活動名 || "聚會"}`,
     ogDesc: 首場 ? `${首場.日期} ${首場.時間}　${首場.地點}` : "",
@@ -379,6 +382,8 @@ ${網址}`;
       <span class="who">${esc(r.對象姓名)}${esc(r.稱謂 || "")}</span>
       <span class="pill ${狀態類}">${esc(r.狀態 || "草稿")}</span>
       ${次數 ? `<span class="pill opened">開啟 ${次數} 次</span>` : ""}
+      ${String(r.回覆 || "").trim() === "我要參加"
+        ? `<span class="pill join">我要參加</span>` : ""}
     </div>
     <div class="meta">${esc(r.邀請人)} 邀請　·　${esc(活動名)}${
       inv.附件.length ? `　·　附 ${esc(inv.附件[0].名稱)}` : ""
@@ -472,12 +477,30 @@ async function api(動作, request, url, env) {
 
   try {
     const body = await request.json();
+    if (動作 === "setup") return await 補欄位(env);
     if (動作 === "invite") return await 新增邀請(body, env, url);
     if (動作 === "status") return await 改狀態(body, env);
     return notFound();
   } catch (e) {
     return json({ ok: false, error: e.message }, 500);
   }
+}
+
+// 「我要參加」需要兩個新欄位。跑一次就好，重複跑不會有事
+async function 補欄位(env) {
+  const 列 = await readSheet(env, 分頁.邀請);
+  const 標題 = Object.keys(列[0] || {}).filter((k) => k !== "_row");
+  const 加了 = [];
+
+  for (const 名 of ["回覆", "回覆時間"]) {
+    if (標題.includes(名)) continue;
+    await updateCell(env, 分頁.邀請, `${欄名(標題.length)}1`, 名);
+    標題.push(名);
+    加了.push(名);
+  }
+
+  if (env.CACHE) await env.CACHE.delete("cfg:v1");
+  return json({ ok: true, 加了, 現有欄位: 標題 });
 }
 
 async function 新增邀請(body, env, url) {
@@ -511,6 +534,8 @@ async function 新增邀請(body, env, url) {
     建立者: "維護介面",
     開啟次數: 0,
     最後開啟: "",
+    回覆: "",
+    回覆時間: "",
   });
 
   // 寫進試算表的同時就把快取清掉，連結產生當下就是對的（規格第 2 節）
@@ -548,10 +573,62 @@ async function 改狀態(body, env) {
   const i = 標題.indexOf("狀態");
   if (i < 0) return json({ ok: false, error: "試算表沒有「狀態」欄" }, 500);
 
-  await updateCell(env, 分頁.邀請, `${String.fromCharCode(65 + i)}${r._row}`, 狀態);
+  await updateCell(env, 分頁.邀請, `${欄名(i)}${r._row}`, 狀態);
   if (env.CACHE) await env.CACHE.delete(`inv:${代碼}`);
 
   return json({ ok: true, 狀態 });
+}
+
+/* ── 我要參加 ─────────────────────────────────────
+   公開路徑上唯一會寫入的東西。防線有三道：
+   1. 只認完整正確的 12 碼——猜不到就打不到
+   2. 同一個代碼一分鐘內只寫一次（KV 擋著）
+   3. 已經回覆過就不再寫，重複按沒有意義
+   ──────────────────────────────────────────────── */
+
+async function rsvp(request, env) {
+  if (request.method !== "POST") return json({ ok: false }, 405);
+
+  try {
+    const { 代碼 } = await request.json();
+    const code = String(代碼 || "").toLowerCase();
+    if (!CODE_RE.test(code)) return json({ ok: false }, 400);
+
+    if (env.CACHE) {
+      const 剛剛寫過 = await env.CACHE.get(`rsvp:${code}`);
+      if (剛剛寫過) return json({ ok: true, 已記錄: true });
+    }
+
+    const 列 = await readSheet(env, 分頁.邀請);
+    const r = 列.find((x) => String(x.代碼 || "").toLowerCase() === code);
+    if (!r || r.狀態 === "已停用") return json({ ok: false }, 404);
+
+    const 標題 = Object.keys(列[0]).filter((k) => k !== "_row");
+    const c1 = 標題.indexOf("回覆");
+    const c2 = 標題.indexOf("回覆時間");
+    if (c1 < 0) return json({ ok: false, error: "試算表還沒有「回覆」欄" }, 500);
+
+    if (String(r.回覆 || "").trim() !== "我要參加") {
+      await updateCell(env, 分頁.邀請, `${欄名(c1)}${r._row}`, "我要參加");
+      if (c2 >= 0) await updateCell(env, 分頁.邀請, `${欄名(c2)}${r._row}`, 台北時間());
+    }
+
+    if (env.CACHE) {
+      await env.CACHE.put(`rsvp:${code}`, "1", { expirationTtl: 60 });
+    }
+    return json({ ok: true });
+  } catch (e) {
+    return json({ ok: false }, 500);
+  }
+}
+
+// 0→A、25→Z、26→AA。欄位多起來之後 String.fromCharCode 會算錯
+function 欄名(i) {
+  let s = "";
+  for (let n = i; n >= 0; n = Math.floor(n / 26) - 1) {
+    s = String.fromCharCode(65 + (n % 26)) + s;
+  }
+  return s;
 }
 
 // 字集刻意拿掉 0 1 i l o，念出來或手打才不會混（規格第 8 節）
