@@ -1,4 +1,0 @@
-{
- "join按鈕數": 1,
- "cta": "\n      <div class=\"joinbox\">\n        <button class=\"btn btn-1 join\" type=\"button\"\n                data-code=\"pvczn4ejy3dx\" data-ev=\"2609-福音茶會\">我要參加</button>\n        <div class=\"joined\" hidden>已經收到了，陳志成會再跟你聯絡　🙏</div>\n      </div>\n      <a class=\"btn btn-2\" href=\"https://maps.app.goo.gl/qpSyLTHQh3wudJ888\" target=\"_blank\" rel=\"noopener\">查看地圖</a>\n    </div>\n  </div>\n\n  <div class=\"foot\">真耶穌教會　黎明教會　li-"
-}

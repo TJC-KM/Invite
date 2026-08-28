@@ -251,7 +251,8 @@ function 文案(來源, 代號, 變數) {
 }
 
 function 代入(樣板, 變數) {
-  return String(樣板).replace(/\{(\w+)\}/g, (m, k) => (k in 變數 ? String(變數[k]) : m));
+  // 不能用 \w——JS 的 \w 只認 ASCII，{活動} 這種中文變數名一個都比對不到
+  return String(樣板).replace(/\{([^{}]{1,20})\}/g, (m, k) => (k in 變數 ? String(變數[k]) : m));
 }
 
 /* ────────────────────────────────────────────────
