@@ -197,13 +197,21 @@ ul.plain li::before{
 
 <div class="wrap">
 
-<div class="eyebrow">Build Spec · Rev 4</div>
+<div class="eyebrow">Build Spec · Rev 5 · 已上線</div>
 <h1>邀請卡系統規格</h1>
 <p class="lede">
   個人化邀請卡的資料結構、命名規則與建置步驟。
   資料放 Google 試算表，前面用 Cloudflare Workers 擋著跑，獨立於活動快報。
   <a href="https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89">先看可行性原型 →</a>
 </p>
+
+<div class="win">
+  <div class="h">這份規格已經對照實作回填過</div>
+  <p>系統在 2026-08-28 上線：<a href="https://invite.liming-tjc.org">invite.liming-tjc.org</a>。
+  程式在 <a href="https://github.com/TJC-KM/Invite">TJC-KM/Invite</a>。
+  以下內容描述的是<b>實際做出來的東西</b>，不是原本的構想——
+  幾個地方跟原規劃不同，都在該節裡註明了原因。</p>
+</div>
 
 <nav class="toc">
   <ol>
@@ -292,11 +300,18 @@ Workers 幾乎沒有冷啟動，而且跑在離使用者最近的節點上。</p
     <tr><td>快取命中<br><span style="font-weight:400;color:var(--mute);font-size:.85em;">（絕大多數情況）</span></td><td>Worker 直接從 KV 拿資料渲染</td><td>約 5 毫秒</td></tr>
     <tr><td>快取沒有</td><td>讀 Sheets API，順手寫進 KV</td><td>約 300 毫秒</td></tr>
     <tr><td>維護介面新增／修改</td><td>寫進試算表，<b>同時寫進 KV</b></td><td>連結產生當下就是對的</td></tr>
-    <tr><td>直接在試算表改</td><td>等快取過期（5 分鐘）後生效</td><td>最多 5 分鐘</td></tr>
+    <tr><td>直接在試算表改</td><td>等快取過期後生效</td><td>最多 2 分鐘</td></tr>
+    <tr><td>維護介面讀取</td><td><b>不走快取，直接讀試算表</b></td><td>約 1 秒</td></tr>
   </tbody>
 </table></div>
 
-<p class="sub">維護介面再放一顆「立即重新整理快取」，臨時改試算表時不用等。</p>
+<div class="win">
+  <div class="h">快取只給公開卡片，維護介面一律讀即時資料</div>
+  <p>快取原本是為了讓陌生人從 LINE 點進來能秒開。但維護介面一起吃了它的副作用：
+  剛改完試算表，畫面還是舊的，看起來就像壞了。</p>
+  <p>所以拆開——維護介面的人是兩三個、一天開幾次，<b>多等 300 毫秒毫無感覺</b>，
+  換來的是所見即所得。維護介面另有一顆「重新整理快取」，是給公開卡片用的。</p>
+</div>
 
 <h3>存取試算表要用服務帳戶</h3>
 <p>Worker 不是人，沒辦法用 Google 帳號登入。做法是在 Google Cloud 建一個<b>服務帳戶</b>，
@@ -366,8 +381,17 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
     <tr><td>建立者</td><td>系統</td><td>登入者 email</td></tr>
     <tr><td>開啟次數</td><td>系統</td><td>每開啟一次 +1。<b>不記 IP</b></td></tr>
     <tr><td>最後開啟</td><td>系統</td><td>最近一次開啟的時間</td></tr>
+    <tr><td>回覆</td><td>系統</td><td>對方按了「我要參加」的活動代號，逗號分隔</td></tr>
+    <tr><td>回覆時間</td><td>系統</td><td>最近一次回覆的時間</td></tr>
   </tbody>
 </table></div>
+
+<div class="win">
+  <div class="h">回覆欄存的是活動代號，不是「是／否」</div>
+  <p>一張卡片可以邀兩場，只寫「我要參加」等於沒寫——不知道他要去哪一場。
+  所以卡片上是<b>一場一顆按鈕</b>，回覆欄存 <code>2609-福音茶會,2609-秋季靈恩會</code>，
+  跟活動欄同一套寫法。</p>
+</div>
 
 <div class="warn">
   <div class="h">預覽抓取不能算成開啟</div>
@@ -438,15 +462,53 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 </ul>
 <p class="sub">之後真的有人願意把內容打成文字，再升級成能重排、能搜尋的網頁版——那時只是多一種類型，資料結構不用動。</p>
 
+<h4>分頁 5：設定檔</h4>
+<p class="sub">卡片上的字句放這裡，改字不用改程式、不用重新部署。這張表是<b>選配</b>——沒建或某一則沒填，程式有自己的預設值。</p>
+<div class="tw"><table>
+  <thead><tr><th>代號</th><th>內容</th></tr></thead>
+  <tbody>
+    <tr><td>參加按鈕</td><td>我要參加</td></tr>
+    <tr><td>參加按鈕-多場</td><td>我要參加．{活動}</td></tr>
+    <tr><td>回覆確認</td><td>已經收到了，{邀請人}會再跟你聯絡</td></tr>
+    <tr><td>回覆確認-多場</td><td>{活動}　已經收到了</td></tr>
+    <tr><td>地圖按鈕</td><td>查看地圖</td></tr>
+    <tr><td>預設地點</td><td>黎明教會（匯入活動時填進地點欄）</td></tr>
+    <tr><td>邀請開頭</td><td>{邀請人} 誠摯邀請你</td></tr>
+    <tr><td>署名</td><td>你的朋友　{邀請人}　敬上</td></tr>
+    <tr><td>LINE訊息</td><td>維護介面「用 LINE 傳送」帶的整段文字</td></tr>
+  </tbody>
+</table></div>
+<p class="sub">可用變數：<code>{對象}</code>、<code>{稱謂}</code>、<code>{對象全稱}</code>、<code>{邀請人}</code>、<code>{活動}</code>、<code>{網址}</code>。</p>
+
+<div class="warn">
+  <div class="h">變數代入不能用 <code>\w</code></div>
+  <p>JavaScript 的 <code>\w</code> 只認 ASCII，<code>{活動}</code> 這種中文變數名一個都比對不到，
+  結果會把大括號原樣印在卡片上。要比對大括號之間的任意字元。</p>
+</div>
+
 <h3>雲端硬碟的檔案怎麼進來</h3>
 <p>資料夾設成<b>「知道連結的人可檢視」</b>，維護介面貼分享連結，系統用正規式抽出檔案 ID 存進 <code>file_id</code>。</p>
 <p>設定檔裡的資料夾 ID 用來在維護介面放一顆「開啟雲端資料夾」按鈕，方便上傳。</p>
 
+<div class="win">
+  <div class="h">實測結果：列得出來，而且好用</div>
+  <p>服務帳戶的權杖打 Drive API 可以列出資料夾內容。系統靠這個做兩件事：
+  附件沒填檔案 ID 時照檔名自動補；<b>從海報資料夾匯入活動</b>（第 5 節）。</p>
+</div>
+
 <div class="warn">
-  <div class="h">「從資料夾直接挑檔案」要另外確認</div>
-  <p>要做成下拉選單列出資料夾內容，Worker 得呼叫 Drive API。
-  用 API key 能不能列出公開資料夾我沒實測過，<b>先別假設可行</b>。
-  第一版就貼連結，這是最穩的做法。</p>
+  <div class="h">資料夾在「共用雲端硬碟」時，少兩個參數會回空清單而且不報錯</div>
+  <p>教會的海報與見證資料夾都在共用雲端硬碟裡。Drive API 的
+  <code>files.list</code> 必須帶 <code>supportsAllDrives=true</code> 和
+  <code>includeItemsFromAllDrives=true</code>，否則回傳的是<b>空清單</b>，
+  而且 HTTP 200——看起來像資料夾是空的。這種錯最難查，它不是錯誤，是安靜的空值。</p>
+</div>
+
+<div class="win">
+  <div class="h">海報與檔案欄「填什麼都認得」</div>
+  <p>活動表的海報欄、附件表的檔案欄，三種寫法都吃：檔案 ID、雲端硬碟分享連結、
+  或<b>檔名開頭</b>（例如 <code>2026-09-20</code>）。
+  海報資料夾本來就用 <code>yyyy-MM-dd 活動名</code> 當檔名，填日期最省事。</p>
 </div>
 
 <h3>圖片走 Worker 代理</h3>
@@ -495,13 +557,18 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 
 <h2 id="s5"><span class="n">05</span>維護介面</h2>
 
-<div class="tabs">
-  <span class="on">邀請名單</span><span>活動設定</span><span>信件模板</span><span>附件管理</span>
+<p><code>invite.liming-tjc.org/admin</code>　左邊新增邀請，右邊查名單。</p>
+
+<div class="win">
+  <div class="h">預設不列任何名單，要先選邀請人</div>
+  <p>打開頁面只看到新增表單和一排邀請人（各自帶邀請筆數）。點一位才列出他的名單。</p>
+  <p>過濾在<b>伺服器端</b>做——沒查詢時，HTML 裡根本不含其他人的資料，
+  不是用 CSS 藏起來。名單是別人的個資，不該一打開就攤在畫面上。</p>
 </div>
 
-<p class="sub" style="margin-top:14px;">
-  後面三個頁籤都是同樣的「列表 ＋ 新增／編輯」，做一套共用的就好。
-  教會資訊不在這裡——它在設定檔（<a href="#s3">第 3 節</a>）。
+<p class="sub">
+  活動、信件模板、附件三張表目前<b>直接在試算表維護</b>，沒有做成頁籤——
+  它們一季才動一次，做四套一樣的列表介面不划算。活動有例外，見下面的匯入功能。
 </p>
 
 <h3>新增邀請</h3>
@@ -532,10 +599,29 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 
 <p>送出後顯示產生的網址，並提供三顆按鈕：<b>複製連結</b>、<b>預覽卡片</b>、<b>用 LINE 傳送</b>。</p>
 
+<p>送出後直接給三顆按鈕：<b>複製連結</b>、<b>預覽卡片</b>、<b>用 LINE 傳送</b>（訊息已組好）。
+代碼由系統產生，寫入前會比對現有代碼確認沒撞到。</p>
+
 <h3>名單列表</h3>
-<p class="sub">欄位：對象、邀請人、活動、狀態、建立時間、開啟次數。<br>
-每列的動作：複製連結、預覽、編輯、停用。<br>
-另外放一顆<b>立即重新整理快取</b>——直接改試算表後不用等 5 分鐘。</p>
+<p class="sub">每列顯示對象、邀請人、活動、狀態、開啟次數、回覆了哪幾場。<br>
+動作：複製連結、預覽、用 LINE 傳送、複製訊息、標記已發送、停用。</p>
+<p class="sub">停用後卡片回 404，但資料留著——誰邀過誰之後還查得到。沒有「刪除」。</p>
+
+<h3>從海報資料夾匯入活動</h3>
+<p>海報檔名的慣例是 <code>yyyy-MM-dd 活動名</code>，所以<b>日期（含星期）、名稱、活動代號、
+排序、檔案 ID</b> 都能從檔名推出來。按一顆按鈕列出候選，勾選後寫進活動分頁。</p>
+<ul class="plain">
+  <li>只列<b>日期還沒到</b>、而且活動分頁裡還沒有的（比對海報 ID 與活動代號）</li>
+  <li><b>時間和標語推不出來</b>——那些印在海報圖片裡，要人補</li>
+  <li>地點填設定檔的「預設地點」</li>
+  <li>檔名不符合慣例的會另外列出來提醒，不會默默略過</li>
+</ul>
+
+<div class="warn">
+  <div class="h">匯入必須讀即時資料，不能讀快取</div>
+  <p>候選清單如果來自快取，兩個人先後匯入時，晚的那個看到的是舊清單，
+  會把同一場再寫一次。維護介面的所有讀取都直接打試算表。</p>
+</div>
 
 
 <h2 id="s6"><span class="n">06</span>網址與 LINE 預覽</h2>
@@ -559,12 +645,29 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 對點開機率的影響很大。</p>
 
 <div class="warn">
-  <div class="h">這需要把網域 DNS 搬到 Cloudflare</div>
-  <p>Worker 要掛在 <code>invite.li-ming-tjc.org</code> 上，網域的 DNS 必須由 Cloudflare 管理。
-  你現在在 Wix。</p>
-  <p>搬之前<b>先把 Wix 上現有的 DNS 記錄全部抄下來</b>，尤其是 MX（收信）——漏掉會斷信。
-  活動快報那幾筆指向 GitHub Pages 的記錄要設成「僅 DNS」（灰雲），不要開 Cloudflare 代理。</p>
-  <p>開發階段先用免費的 <code>xxx.workers.dev</code> 網址，等整套跑順了再搬 DNS。</p>
+  <div class="h">原本的計畫走不通：Wix 不讓改名稱伺服器</div>
+  <p>原訂掛在 <code>invite.li-ming-tjc.org</code>，需要把 DNS 交給 Cloudflare。
+  但那個網域是透過 Wix 買的（註冊商 Tucows），而
+  <b>Wix 不允許變更 Wix 網域的名稱伺服器</b>——官方說明的唯一建議是把網域轉出去。
+  網域上掛著 <code>clientUpdateProhibited</code> 鎖就是這件事的具體表現。</p>
+  <p>退而求其次的「只把 invite 子網域委派給 Cloudflare」也不行：
+  那叫 subdomain zone，Cloudflare 只開放給 Enterprise 方案。</p>
+</div>
+
+<div class="win">
+  <div class="h">實際做法：另外註冊 liming-tjc.org</div>
+  <p>在 Cloudflare Registrar 直接註冊新網域，約三十秒完成，
+  <b>名稱伺服器天生就是 Cloudflare 的</b>——不用碰 Wix、不用等 NS 生效、沒有轉移風險。
+  子網域 <code>invite.liming-tjc.org</code> 由 <code>custom_domain</code> 自動建 DNS 記錄並簽憑證。</p>
+  <p>教會原本的 <code>li-ming-tjc.org</code>（GitHub Pages）完全沒有動到。
+  兩個網域可以並存，日後要把舊的轉出 Wix 再說。</p>
+</div>
+
+<div class="warn">
+  <div class="h">加上自訂網域時，workers.dev 會被預設關掉</div>
+  <p>設定檔裡一加 <code>routes</code>，<code>workers.dev</code> 那條就自動停用，
+  而新網域的憑證要幾分鐘才簽好——中間那段時間<b>兩邊都不通</b>。
+  要明確寫 <code>"workers_dev": true</code> 保留它，已經發出去的連結才不會壞。</p>
 </div>
 
 <h3>路由</h3>
@@ -573,8 +676,10 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
   <tbody>
     <tr><td><code>/&lt;代碼&gt;</code></td><td>渲染邀請卡</td><td>任何人</td></tr>
     <tr><td><code>/img/&lt;檔案 ID&gt;</code></td><td>代理雲端硬碟圖片並快取</td><td>任何人</td></tr>
-    <tr><td><code>/admin</code></td><td>維護介面</td><td>Access 白名單</td></tr>
-    <tr><td><code>/api/*</code></td><td>維護介面的讀寫</td><td>Access 白名單</td></tr>
+    <tr><td><code>/api/rsvp</code></td><td>「我要參加」寫回試算表</td><td>任何人（要正確代碼）</td></tr>
+    <tr><td><code>/admin</code></td><td>維護介面</td><td>任何人　見第 7 節</td></tr>
+    <tr><td><code>/admin/api/*</code></td><td>維護介面的讀寫</td><td>任何人　見第 7 節</td></tr>
+    <tr><td><code>/robots.txt</code></td><td>擋 <code>/admin</code> 進搜尋引擎</td><td>任何人</td></tr>
     <tr><td><code>/</code></td><td>導到教會官網</td><td>任何人</td></tr>
   </tbody>
 </table></div>
@@ -586,20 +691,34 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 
 <h2 id="s7"><span class="n">07</span>權限設計</h2>
 
-<div class="verdict">
-  <p><b>維護介面用 Cloudflare Access 擋，不要自己寫登入。</b></p>
-  <p>在 Cloudflare 後台把 <code>/admin</code> 和 <code>/api/*</code> 設成需要驗證，列出允許的 email。
-  對方輸入 email 後收到一次性驗證碼就能進。<b>零行程式碼</b>，50 個使用者以內免費。</p>
+<div class="warn">
+  <div class="h">現況：維護介面沒有身分驗證，任何人都進得去</div>
+  <p>原訂用 Cloudflare Access（email 白名單、一次性驗證碼、零行程式碼、50 人內免費）。
+  評估後<b>決定不設</b>——不想再多一套帳號系統。這是明知代價的取捨，記在這裡：</p>
+  <p>知道網址的人可以看到名單（姓名、邀請人、個人化開場）、新增邀請、停用別人的卡片。
+  緩衝只有兩層：<code>robots.txt</code> 擋搜尋引擎收錄，以及「預設不列名單、要先選邀請人」。</p>
+  <p>要補起來的話，Access 的前提條件現在都齊了（網域已在 Cloudflare），
+  設定約五分鐘：保護 <code>admin</code> 這一條路徑即可——維護 API 都在它底下。
+  <b><code>/api/rsvp</code> 千萬不能一起擋</b>，否則「我要參加」會壞掉。</p>
 </div>
 
 <div class="tw"><table>
   <thead><tr><th></th><th>維護介面</th><th>公開邀請卡</th></tr></thead>
   <tbody>
-    <tr><td>路徑</td><td><code>/admin</code>、<code>/api/*</code></td><td><code>/&lt;代碼&gt;</code>、<code>/img/*</code></td></tr>
-    <tr><td>驗證</td><td>Cloudflare Access</td><td>無</td></tr>
-    <tr><td>可做的事</td><td>讀 ＋ 寫</td><td><b>只讀單一筆</b></td></tr>
+    <tr><td>路徑</td><td><code>/admin</code>、<code>/admin/api/*</code></td><td><code>/&lt;代碼&gt;</code>、<code>/img/*</code>、<code>/api/rsvp</code></td></tr>
+    <tr><td>驗證</td><td>無</td><td>無</td></tr>
+    <tr><td>可做的事</td><td>讀全部 ＋ 寫</td><td><b>只讀單一筆</b>，只能寫自己那筆的回覆</td></tr>
   </tbody>
 </table></div>
+
+<h3>「我要參加」是公開路徑上唯一會寫入的東西</h3>
+<p>三道防線：</p>
+<ul class="plain">
+  <li><b>只認完整正確的 12 碼</b>　約 8×10<sup>17</sup> 種組合，猜不到；而且只接受這張卡片真的邀了的活動代號</li>
+  <li><b>同一代碼、同一場，一分鐘只寫一次</b>　KV 擋著。節流的鍵要帶活動，否則複選時按了第一場會把第二場擋掉</li>
+  <li><b>已經回覆過就不再寫</b>　重複按沒有意義</li>
+</ul>
+<p class="sub">最壞情況是拿到連結的人手滑按了參加——打通電話確認就好，不是災難。</p>
 
 <p>公開路徑只接受「完整正確的代碼」，一次回傳一筆，不提供列表。沒有代碼就什麼都拿不到。</p>
 
@@ -685,6 +804,14 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 
 
 <h2 id="s9"><span class="n">09</span>建置步驟</h2>
+
+<div class="win">
+  <div class="h">全部完成，2026-08-28 上線</div>
+  <p>下面這份清單留著當紀錄。實際執行時有兩處與計畫不同：
+  <b>第 13 步（搬 DNS）</b>因為 Wix 不讓改 NS，改成註冊新網域（第 6 節）；
+  <b>第 14 步（Access）</b>經評估後決定不做（第 7 節）。</p>
+</div>
+
 <p class="sub">可以打勾，進度存在這台裝置的瀏覽器裡。<br>
 展開成每步的做法、驗收條件與活動前的回推時程，見
 <a href="https://claude.ai/code/artifact/bcbcbc21-e866-4552-ab71-cc75651378a2">邀請卡施做計畫</a>。</p>
@@ -731,16 +858,29 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
   Worker 讀檔走服務帳戶權杖 ＋ Drive API，不靠公開網址。</p>
 </div>
 
+<div class="win">
+  <div class="h">2026-08-28 追加定案</div>
+  <p><b>卡片可以回覆。</b>「我要參加」做了，一場一顆按鈕，寫回試算表的回覆欄。
+  防灌水機制見第 7 節。</p>
+  <p><b>見證改走 Drive 預覽頁，不轉圖片。</b>抽驗〈04-04-禱告生活-蘇真玉〉：
+  6 頁掃描、沒有文字層、<b>16.9 MB</b>。整份丟給手機要等十幾秒，
+  而 Google 的檢視器逐頁串流，點下去就看得到第一頁。
+  54 篇見證一體適用，不必為換一篇就轉一次檔。讀起來吃力再回頭轉圖片。</p>
+  <p><b>維護介面不設身分驗證。</b>見第 7 節，代價寫在那裡。</p>
+</div>
+
 <h3>還沒決定</h3>
 
 <ul class="plain">
   <li><b>邀請人要不要建一張表</b>　現在是自由輸入。建表可以避免「陳志成／陳誌成」這種不一致，但多一層維護</li>
-  <li><b>卡片要不要能回覆</b>　「我想參加」如果要真的能按，就需要再開一張表，公開路徑也必須開放寫入——會需要防灌水機制</li>
-  <li><b>要不要順便把活動快報也搬到 Cloudflare</b>　DNS 搬過去之後這件事會變得很容易，但那是另一個決定，不要跟這個專案綁在一起</li>
+  <li><b>要不要把 li-ming-tjc.org 從 Wix 轉出來</b>　轉出後兩個網域都在 Cloudflare，要主打哪個都行。轉移約 5～7 天</li>
+  <li><b>要不要用 AI 讀海報</b>　時間、地點、標語都印在海報上。Workers AI 現在有中文母語的多模態模型（GLM、Qwen），
+  圖片本來就經過 Worker，整合成本幾乎是零。但 AI 讀錯日期時間會害人白跑一趟，<b>一定要人確認過才寫入</b></li>
+  <li><b>試算表的共用權限</b>　目前是「知道連結的人可檢視」，任何人拿到 ID 就能下載整份名單</li>
 </ul>
 
 <div class="foot">
-  規格 Rev 4 · 2026-08-28　|　原型：<a href="https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89">黎明邀請卡</a>
+  規格 Rev 5 · 2026-08-28（依實際完成的系統回填）　|　原型：<a href="https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89">黎明邀請卡</a>
 </div>
 
 </div>

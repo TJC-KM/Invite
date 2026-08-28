@@ -3,7 +3,7 @@
 一人一組隨機網址，開啟專屬邀請卡。內容（邀請對象、給對象的話、活動海報、附件見證）
 由信徒透過維護介面管理。
 
-> **狀態：規劃中，還沒開始寫程式。**
+> **狀態：已上線** — <https://invite.liming-tjc.org>
 
 ## 文件
 
@@ -18,16 +18,31 @@
 - 原型 <https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89>
 - 施做計畫 <https://claude.ai/code/artifact/bcbcbc21-e866-4552-ab71-cc75651378a2>
 
+## 現在長什麼樣
+
+| | |
+|---|---|
+| 邀請卡 | `invite.liming-tjc.org/<12碼>` |
+| 維護介面 | <https://invite.liming-tjc.org/admin> |
+| 舊網址 | `liming-invite.c3012312.workers.dev` 仍然有效 |
+| 資料 | Google 試算表「邀請卡資料」五個分頁 |
+| 程式 | `worker/`　部署 `npm run deploy` |
+
+做到哪：邀請卡、LINE 預覽、圖片代理、開啟次數、我要參加、
+維護介面（新增／查詢／停用／從海報資料夾匯入活動）、設定檔文案。
+
+沒做：身分驗證（決定不設，見規格第 7 節）、活動／模板／附件的維護頁籤（直接編試算表）。
+
 ## 架構摘要
 
 ```
-invite.li-ming-tjc.org/<12碼>   →  Worker            公開邀請卡，免登入
-invite.li-ming-tjc.org/admin    →  Access → Worker   維護介面，白名單 email
-                                       ↓
-                                   KV 快取
-                                       ↓
-                              Google 試算表（資料的家）
-                              Google 雲端硬碟（海報、附件 PDF）
+invite.liming-tjc.org/<12碼>   →  Worker            公開邀請卡，免登入
+invite.liming-tjc.org/admin    →  Worker            維護介面（目前不擋）
+                                      ↓
+                                  KV 快取（只給公開卡片，2 分鐘）
+                                      ↓
+                             Google 試算表（資料的家）
+                             Google 雲端硬碟（海報、見證 PDF）
 ```
 
 - **資料放 Google 試算表**，信徒看得到、必要時能直接改

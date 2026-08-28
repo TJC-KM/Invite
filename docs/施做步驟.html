@@ -702,7 +702,11 @@ POST 到 token endpoint 換 access_token → 存 KV，TTL 3300 秒</pre>
 
 <h2><span class="n">06</span>會卡住的地方，先看一眼</h2>
 <ul class="plain">
-  <li><b>金鑰格式</b>　B5 卡關十之八九是這個。<code>\n</code> 要還原成真換行，錯了 Google 回 <code>invalid_grant</code>。</li>
+  <li><b>金鑰格式</b>　預料中的坑，實際上一次就通。</li>
+  <li><b>共用雲端硬碟</b>　<span style="color:var(--gold)">沒預料到</span>：資料夾在共用雲端硬碟裡，Drive API 少了 <code>supportsAllDrives</code> 會回空清單<b>而且不報錯</b>——看起來像資料夾是空的。</li>
+  <li><b>Wix 不讓改名稱伺服器</b>　<span style="color:var(--gold)">沒預料到</span>：整個 F 階段的前提不成立，改註冊新網域解決。</li>
+  <li><b>中文變數代入</b>　<span style="color:var(--gold)">沒預料到</span>：JavaScript 的 <code>\w</code> 只認 ASCII，<code>{活動}</code> 這種變數名一個都比對不到。</li>
+  <li><b>加自訂網域會關掉 workers.dev</b>　<span style="color:var(--gold)">沒預料到</span>：新網域憑證還沒簽好的那幾分鐘，兩邊都不通。</li>
   <li><b>雲端硬碟圖片</b>　用服務帳戶權杖打 Drive API，別用公開的 <code>uc?export=view</code>。資料夾記得也分享給服務帳戶。</li>
   <li><b>LINE 預覽快取</b>　同一個網址的預覽會被 LINE 記很久。要驗證改動，換一個沒發過的代碼。</li>
   <li><b>預覽爬蟲會灌高開啟次數</b>　貼一次 LINE 就抓一次網頁。看 User-Agent 擋掉，否則這欄的數字沒有意義。</li>
