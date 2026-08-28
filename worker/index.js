@@ -479,8 +479,7 @@ async function adminPage(url, env) {
     ? ` <a href="${站台}/${esc(範例.代碼)}" target="_blank" rel="noopener">看一張範例</a>`
     : "";
   const 說明 =
-    "卡片上只有邀請函、活動資訊與見證，沒有電話、地址、奉獻紀錄這類敏感資料。" +
-    "網址是隨機 12 碼，猜不到，但拿到連結的人都看得到。" + 範例連結;
+    "卡片上只有邀請函、活動資訊與見證，沒有電話、地址這類敏感資料。" + 範例連結;
 
   const html = fill(ADMIN_HTML, {
     count: 全部.length,
