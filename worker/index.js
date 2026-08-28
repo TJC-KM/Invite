@@ -246,6 +246,7 @@ const 預設文案 = {
   回覆確認: "已經收到了，{邀請人}會再跟你聯絡　🙏",
   "回覆確認-多場": "{活動}　已經收到了 🙏",
   地圖按鈕: "查看地圖",
+  預設地點: "黎明教會",
   邀請開頭: "{邀請人} 誠摯邀請你",
   署名: "你的朋友　{邀請人}　敬上",
   LINE訊息: "{對象全稱}平安，我是{邀請人}。\n誠摯邀請你參加{活動}，這是給你的邀請卡：\n{網址}",
@@ -468,6 +469,38 @@ async function adminPage(url, env) {
 
   const 啟用中 = (清單) => 清單.filter((x) => 有效(x.啟用));
 
+  // 匯入面板只在按下按鈕後出現，平常不打擾
+  const 要匯入 = url.searchParams.get("import") === "1";
+  let 匯入面板 = "";
+  if (要匯入) {
+    const { 可匯入, 檔名不符 } = await 海報候選(env, cfg);
+    匯入面板 = `
+      <div class="find">
+        <h2>從海報資料夾匯入活動</h2>
+        <p class="hint" style="margin:0 0 10px">
+          只列出日期還沒到、而且活動分頁裡還沒有的海報。
+          匯入後「時間」和「標語」要自己補——那兩樣在海報圖片裡，檔名看不出來。
+        </p>
+        ${可匯入.length ? `
+        <div class="checks">
+          ${可匯入.map((x) => `
+            <label class="check">
+              <input type="checkbox" name="poster" value="${esc(x.id)}" checked>
+              <span>${esc(x.名稱)}<br><span class="d">${esc(x.日期)}　代號 ${esc(x.代號)}</span></span>
+            </label>`).join("")}
+        </div>
+        <div class="acts" style="margin-top:11px">
+          <button id="doImport" class="go" style="width:auto">匯入勾選的 ${可匯入.length} 場</button>
+          <a class="lnk" href="/admin">取消</a>
+        </div>` : `<div class="ask">沒有可以匯入的海報——日期還沒到的都已經在活動分頁裡了</div>`}
+        ${檔名不符.length ? `
+        <p class="hint" style="margin-top:11px">
+          這些檔名不符合 <code>yyyy-MM-dd 活動名</code>，沒辦法自動判讀：<br>
+          ${檔名不符.map((n) => esc(n)).join("、")}
+        </p>` : ""}
+      </div>`;
+  }
+
   const 提示 = 查詢
     ? `<div class="ask">${esc(查詢)} 目前沒有邀請</div>`
     : `<div class="ask">選一位邀請人，或在上面輸入姓名<br>
@@ -486,7 +519,7 @@ async function adminPage(url, env) {
     note: 說明,
     origin: esc(站台),
     from: esc(查詢),
-    rows: rows || 提示,
+    rows: 匯入面板 + (rows || 提示),
 
     fromChips: 邀請人們
       .map(([n, c]) =>
@@ -537,6 +570,88 @@ function 分組附件(附件) {
     .join("");
 }
 
+/* ── 從海報資料夾匯入活動 ───────────────────────
+   海報檔名的慣例是 yyyy-MM-dd 活動名，日期、名稱、代號、排序
+   都能從檔名推出來，檔案 ID 也不用手抄。
+   時間和標語推不出來（那些在海報圖片裡），留給人補
+   ──────────────────────────────────────────────── */
+
+// 台北的今天，格式 2026-08-28。sv-SE 的日期寫法剛好就是 ISO
+function 台北日期() {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+}
+
+const 週 = ["日", "一", "二", "三", "四", "五", "六"];
+
+function 解析海報(f) {
+  const m = String(f.name).match(/^(\d{4})-(\d{2})-(\d{2})[\s_-]+(.+?)(?:\.[A-Za-z0-9]{1,5})?$/);
+  if (!m) return null;
+  const [, y, mo, d, 名稱] = m;
+  const 星期 = 週[new Date(Date.UTC(+y, +mo - 1, +d)).getUTCDay()];
+  return {
+    id: f.id,
+    檔名: f.name,
+    日期字: `${y}-${mo}-${d}`,
+    代號: `${y.slice(2)}${mo}-${名稱.trim()}`,
+    名稱: 名稱.trim(),
+    日期: `${+y} 年 ${+mo} 月 ${+d} 日（${星期}）`,
+    排序: Number(`${y.slice(2)}${mo}${d}`),
+  };
+}
+
+async function 海報候選(env, cfg) {
+  if (!env.POSTER_FOLDER) return { 可匯入: [], 檔名不符: [] };
+
+  let files = [];
+  try { files = await listFolder(env, env.POSTER_FOLDER); } catch (e) { return { 可匯入: [], 檔名不符: [] }; }
+
+  const 今天 = 台北日期();
+  const 有海報 = new Set(cfg.活動.map((e) => e.海報).filter(Boolean));
+  const 有代號 = new Set(cfg.活動.map((e) => e.活動代號));
+
+  const 圖 = files.filter((f) => String(f.mimeType || "").startsWith("image/"));
+  const 檔名不符 = 圖.filter((f) => !解析海報(f)).map((f) => f.name);
+
+  const 可匯入 = 圖
+    .map(解析海報)
+    .filter(Boolean)
+    .filter((x) => x.日期字 >= 今天)          // 過期的活動不匯入
+    .filter((x) => !有海報.has(x.id) && !有代號.has(x.代號))
+    .sort((a, b) => a.排序 - b.排序);
+
+  return { 可匯入, 檔名不符 };
+}
+
+async function 匯入活動(body, env) {
+  const 要的 = new Set((body.檔案 || []).map(String));
+  if (!要的.size) return json({ ok: false, error: "沒有勾選任何海報" }, 400);
+
+  const cfg = await loadConfig(env);
+  const { 可匯入 } = await 海報候選(env, cfg);
+  const 地點 = 文案(cfg.文案, "預設地點", {}) || "黎明教會";
+
+  const 進去的 = [];
+  for (const x of 可匯入) {
+    if (!要的.has(x.id)) continue;
+    await appendRow(env, 分頁.活動, {
+      活動代號: x.代號,
+      名稱: x.名稱,
+      標語: "",
+      日期: x.日期,
+      時間: "",
+      地點,
+      海報: x.id,
+      地圖連結: "",
+      啟用: "是",
+      排序: x.排序,
+    });
+    進去的.push(x.代號);
+  }
+
+  if (env.CACHE) await env.CACHE.delete("cfg:v1");
+  return json({ ok: true, 匯入: 進去的 });
+}
+
 /* ────────────────────────────────────────────────
    寫入 API　—— 施做計畫 E1
    ──────────────────────────────────────────────── */
@@ -547,6 +662,7 @@ async function api(動作, request, url, env) {
   try {
     const body = await request.json();
     if (動作 === "setup") return await 補欄位(env);
+    if (動作 === "import") return await 匯入活動(body, env);
     if (動作 === "invite") return await 新增邀請(body, env, url);
     if (動作 === "status") return await 改狀態(body, env);
     return notFound();

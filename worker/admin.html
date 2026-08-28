@@ -203,6 +203,11 @@ button[disabled]{opacity:.5;cursor:default;}
     </div>
 
     <div>
+      <div class="bar">
+        <button onclick="location.search='?refresh=1'">重新整理快取</button>
+        <a class="lnk" href="/admin?import=1">從海報資料夾匯入活動</a>
+      </div>
+
       <form class="find" method="get" action="/admin">
         <label for="findFrom">看誰的名單</label>
         <div class="findrow">
@@ -267,6 +272,35 @@ button[disabled]{opacity:.5;cursor:default;}
       }).catch(function(){ say("連線失敗"); act.disabled = false; });
     }
   });
+
+  var imp = document.getElementById("doImport");
+  if (imp) {
+    imp.addEventListener("click", function(){
+      var ids = [].slice.call(document.querySelectorAll('input[name="poster"]:checked'))
+        .map(function(i){ return i.value; });
+      if (!ids.length) { say("沒有勾選"); return; }
+      imp.disabled = true;
+      imp.textContent = "匯入中…";
+      fetch("/admin/api/import", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ 檔案: ids })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if (d && d.ok) {
+          say("匯入 " + d.匯入.length + " 場");
+          setTimeout(function(){ location.href = "/admin"; }, 1200);
+        } else {
+          say((d && d.error) || "匯入失敗");
+          imp.disabled = false;
+          imp.textContent = "再試一次";
+        }
+      }).catch(function(){
+        say("連線失敗");
+        imp.disabled = false;
+        imp.textContent = "再試一次";
+      });
+    });
+  }
 
   var f = document.getElementById("f");
   var err = document.getElementById("err");
