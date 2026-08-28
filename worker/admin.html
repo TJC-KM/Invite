@@ -203,7 +203,6 @@ button[disabled]{opacity:.5;cursor:default;}
 
     <div>
       <form class="find" method="get" action="/admin">
-        <input type="hidden" name="t" value="{{token}}">
         <label for="findFrom">看誰的名單</label>
         <div class="findrow">
           <input type="text" id="findFrom" name="from" value="{{from}}"
@@ -224,7 +223,6 @@ button[disabled]{opacity:.5;cursor:default;}
 <script>
 (function(){
   "use strict";
-  var TOKEN = "{{token}}";
   var ORIGIN = "{{origin}}";
   var toast = document.getElementById("toast");
 
@@ -258,7 +256,7 @@ button[disabled]{opacity:.5;cursor:default;}
       var 狀態 = act.getAttribute("data-act");
       act.disabled = true;
       act.textContent = "處理中…";
-      fetch("/admin/api/status?t=" + encodeURIComponent(TOKEN), {
+      fetch("/admin/api/status", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ 代碼: code, 狀態: 狀態 })
@@ -288,7 +286,7 @@ button[disabled]{opacity:.5;cursor:default;}
     data["活動"] = [].slice.call(f.querySelectorAll('input[name="活動"]:checked'))
       .map(function(i){ return i.value; }).join(",");
 
-    fetch("/admin/api/invite?t=" + encodeURIComponent(TOKEN), {
+    fetch("/admin/api/invite", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(data)
@@ -310,8 +308,7 @@ button[disabled]{opacity:.5;cursor:default;}
       f.reset();
       say("已新增");
       setTimeout(function(){
-        location.search = "?t=" + encodeURIComponent(TOKEN) +
-          "&from=" + encodeURIComponent(data["邀請人"]);
+        location.search = "?from=" + encodeURIComponent(data["邀請人"]);
       }, 2500);
     }).catch(function(){
       btn.disabled = false;

@@ -13,6 +13,6 @@ node_modules/
 !package.json
 !package-lock.json
 
-# 名單頁的臨時金鑰（Access 上線後就不需要了）
-.list-token.txt
+# 暫存
 state.txt
+chk.txt

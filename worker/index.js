@@ -19,6 +19,12 @@ export default {
       return Response.redirect(env.CHURCH_SITE || "https://li-ming-tjc.org", 302);
     }
 
+    if (path === "robots.txt") {
+      return new Response("User-agent: *\nDisallow: /admin\n", {
+        headers: { "content-type": "text/plain; charset=utf-8" },
+      });
+    }
+
     if (path.startsWith("img/")) {
       return imageProxy(path.slice(4), env, ctx);
     }
@@ -386,10 +392,6 @@ function isPreviewBot(ua) {
    ──────────────────────────────────────────────── */
 
 async function adminPage(url, env) {
-  if (!env.LIST_TOKEN || url.searchParams.get("t") !== env.LIST_TOKEN) {
-    return notFound();
-  }
-
   const 站台 = env.SITE_ORIGIN || url.origin;
 
   if (url.searchParams.get("refresh") === "1" && env.CACHE) {
@@ -473,14 +475,13 @@ async function adminPage(url, env) {
 
   const html = fill(ADMIN_HTML, {
     count: 全部.length,
-    token: esc(env.LIST_TOKEN),
     origin: esc(站台),
     from: esc(查詢),
     rows: rows || 提示,
 
     fromChips: 邀請人們
       .map(([n, c]) =>
-        `<a class="chip${n === 查詢 ? " on" : ""}" href="/admin?t=${encodeURIComponent(env.LIST_TOKEN)}&from=${encodeURIComponent(n)}">${esc(n)}<span class="n">${c}</span></a>`)
+        `<a class="chip${n === 查詢 ? " on" : ""}" href="/admin?from=${encodeURIComponent(n)}">${esc(n)}<span class="n">${c}</span></a>`)
       .join(""),
 
     eventChecks: 啟用中(cfg.活動).map((e) => `
@@ -532,7 +533,6 @@ function 分組附件(附件) {
    ──────────────────────────────────────────────── */
 
 async function api(動作, request, url, env) {
-  if (!env.LIST_TOKEN || url.searchParams.get("t") !== env.LIST_TOKEN) return notFound();
   if (request.method !== "POST") return json({ ok: false, error: "只收 POST" }, 405);
 
   try {
