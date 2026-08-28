@@ -23,11 +23,12 @@ export default {
       return imageProxy(path.slice(4), env, ctx);
     }
 
-    // 維護介面與它的讀寫 API。現在用金鑰擋，Access 上線（E4）後改用 email 白名單
-    if (path === "admin" || path === "list") return adminPage(url, env);
     // 「我要參加」是公開的，不帶金鑰——但只認得完整正確的代碼
     if (path === "api/rsvp") return rsvp(request, env);
-    if (path.startsWith("api/")) return api(path.slice(4), request, url, env);
+
+    // 維護介面和它的 API 全在 /admin 底下，Access 才能用單一路徑一次保護到
+    if (path === "admin" || path === "list") return adminPage(url, env);
+    if (path.startsWith("admin/api/")) return api(path.slice(10), request, url, env);
 
     const code = path.toLowerCase();
     if (!CODE_RE.test(code)) return notFound();
@@ -55,7 +56,7 @@ export default {
    資料層　—— 試算表是資料的家，KV 是它前面那層快取
    ──────────────────────────────────────────────── */
 
-const 分頁 = { 邀請: "邀請名單", 活動: "活動", 模板: "信件模板", 附件: "附件" };
+const 分頁 = { 邀請: "邀請名單", 活動: "活動", 模板: "信件模板", 附件: "附件", 設定: "設定檔" };
 const CACHE_TTL = 300; // 秒。直接改試算表最多五分鐘生效
 
 // 「否」才算停用，空白一律當啟用——欄位沒填不該讓東西消失
@@ -91,11 +92,19 @@ async function loadConfig(env) {
     if (hit) return hit;
   }
 
-  const [活動, 模板, 附件] = await Promise.all([
+  const [活動, 模板, 附件, 設定列] = await Promise.all([
     readSheet(env, 分頁.活動),
     readSheet(env, 分頁.模板),
     readSheet(env, 分頁.附件),
+    // 設定檔分頁是選配的。沒建也不會壞，程式自己有一套預設文案
+    readSheet(env, 分頁.設定).catch(() => []),
   ]);
+
+  const 文案 = {};
+  for (const r of 設定列) {
+    const k = String(r.代號 || "").trim();
+    if (k) 文案[k] = String(r.內容 ?? "");
+  }
 
   // 附件沒填檔案 ID 時，從雲端資料夾照檔名補。
   // 這樣維護的人只要把圖丟進資料夾，不用一個一個複製 ID
@@ -110,7 +119,7 @@ async function loadConfig(env) {
     活動.some((e) => e.海報 && !是ID(e.海報)) ? 列資料夾(env.POSTER_FOLDER) : [],
   ]);
 
-  const cfg = { 活動, 模板, 附件, 檔案清單, 海報清單 };
+  const cfg = { 活動, 模板, 附件, 文案, 檔案清單, 海報清單 };
   if (env.CACHE) {
     await env.CACHE.put("cfg:v1", JSON.stringify(cfg), { expirationTtl: CACHE_TTL });
   }
@@ -152,6 +161,7 @@ function 組合(r, cfg) {
     活動,
     附件,
     信件內文,
+    文案: cfg.文案 || {},
   };
 }
 
@@ -219,6 +229,31 @@ async function countOpen(code, invite, env) {
   }
 }
 
+/* ── 文案（設定檔分頁）─────────────────────────
+   卡片上的字句放試算表，改字不用改程式、不用重新部署。
+   沒建分頁或某一則沒填，就用這裡的預設值
+   ──────────────────────────────────────────────── */
+
+const 預設文案 = {
+  參加按鈕: "我要參加",
+  "參加按鈕-多場": "我要參加．{活動}",
+  回覆確認: "已經收到了，{邀請人}會再跟你聯絡　🙏",
+  "回覆確認-多場": "{活動}　已經收到了 🙏",
+  地圖按鈕: "查看地圖",
+  邀請開頭: "{邀請人} 誠摯邀請你",
+  署名: "你的朋友　{邀請人}　敬上",
+  LINE訊息: "{對象全稱}平安，我是{邀請人}。\n誠摯邀請你參加{活動}，這是給你的邀請卡：\n{網址}",
+};
+
+function 文案(來源, 代號, 變數) {
+  const 樣板 = (來源 && 來源[代號]) || 預設文案[代號] || "";
+  return 代入(樣板, 變數 || {});
+}
+
+function 代入(樣板, 變數) {
+  return String(樣板).replace(/\{(\w+)\}/g, (m, k) => (k in 變數 ? String(變數[k]) : m));
+}
+
 /* ────────────────────────────────────────────────
    渲染
    ──────────────────────────────────────────────── */
@@ -283,8 +318,27 @@ function renderCard(inv, env) {
 
   const 活動名 = 活動.map((e) => e.名稱).join("、");
 
+  // 一場一顆按鈕。複選時要知道他答應的是哪一場，只寫「我要參加」等於沒寫
+  const 詞 = inv.文案;
+  const 參加鈕 = (活動.length ? 活動 : [null]).map((ev) => {
+    const 代號 = ev ? esc(ev.活動代號) : "";
+    const 單場 = !ev || 活動.length === 1;
+    const 變數 = { 邀請人, 對象: 全名, 活動: ev ? esc(ev.名稱) : "" };
+    const 字 = 文案(詞, 單場 ? "參加按鈕" : "參加按鈕-多場", 變數);
+    const 確認 = 文案(詞, 單場 ? "回覆確認" : "回覆確認-多場", 變數);
+    return `<div class="joinbox">
+        <button class="btn btn-1 join" type="button"
+                data-code="${esc(inv.代碼 || "")}" data-ev="${代號}">${字}</button>
+        <div class="joined" hidden>${確認}</div>
+      </div>`;
+  }).join("\n      ");
+
   return fill(CARD_HTML, {
     code: esc(inv.代碼 || ""),
+    joinButtons: 參加鈕,
+    inviteLead: 文案(詞, "邀請開頭", { 邀請人: `<b>${邀請人}</b>` }),
+    sign: 文案(詞, "署名", { 邀請人: `<mark>${邀請人}</mark>` }),
+    mapLabel: esc(文案(詞, "地圖按鈕", {})),
     pageTitle: `${inv.邀請人} 邀請你參加${首場 ? 首場.名稱 : "聚會"}`,
     ogTitle: `${inv.邀請人} 邀請你參加${活動名 || "聚會"}`,
     ogDesc: 首場 ? `${首場.日期} ${首場.時間}　${首場.地點}` : "",
@@ -366,11 +420,14 @@ async function adminPage(url, env) {
       const inv = 組合(r, cfg);
       const 網址 = `${站台}/${r.代碼}`;
       const 活動名 = inv.活動.map((e) => e.名稱).join("、") || "聚會";
-      const 訊息 =
-        `${r.對象姓名}${r.稱謂 || ""}平安，我是${r.邀請人}。
-` +
-        `誠摯邀請你參加${活動名}，這是給你的邀請卡：
-${網址}`;
+      const 訊息 = 文案(cfg.文案, "LINE訊息", {
+        對象: r.對象姓名,
+        稱謂: r.稱謂 || "",
+        對象全稱: `${r.對象姓名}${r.稱謂 || ""}`,
+        邀請人: r.邀請人,
+        活動: 活動名,
+        網址,
+      });
 
       const 停用了 = r.狀態 === "已停用";
       const 狀態類 = r.狀態 === "已發送" ? "sent" : 停用了 ? "off" : "";
@@ -382,8 +439,10 @@ ${網址}`;
       <span class="who">${esc(r.對象姓名)}${esc(r.稱謂 || "")}</span>
       <span class="pill ${狀態類}">${esc(r.狀態 || "草稿")}</span>
       ${次數 ? `<span class="pill opened">開啟 ${次數} 次</span>` : ""}
-      ${String(r.回覆 || "").trim() === "我要參加"
-        ? `<span class="pill join">我要參加</span>` : ""}
+      ${逗號(r.回覆).map((v) => {
+        const e = cfg.活動.find((x) => x.活動代號 === v);
+        return `<span class="pill join">參加 ${esc(e ? e.名稱 : v)}</span>`;
+      }).join("")}
     </div>
     <div class="meta">${esc(r.邀請人)} 邀請　·　${esc(活動名)}${
       inv.附件.length ? `　·　附 ${esc(inv.附件[0].名稱)}` : ""
@@ -590,32 +649,37 @@ async function rsvp(request, env) {
   if (request.method !== "POST") return json({ ok: false }, 405);
 
   try {
-    const { 代碼 } = await request.json();
-    const code = String(代碼 || "").toLowerCase();
+    const body = await request.json();
+    const code = String(body.代碼 || "").toLowerCase();
+    const 選的 = String(body.活動 || "").trim();
     if (!CODE_RE.test(code)) return json({ ok: false }, 400);
 
-    if (env.CACHE) {
-      const 剛剛寫過 = await env.CACHE.get(`rsvp:${code}`);
-      if (剛剛寫過) return json({ ok: true, 已記錄: true });
-    }
+    // 節流的鍵要帶活動——不然複選時按了第一場，第二場會被自己擋掉
+    const 鎖 = `rsvp:${code}:${選的}`;
+    if (env.CACHE && (await env.CACHE.get(鎖))) return json({ ok: true, 已記錄: true });
 
     const 列 = await readSheet(env, 分頁.邀請);
     const r = 列.find((x) => String(x.代碼 || "").toLowerCase() === code);
     if (!r || r.狀態 === "已停用") return json({ ok: false }, 404);
+
+    // 只接受這張卡片真的邀了的活動，其他一律不寫
+    const 邀了 = 逗號(r.活動);
+    if (選的 && !邀了.includes(選的)) return json({ ok: false }, 400);
 
     const 標題 = Object.keys(列[0]).filter((k) => k !== "_row");
     const c1 = 標題.indexOf("回覆");
     const c2 = 標題.indexOf("回覆時間");
     if (c1 < 0) return json({ ok: false, error: "試算表還沒有「回覆」欄" }, 500);
 
-    if (String(r.回覆 || "").trim() !== "我要參加") {
-      await updateCell(env, 分頁.邀請, `${欄名(c1)}${r._row}`, "我要參加");
+    const 已回 = 逗號(r.回覆);
+    const 這次 = 選的 || (邀了.length === 1 ? 邀了[0] : "我要參加");
+    if (!已回.includes(這次)) {
+      const 全部 = [...已回, 這次].join(",");
+      await updateCell(env, 分頁.邀請, `${欄名(c1)}${r._row}`, 全部);
       if (c2 >= 0) await updateCell(env, 分頁.邀請, `${欄名(c2)}${r._row}`, 台北時間());
     }
 
-    if (env.CACHE) {
-      await env.CACHE.put(`rsvp:${code}`, "1", { expirationTtl: 60 });
-    }
+    if (env.CACHE) await env.CACHE.put(鎖, "1", { expirationTtl: 60 });
     return json({ ok: true });
   } catch (e) {
     return json({ ok: false }, 500);

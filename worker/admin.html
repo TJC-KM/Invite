@@ -258,7 +258,7 @@ button[disabled]{opacity:.5;cursor:default;}
       var 狀態 = act.getAttribute("data-act");
       act.disabled = true;
       act.textContent = "處理中…";
-      fetch("/api/status?t=" + encodeURIComponent(TOKEN), {
+      fetch("/admin/api/status?t=" + encodeURIComponent(TOKEN), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ 代碼: code, 狀態: 狀態 })
@@ -288,7 +288,7 @@ button[disabled]{opacity:.5;cursor:default;}
     data["活動"] = [].slice.call(f.querySelectorAll('input[name="活動"]:checked'))
       .map(function(i){ return i.value; }).join(",");
 
-    fetch("/api/invite?t=" + encodeURIComponent(TOKEN), {
+    fetch("/admin/api/invite?t=" + encodeURIComponent(TOKEN), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(data)
