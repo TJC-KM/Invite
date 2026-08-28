@@ -1,7 +1,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>邀請卡維護</title>
+<title>客製化邀請卡</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 :root{
@@ -30,6 +30,7 @@ body{
 .wrap{max-width:1080px;margin:0 auto;padding:28px 18px 80px;}
 h1{font-size:1.32rem;font-weight:700;margin:0 0 3px;}
 .sub{color:var(--mute);font-size:.85rem;margin:0 0 22px;}
+.sub a{color:var(--violet);}
 h2{font-size:1rem;font-weight:500;margin:0 0 12px;}
 
 .cols{display:grid;grid-template-columns:380px minmax(0,1fr);gap:26px;align-items:start;}
@@ -131,8 +132,8 @@ button[disabled]{opacity:.5;cursor:default;}
 </style>
 
 <div class="wrap">
-  <h1>邀請卡維護</h1>
-  <p class="sub">共 {{count}} 筆邀請　·　資料存在試算表，這裡只是好操作</p>
+  <h1>客製化邀請卡</h1>
+  <p class="sub">{{note}}</p>
 
   <div class="cols">
     <div class="panel">

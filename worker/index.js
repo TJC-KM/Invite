@@ -473,8 +473,18 @@ async function adminPage(url, env) {
     : `<div class="ask">選一位邀請人，或在上面輸入姓名<br>
       <span style="font-size:.82rem">名單不會一次全部列出來——那是別人的個資</span></div>`;
 
+  // 說明文字：卡片上放什麼、不放什麼，外加一張真的能點的範例
+  const 範例 = 全部.find((r) => r.代碼);
+  const 範例連結 = 範例
+    ? ` <a href="${站台}/${esc(範例.代碼)}" target="_blank" rel="noopener">看一張範例</a>`
+    : "";
+  const 說明 =
+    "卡片上只有邀請函、活動資訊與見證，沒有電話、地址、奉獻紀錄這類敏感資料。" +
+    "網址是隨機 12 碼，猜不到，但拿到連結的人都看得到。" + 範例連結;
+
   const html = fill(ADMIN_HTML, {
     count: 全部.length,
+    note: 說明,
     origin: esc(站台),
     from: esc(查詢),
     rows: rows || 提示,
