@@ -484,6 +484,14 @@ async function adminPage(url, env) {
 
   const 啟用中 = (清單) => 清單.filter((x) => 有效(x.啟用));
 
+  // 活動日期過了就不該再出現在勾選清單裡。沒填日期的一律保留——
+  // 少填一個欄位不該讓活動憑空消失
+  const 今天 = 台北日期();
+  const 還沒過 = (e) => {
+    const d = String(e.海報活動日期 || "").trim();
+    return !d || d >= 今天;
+  };
+
   // 匯入面板只在按下按鈕後出現，平常不打擾
   const 要匯入 = url.searchParams.get("import") === "1";
   let 匯入面板 = "";
@@ -541,7 +549,7 @@ async function adminPage(url, env) {
         `<a class="chip${n === 查詢 ? " on" : ""}" href="/admin?from=${encodeURIComponent(n)}">${esc(n)}<span class="n">${c}</span></a>`)
       .join(""),
 
-    eventChecks: 啟用中(cfg.活動).map((e) => `
+    eventChecks: 啟用中(cfg.活動).filter(還沒過).map((e) => `
       <label class="check">
         <input type="checkbox" name="活動" value="${esc(e.活動代號)}">
         <span>${esc(e.名稱)}<br><span class="d">${esc(e.日期 || "")} ${esc(e.時間 || "")}</span></span>
@@ -664,6 +672,7 @@ async function 匯入活動(body, env) {
       時間: "",
       地點,
       海報: x.id,
+      海報活動日期: x.日期字,      // 2026-08-29。用來判斷這場過了沒
       地圖連結: "",
       啟用: "是",
       排序: x.排序,
@@ -696,19 +705,46 @@ async function api(動作, request, url, env) {
 
 // 補上程式需要、但早期試算表沒有的欄位。跑一次就好，重複跑不會有事
 async function 補欄位(env) {
-  const 列 = await readSheet(env, 分頁.邀請);
-  const 標題 = Object.keys(列[0] || {}).filter((k) => k !== "_row");
   const 加了 = [];
 
-  for (const 名 of ["稱呼", "回覆", "回覆時間"]) {
-    if (標題.includes(名)) continue;
-    await updateCell(env, 分頁.邀請, `${欄名(標題.length)}1`, 名);
-    標題.push(名);
-    加了.push(名);
+  const 確保欄位 = async (分頁名, 欄位們) => {
+    const 列 = await readSheet(env, 分頁名);
+    const 標題 = Object.keys(列[0] || {}).filter((k) => k !== "_row");
+    for (const 名 of 欄位們) {
+      if (標題.includes(名)) continue;
+      await updateCell(env, 分頁名, `${欄名(標題.length)}1`, 名);
+      標題.push(名);
+      加了.push(`${分頁名}.${名}`);
+    }
+    return 標題;
+  };
+
+  await 確保欄位(分頁.邀請, ["稱呼", "回覆", "回覆時間"]);
+  const 活動標題 = await 確保欄位(分頁.活動, ["海報活動日期"]);
+
+  // 舊的活動列是手動建的，沒有機器讀得懂的日期。從中文日期欄回填一次
+  const 回填 = [];
+  const c = 活動標題.indexOf("海報活動日期");
+  if (c >= 0) {
+    for (const e of await readSheet(env, 分頁.活動)) {
+      if (String(e.海報活動日期 || "").trim()) continue;
+      const d = 解析中文日期(e.日期);
+      if (!d) continue;
+      await updateCell(env, 分頁.活動, `${欄名(c)}${e._row}`, d);
+      回填.push(`${e.活動代號} → ${d}`);
+    }
   }
 
   if (env.CACHE) await env.CACHE.delete("cfg:v1");
-  return json({ ok: true, 加了, 現有欄位: 標題 });
+  return json({ ok: true, 加了, 回填 });
+}
+
+// 「2026 年 9 月 13 日（日）」→ 2026-09-13。抓第一個日期就好
+function 解析中文日期(文字) {
+  const m = String(文字 || "").match(/(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})/);
+  if (!m) return "";
+  const [, y, mo, d] = m;
+  return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
 async function 新增邀請(body, env, url) {
