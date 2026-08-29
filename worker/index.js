@@ -248,6 +248,7 @@ const 預設文案 = {
   回覆確認: "已經收到了，{邀請人}會再跟你聯絡　🙏",
   "回覆確認-多場": "{活動}　已經收到了 🙏",
   地圖按鈕: "查看地圖",
+  附件標題: "Testimony",
   預設地點: "黎明教會",
   邀請開頭: "{邀請人} 誠摯邀請你",
   署名: "你的朋友　{邀請人}　敬上",
@@ -269,6 +270,7 @@ function 代入(樣板, 變數) {
    ──────────────────────────────────────────────── */
 
 function renderCard(inv, env) {
+  const 詞 = inv.文案;                  // 設定檔分頁的文案，附件區與按鈕都會用到
   const 全名 = esc(inv.對象姓名);
   const 邀請人 = esc(inv.邀請人);
   const 活動 = inv.活動 || [];
@@ -319,7 +321,7 @@ function renderCard(inv, env) {
       : "";
     return `
   <div class="sec">
-    <div class="sec-h">Enclosed</div>
+    <div class="sec-h">${esc(文案(詞, "附件標題", {}))}</div>
     ${頁 ? `<div class="ev-name">${esc(a.名稱)}</div>` : ""}
     ${頁}
     ${下載}
@@ -329,7 +331,6 @@ function renderCard(inv, env) {
   const 活動名 = 活動.map((e) => e.名稱).join("、");
 
   // 一場一顆按鈕。複選時要知道他答應的是哪一場，只寫「我要參加」等於沒寫
-  const 詞 = inv.文案;
   const 參加鈕 = (活動.length ? 活動 : [null]).map((ev) => {
     const 代號 = ev ? esc(ev.活動代號) : "";
     const 單場 = !ev || 活動.length === 1;
