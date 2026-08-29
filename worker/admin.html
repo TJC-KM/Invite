@@ -179,13 +179,17 @@ button[disabled]{opacity:.5;cursor:default;}
 
           <div class="fld">
             <label for="tmpl">信件模板</label>
-            <select id="tmpl" name="信件模板">{{tmplOptions}}</select>
+            <select id="tmpl" name="信件模板">
+              {{tmplOptions}}
+              <option value="">不套用——只用下面的開場白</option>
+            </select>
           </div>
 
           <div class="fld">
             <label for="open">個人化開場 <span class="opt">選填</span></label>
             <textarea id="open" name="個人化開場" placeholder="小雯，好久不見！上次聊到工作的壓力，我一直記在心上……"></textarea>
-            <div class="hint">放在信的最前面。收到的人一眼就知道不是群發</div>
+            <div class="hint">放在信的最前面。收到的人一眼就知道不是群發。<br>
+              模板選「不套用」時，這段就是整封信的內容</div>
           </div>
 
           <div class="fld">
