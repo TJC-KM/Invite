@@ -160,6 +160,7 @@ function 組合(r, cfg) {
     代碼: r.代碼,
     _row: r._row,
     對象姓名: r.對象姓名,
+    稱呼: r.稱呼,
     稱謂: r.稱謂,
     邀請人: r.邀請人,
     狀態: r.狀態,
@@ -271,7 +272,12 @@ function 代入(樣板, 變數) {
 
 function renderCard(inv, env) {
   const 詞 = inv.文案;                  // 設定檔分頁的文案，附件區與按鈕都會用到
-  const 全名 = esc(inv.對象姓名);
+
+  // 稱呼是「卡片上怎麼叫他」，對象姓名是「名單上他是誰」——兩件事。
+  // 填了稱呼就整張卡片都用它，也不再接稱謂（「阿姨小姐」很怪）
+  const 有稱呼 = !!String(inv.稱呼 || "").trim();
+  const 全名 = esc(有稱呼 ? inv.稱呼 : inv.對象姓名);
+  const 敬稱 = 有稱呼 ? "" : esc(inv.稱謂 || "");
   const 邀請人 = esc(inv.邀請人);
   const 活動 = inv.活動 || [];
   const 首場 = 活動[0];
@@ -283,7 +289,7 @@ function renderCard(inv, env) {
     // 先逃脫整段，再把變數換成 <mark>——順序反了就等於開放試算表注入 HTML
     const 內容 = esc(p)
       .replace(/\{對象\}/g, `<mark>${全名}</mark>`)
-      .replace(/\{對象全稱\}/g, `<mark>${全名}${esc(inv.稱謂)}</mark>`)
+      .replace(/\{對象全稱\}/g, `<mark>${全名}${敬稱}</mark>`)
       .replace(/\{邀請人\}/g, `<mark>${邀請人}</mark>`);
     return i === 0 ? `<p class="salut">${內容}</p>` : `<p>${內容}</p>`;
   }).join("\n      ");
@@ -359,7 +365,7 @@ function renderCard(inv, env) {
     churchMeta: `${esc(env.CHURCH_ADDRESS || "")}<br>${esc(env.CHURCH_PHONE || "")}`,
     churchPhone: esc(env.CHURCH_PHONE || ""),
     who: 全名,
-    hon: esc(inv.稱謂),
+    hon: 敬稱,
     from: 邀請人,
     letter: 信,
     events: 活動區,
@@ -430,10 +436,11 @@ async function adminPage(url, env) {
       const inv = 組合(r, cfg);
       const 網址 = `${站台}/${r.代碼}`;
       const 活動名 = inv.活動.map((e) => e.名稱).join("、") || "聚會";
+      const 叫他 = String(r.稱呼 || "").trim();
       const 訊息 = 文案(cfg.文案, "LINE訊息", {
-        對象: r.對象姓名,
-        稱謂: r.稱謂 || "",
-        對象全稱: `${r.對象姓名}${r.稱謂 || ""}`,
+        對象: 叫他 || r.對象姓名,
+        稱謂: 叫他 ? "" : (r.稱謂 || ""),
+        對象全稱: 叫他 || `${r.對象姓名}${r.稱謂 || ""}`,
         邀請人: r.邀請人,
         活動: 活動名,
         網址,
@@ -446,7 +453,8 @@ async function adminPage(url, env) {
       return `
   <div class="card${停用了 ? " off" : ""}">
     <div class="top">
-      <span class="who">${esc(r.對象姓名)}${esc(r.稱謂 || "")}</span>
+      <span class="who">${esc(r.對象姓名)}${esc(r.稱呼 ? "" : r.稱謂 || "")}</span>
+      ${r.稱呼 ? `<span class="pill">卡片上叫「${esc(r.稱呼)}」</span>` : ""}
       <span class="pill ${狀態類}">${esc(r.狀態 || "草稿")}</span>
       ${次數 ? `<span class="pill opened">開啟 ${次數} 次</span>` : ""}
       ${逗號(r.回覆).map((v) => {
@@ -459,7 +467,6 @@ async function adminPage(url, env) {
     }</div>
     <div class="url">${esc(網址)}</div>
     <div class="acts">
-      <button data-copy="${esc(網址)}">複製連結</button>
       <a class="lnk" href="${esc(網址)}" target="_blank" rel="noopener">預覽</a>
       <a class="lnk" href="https://line.me/R/msg/text/?${encodeURIComponent(訊息)}"
          target="_blank" rel="noopener">用 LINE 傳送</a>
@@ -679,13 +686,13 @@ async function api(動作, request, url, env) {
   }
 }
 
-// 「我要參加」需要兩個新欄位。跑一次就好，重複跑不會有事
+// 補上程式需要、但早期試算表沒有的欄位。跑一次就好，重複跑不會有事
 async function 補欄位(env) {
   const 列 = await readSheet(env, 分頁.邀請);
   const 標題 = Object.keys(列[0] || {}).filter((k) => k !== "_row");
   const 加了 = [];
 
-  for (const 名 of ["回覆", "回覆時間"]) {
+  for (const 名 of ["稱呼", "回覆", "回覆時間"]) {
     if (標題.includes(名)) continue;
     await updateCell(env, 分頁.邀請, `${欄名(標題.length)}1`, 名);
     標題.push(名);
@@ -715,6 +722,7 @@ async function 新增邀請(body, env, url) {
   await appendRow(env, 分頁.邀請, {
     代碼,
     對象姓名: 姓名,
+    稱呼: String(body.稱呼 || "").trim(),
     稱謂: String(body.稱謂 || "").trim(),
     邀請人,
     活動: String(body.活動 || "").trim(),

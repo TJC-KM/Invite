@@ -158,6 +158,14 @@ button[disabled]{opacity:.5;cursor:default;}
           </div>
 
           <div class="fld">
+            <label for="nick">稱呼 <span class="opt">選填（暱稱）</span></label>
+            <input type="text" id="nick" name="稱呼" autocomplete="off"
+                   placeholder="阿姨、小雯、林大哥">
+            <div class="hint">填了就整張卡片都這樣叫他，稱謂不再出現。<br>
+              留空就用姓名加稱謂</div>
+          </div>
+
+          <div class="fld">
             <label for="hon">稱謂</label>
             <select id="hon" name="稱謂">
               <option>先生</option><option>小姐</option>
@@ -318,7 +326,7 @@ button[disabled]{opacity:.5;cursor:default;}
     btn.textContent = "產生中…";
 
     var data = {};
-    ["對象姓名","稱謂","邀請人","信件模板","個人化開場","附件"].forEach(function(k){
+    ["對象姓名","稱呼","稱謂","邀請人","信件模板","個人化開場","附件"].forEach(function(k){
       var el = f.querySelector('[name="' + k + '"]');
       data[k] = el ? el.value.trim() : "";
     });
