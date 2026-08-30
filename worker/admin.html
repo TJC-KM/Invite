@@ -138,7 +138,7 @@ button[disabled]{opacity:.5;cursor:default;}
   <div class="cols">
     <div class="panel">
       <div class="box">
-        <h2>新增邀請</h2>
+        <h2 id="formTitle">{{formTitle}}</h2>
 
         <div class="err hide" id="err"></div>
         <div class="done hide" id="done">
@@ -151,16 +151,16 @@ button[disabled]{opacity:.5;cursor:default;}
           </div>
         </div>
 
-        <form id="f">
+        <form id="f" data-edit="{{editCode}}">
           <div class="fld">
             <label for="name">對象姓名</label>
-            <input type="text" id="name" name="對象姓名" required autocomplete="off">
+            <input type="text" id="name" name="對象姓名" required autocomplete="off" value="{{vName}}">
           </div>
 
           <div class="fld" id="honFld">
             <label for="hon">稱謂 <span class="opt">接在姓名後面</span></label>
             <input type="text" id="hon" name="稱謂" autocomplete="off"
-                   list="honList" placeholder="先生、小姐、弟兄、姊妹">
+                   list="honList" placeholder="先生、小姐、弟兄、姊妹" value="{{vHon}}">
             <datalist id="honList">{{honOptions}}</datalist>
             <div class="hint" id="honHint">可以用選的，也可以自己打</div>
           </div>
@@ -168,7 +168,7 @@ button[disabled]{opacity:.5;cursor:default;}
           <div class="fld">
             <label for="nick">稱呼 <span class="opt">選填（暱稱）</span></label>
             <input type="text" id="nick" name="稱呼" autocomplete="off"
-                   list="nickList" placeholder="阿姨、小雯、林大哥">
+                   list="nickList" placeholder="阿姨、小雯、林大哥" value="{{vNick}}">
             <datalist id="nickList">{{nickOptions}}</datalist>
             <div class="hint">填了就整張卡片都這樣叫他（親愛的阿姨），姓名和稱謂都不出現。<br>
               「女兒、女婿」這種不能接在姓名後面的，要填在這裡</div>
@@ -176,7 +176,7 @@ button[disabled]{opacity:.5;cursor:default;}
 
           <div class="fld">
             <label for="from">邀請人</label>
-            <input type="text" id="from" name="邀請人" required autocomplete="off" list="fromList">
+            <input type="text" id="from" name="邀請人" required autocomplete="off" list="fromList" value="{{vFrom}}">
             <datalist id="fromList">{{fromOptions}}</datalist>
             <div class="hint">信末署名用這個</div>
           </div>
@@ -195,8 +195,19 @@ button[disabled]{opacity:.5;cursor:default;}
           </div>
 
           <div class="fld">
+            <label for="letter">信件內容 <span class="opt">可以直接改</span></label>
+            <textarea id="letter" name="客製內文" rows="8">{{vCustom}}</textarea>
+            <div class="hint">
+              這就是卡片上會出現的信。挑好模板後會自動填進來，
+              想為這個人改幾句就直接改——<b>只影響這一張卡片</b>。<br>
+              段落之間空一行。<code>{對象}</code> 和 <code>{邀請人}</code> 會自動代入。
+              <button type="button" id="resetLetter" style="margin-top:6px">回到模板原文</button>
+            </div>
+          </div>
+
+          <div class="fld">
             <label for="open">個人化開場 <span class="opt">選填</span></label>
-            <textarea id="open" name="個人化開場" placeholder="小雯，好久不見！上次聊到工作的壓力，我一直記在心上……"></textarea>
+            <textarea id="open" name="個人化開場" placeholder="小雯，好久不見！上次聊到工作的壓力，我一直記在心上……">{{vOpen}}</textarea>
             <div class="hint">放在信的最前面。收到的人一眼就知道不是群發。<br>
               模板選「不套用」時，這段就是整封信的內容</div>
           </div>
@@ -210,7 +221,8 @@ button[disabled]{opacity:.5;cursor:default;}
             <div class="hint">挑一篇跟對方處境接近的見證</div>
           </div>
 
-          <button class="go" type="submit" id="submit">產生邀請連結</button>
+          <button class="go" type="submit" id="submit">{{submitLabel}}</button>
+          <div class="acts" style="margin-top:9px">{{cancelRow}}</div>
         </form>
       </div>
     </div>
@@ -331,6 +343,22 @@ button[disabled]{opacity:.5;cursor:default;}
     sync();
   }
 
+  var TMPL = {{tmplBodies}};
+  var letter = document.getElementById("letter");
+  var tmplSel = document.getElementById("tmpl");
+
+  function 套模板(){
+    if (!letter || !tmplSel) return;
+    letter.value = TMPL[tmplSel.value] || "";
+  }
+  if (tmplSel && letter) {
+    // 新增時，選單一換就把那份模板填進信件框——看到什麼就是卡片上的什麼
+    tmplSel.addEventListener("change", 套模板);
+    if (!letter.value.trim()) 套模板();
+  }
+  var resetBtn = document.getElementById("resetLetter");
+  if (resetBtn) resetBtn.addEventListener("click", function(){ 套模板(); say("已回到模板原文"); });
+
   var f = document.getElementById("f");
   var err = document.getElementById("err");
   var done = document.getElementById("done");
@@ -343,14 +371,23 @@ button[disabled]{opacity:.5;cursor:default;}
     btn.textContent = "產生中…";
 
     var data = {};
-    ["對象姓名","稱呼","稱謂","邀請人","信件模板","個人化開場","附件"].forEach(function(k){
+    ["對象姓名","稱呼","稱謂","邀請人","信件模板","個人化開場","客製內文","附件"].forEach(function(k){
       var el = f.querySelector('[name="' + k + '"]');
       data[k] = el ? el.value.trim() : "";
     });
     data["活動"] = [].slice.call(f.querySelectorAll('input[name="活動"]:checked'))
       .map(function(i){ return i.value; }).join(",");
 
-    fetch("/admin/api/invite", {
+    // 信件框如果跟模板原文一模一樣，就當作「沿用模板」存空值。
+    // 畫面上看起來一樣，但這張卡片還跟著模板走，之後模板改了它也會跟著改
+    if (letter && tmplSel && data["客製內文"] === (TMPL[tmplSel.value] || "").trim()) {
+      data["客製內文"] = "";
+    }
+
+    var 編輯 = f.getAttribute("data-edit");
+    if (編輯) data["代碼"] = 編輯;
+
+    fetch(編輯 ? "/admin/api/update" : "/admin/api/invite", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(data)
@@ -358,8 +395,15 @@ button[disabled]{opacity:.5;cursor:default;}
       btn.disabled = false;
       btn.textContent = "產生邀請連結";
       if (!d.ok) {
-        err.textContent = d.error || "新增失敗";
+        err.textContent = d.error || (編輯 ? "修改失敗" : "新增失敗");
         err.classList.remove("hide");
+        return;
+      }
+      if (編輯) {
+        say("已儲存");
+        setTimeout(function(){
+          location.href = "/admin?from=" + encodeURIComponent(data["邀請人"]);
+        }, 900);
         return;
       }
       var url = ORIGIN + "/" + d.代碼;

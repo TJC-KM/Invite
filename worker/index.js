@@ -284,10 +284,12 @@ function renderCard(inv, env) {
   const 活動 = inv.活動 || [];
   const 首場 = 活動[0];
 
-  const 信 = (inv.客製內文
+  // 開場白永遠在最前面，後面接信件本文——本文可能是模板，
+  // 也可能是新增當下就改過的版本（客製內文）
+  const 本文 = inv.客製內文
     ? String(inv.客製內文).split(/\n\s*\n/)
-    : [inv.個人化開場, ...(inv.信件內文 || [])].filter(Boolean)
-  ).map((p, i) => {
+    : inv.信件內文 || [];
+  const 信 = [inv.個人化開場, ...本文].filter(Boolean).map((p, i) => {
     // 先逃脫整段，再把變數換成 <mark>——順序反了就等於開放試算表注入 HTML
     const 內容 = esc(p)
       .replace(/\{對象\}/g, `<mark>${全名}</mark>`)
@@ -470,6 +472,7 @@ async function adminPage(url, env) {
     <div class="url">${esc(網址)}</div>
     <div class="acts">
       <a class="lnk" href="${esc(網址)}" target="_blank" rel="noopener">預覽</a>
+      <a class="lnk" href="/admin?from=${encodeURIComponent(r.邀請人 || "")}&edit=${encodeURIComponent(r.代碼)}#f">修改</a>
       <a class="lnk" href="https://line.me/R/msg/text/?${encodeURIComponent(訊息)}"
          target="_blank" rel="noopener">用 LINE 傳送</a>
       <button data-copy="${esc(訊息)}">複製訊息</button>
@@ -524,6 +527,13 @@ async function adminPage(url, env) {
       </div>`;
   }
 
+  // 編輯模式：帶 ?edit=<代碼> 就把那一筆填進表單
+  const 編輯代碼 = String(url.searchParams.get("edit") || "").toLowerCase();
+  const 編輯中 = 編輯代碼
+    ? 全部.find((r) => String(r.代碼 || "").toLowerCase() === 編輯代碼)
+    : null;
+  const v = (k) => esc(編輯中 ? 編輯中[k] || "" : "");
+
   const 提示 = 查詢
     ? `<div class="ask">${esc(查詢)} 目前沒有邀請</div>`
     : `<div class="ask">選一位邀請人，或在上面輸入姓名<br>
@@ -549,18 +559,41 @@ async function adminPage(url, env) {
         `<a class="chip${n === 查詢 ? " on" : ""}" href="/admin?from=${encodeURIComponent(n)}">${esc(n)}<span class="n">${c}</span></a>`)
       .join(""),
 
-    eventChecks: 啟用中(cfg.活動).filter(還沒過).map((e) => `
+    formTitle: 編輯中 ? `修改「${esc(編輯中.對象姓名)}」` : "新增邀請",
+    submitLabel: 編輯中 ? "儲存修改" : "產生邀請連結",
+    editCode: 編輯中 ? esc(編輯中.代碼) : "",
+    cancelRow: 編輯中
+      ? `<a class="lnk" href="/admin?from=${encodeURIComponent(編輯中.邀請人 || "")}">取消</a>`
+      : "",
+    vName: v("對象姓名"),
+    vHon: v("稱謂"),
+    vNick: v("稱呼"),
+    vFrom: v("邀請人"),
+    vOpen: v("個人化開場"),
+    vCustom: v("客製內文"),
+
+    // 模板全文給前端用——「以模板為底稿」那顆按鈕要把它填進客製內文
+    tmplBodies: JSON.stringify(
+      Object.fromEntries(啟用中(cfg.模板).map((t) => [t.模板代號, t.內文 || ""]))
+    ),
+
+    eventChecks: 啟用中(cfg.活動)
+      .filter((e) => 還沒過(e) || (編輯中 && 逗號(編輯中.活動).includes(e.活動代號)))
+      .map((e) => `
       <label class="check">
-        <input type="checkbox" name="活動" value="${esc(e.活動代號)}">
+        <input type="checkbox" name="活動" value="${esc(e.活動代號)}"${
+          編輯中 && 逗號(編輯中.活動).includes(e.活動代號) ? " checked" : ""}>
         <span>${esc(e.名稱)}<br><span class="d">${esc(e.日期 || "")} ${esc(e.時間 || "")}</span></span>
       </label>`).join(""),
 
     tmplOptions: 啟用中(cfg.模板)
-      .map((t) => `<option value="${esc(t.模板代號)}">${esc(t.名稱 || t.模板代號)}</option>`)
+      .map((t) => `<option value="${esc(t.模板代號)}"${
+        編輯中 && 編輯中.信件模板 === t.模板代號 ? " selected" : ""
+      }>${esc(t.名稱 || t.模板代號)}</option>`)
       .join(""),
 
     // 54 篇見證照主題分組，不然選單會是一條看不完的長清單
-    attachOptions: 分組附件(啟用中(cfg.附件)),
+    attachOptions: 分組附件(啟用中(cfg.附件), 編輯中 ? 逗號(編輯中.附件) : []),
 
     // 稱謂與稱呼的建議清單來自設定檔，維護的人自己加減；兩欄都仍可自由輸入
     honOptions: 逗號(文案(cfg.文案, "稱謂選項", {}))
@@ -584,7 +617,7 @@ async function adminPage(url, env) {
 }
 
 // 附件代號長這樣：04-04-禱告生活-蘇真玉。中間那段是主題，拿來分組
-function 分組附件(附件) {
+function 分組附件(附件, 已選 = []) {
   const 群 = new Map();
   for (const a of 附件) {
     const m = String(a.附件代號).match(/^\d+-\d+-([^-]+)-/);
@@ -594,7 +627,9 @@ function 分組附件(附件) {
   }
   return [...群]
     .map(([主題, 清單]) => `<optgroup label="${esc(主題)}">${清單
-      .map((a) => `<option value="${esc(a.附件代號)}">${esc(a.名稱)}</option>`)
+      .map((a) => `<option value="${esc(a.附件代號)}"${
+        已選.includes(a.附件代號) ? " selected" : ""
+      }>${esc(a.名稱)}</option>`)
       .join("")}</optgroup>`)
     .join("");
 }
@@ -696,6 +731,7 @@ async function api(動作, request, url, env) {
     if (動作 === "setup") return await 補欄位(env);
     if (動作 === "import") return await 匯入活動(body, env);
     if (動作 === "invite") return await 新增邀請(body, env, url);
+    if (動作 === "update") return await 修改邀請(body, env);
     if (動作 === "status") return await 改狀態(body, env);
     return notFound();
   } catch (e) {
@@ -772,7 +808,7 @@ async function 新增邀請(body, env, url) {
     活動: String(body.活動 || "").trim(),
     信件模板: String(body.信件模板 || "").trim(),
     個人化開場: String(body.個人化開場 || "").trim(),
-    客製內文: "",
+    客製內文: String(body.客製內文 || "").trim(),
     附件: String(body.附件 || "").trim(),
     狀態: "草稿",
     建立時間: 台北時間(),
@@ -801,6 +837,33 @@ async function 新增邀請(body, env, url) {
       `${姓名}${body.稱謂 || ""}平安，我是${邀請人}。\n` +
       `誠摯邀請你參加${活動名}，這是給你的邀請卡：\n${網址}`,
   });
+}
+
+// 修改一筆邀請。代碼不動——動了等於換網址，已發出的連結會失效
+async function 修改邀請(body, env) {
+  const code = String(body.代碼 || "").toLowerCase();
+  if (!CODE_RE.test(code)) return json({ ok: false, error: "代碼不對" }, 400);
+
+  const 列 = await readSheet(env, 分頁.邀請);
+  const r = 列.find((x) => String(x.代碼 || "").toLowerCase() === code);
+  if (!r) return json({ ok: false, error: "找不到這筆邀請" }, 404);
+
+  const 標題 = Object.keys(列[0]).filter((k) => k !== "_row");
+  const 可改 = ["對象姓名", "稱呼", "稱謂", "邀請人", "活動", "信件模板", "個人化開場", "客製內文", "附件"];
+
+  const 改了 = [];
+  for (const 名 of 可改) {
+    if (!(名 in body)) continue;
+    const i = 標題.indexOf(名);
+    if (i < 0) continue;
+    const 新值 = String(body[名] ?? "").trim();
+    if (新值 === String(r[名] ?? "").trim()) continue;   // 沒變就不寫
+    await updateCell(env, 分頁.邀請, `${欄名(i)}${r._row}`, 新值);
+    改了.push(名);
+  }
+
+  if (env.CACHE) await env.CACHE.delete(`inv:${code}`);
+  return json({ ok: true, 改了 });
 }
 
 async function 改狀態(body, env) {
