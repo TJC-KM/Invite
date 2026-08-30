@@ -81,6 +81,9 @@ button[disabled]{opacity:.5;cursor:default;}
 .findrow{display:flex;gap:8px;}
 .findrow input{flex:1;}
 .findrow button{white-space:nowrap;}
+.letterbar{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.letterbar .hint{margin:0;}
+.letterbar .hint.changed{color:var(--teal);font-weight:500;}
 .chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
 .chip{
   font-size:.8rem;border:1px solid var(--line);border-radius:20px;padding:4px 12px;
@@ -195,13 +198,17 @@ button[disabled]{opacity:.5;cursor:default;}
           </div>
 
           <div class="fld">
-            <label for="letter">信件內容 <span class="opt">可以直接改</span></label>
-            <textarea id="letter" name="客製內文" rows="8">{{vCustom}}</textarea>
-            <div class="hint">
-              這就是卡片上會出現的信。挑好模板後會自動填進來，
-              想為這個人改幾句就直接改——<b>只影響這一張卡片</b>。<br>
-              段落之間空一行。<code>{對象}</code> 和 <code>{邀請人}</code> 會自動代入。
-              <button type="button" id="resetLetter" style="margin-top:6px">回到模板原文</button>
+            <div class="letterbar">
+              <span class="hint" id="letterState">目前照模板原文</span>
+              <button type="button" id="toggleLetter">改這封信</button>
+            </div>
+            <div id="letterBox" class="hide" style="margin-top:8px">
+              <textarea id="letter" name="客製內文" rows="10">{{vCustom}}</textarea>
+              <div class="hint">
+                這就是卡片上會出現的信，改了<b>只影響這一張卡片</b>。<br>
+                段落之間空一行。<code>{對象}</code> 和 <code>{邀請人}</code> 會自動代入。
+                <button type="button" id="resetLetter" style="margin-top:6px">回到模板原文</button>
+              </div>
             </div>
           </div>
 
@@ -356,8 +363,42 @@ button[disabled]{opacity:.5;cursor:default;}
     tmplSel.addEventListener("change", 套模板);
     if (!letter.value.trim()) 套模板();
   }
+  // 信件內容平常收起來——多數情況不會改，攤開只是讓表單看起來很難填
+  var letterBox = document.getElementById("letterBox");
+  var toggleBtn = document.getElementById("toggleLetter");
+  var state = document.getElementById("letterState");
+
+  function 更新狀態(){
+    if (!letter || !state) return;
+    var 原文 = (TMPL[tmplSel ? tmplSel.value : ""] || "").trim();
+    var 改過 = letter.value.trim() !== 原文 && letter.value.trim() !== "";
+    state.textContent = tmplSel && !tmplSel.value
+      ? "沒有套用模板，這封信是自己寫的"
+      : (改過 ? "這封信已經改過" : "目前照模板原文");
+    state.classList.toggle("changed", 改過);
+  }
+
+  if (toggleBtn && letterBox) {
+    toggleBtn.addEventListener("click", function(){
+      var 開 = letterBox.classList.toggle("hide") === false;
+      toggleBtn.textContent = 開 ? "收起來" : "改這封信";
+      if (開 && letter) letter.focus();
+    });
+    // 編輯已經改過的信時，直接攤開——不然會以為系統把他的字弄丟了
+    if (letter && letter.value.trim() &&
+        letter.value.trim() !== (TMPL[tmplSel ? tmplSel.value : ""] || "").trim()) {
+      letterBox.classList.remove("hide");
+      toggleBtn.textContent = "收起來";
+    }
+  }
+  if (letter) letter.addEventListener("input", 更新狀態);
+  if (tmplSel) tmplSel.addEventListener("change", 更新狀態);
+
   var resetBtn = document.getElementById("resetLetter");
-  if (resetBtn) resetBtn.addEventListener("click", function(){ 套模板(); say("已回到模板原文"); });
+  if (resetBtn) resetBtn.addEventListener("click", function(){
+    套模板(); 更新狀態(); say("已回到模板原文");
+  });
+  更新狀態();
 
   var f = document.getElementById("f");
   var err = document.getElementById("err");
