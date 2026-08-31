@@ -360,6 +360,7 @@ function renderCard(inv, env) {
     inviteLead: 文案(詞, "邀請開頭", { 邀請人: `<b>${邀請人}</b>` }),
     sign: 文案(詞, "署名", { 邀請人: `<mark>${邀請人}</mark>` }),
     mapLabel: esc(文案(詞, "地圖按鈕", {})),
+    churchSite: esc(env.CHURCH_SITE || "https://li-ming-tjc.org"),
     pageTitle: `${inv.邀請人} 邀請你參加${首場 ? 首場.名稱 : "聚會"}`,
     ogTitle: `${inv.邀請人} 邀請你參加${活動名 || "聚會"}`,
     ogDesc: 首場 ? `${首場.日期} ${首場.時間}　${首場.地點}` : "",
