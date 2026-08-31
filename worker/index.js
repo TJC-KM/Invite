@@ -37,10 +37,10 @@ export default {
     if (path.startsWith("admin/api/")) return api(path.slice(10), request, url, env);
 
     const code = path.toLowerCase();
-    if (!CODE_RE.test(code)) return notFound();
+    if (!CODE_RE.test(code)) return notFound(env);
 
     const invite = await loadInvite(code, env);
-    if (!invite || invite.狀態 === "已停用") return notFound();
+    if (!invite || invite.狀態 === "已停用") return notFound(env);
 
     const html = renderCard(invite, env);
 
@@ -390,8 +390,10 @@ function esc(s) {
   }[c]));
 }
 
-function notFound() {
-  return new Response(NOTFOUND_HTML, {
+function notFound(env) {
+  return new Response(fill(NOTFOUND_HTML, {
+    churchSite: esc((env && env.CHURCH_SITE) || "https://li-ming-tjc.org"),
+  }), {
     status: 404,
     headers: { "content-type": "text/html; charset=utf-8" },
   });
@@ -734,7 +736,7 @@ async function api(動作, request, url, env) {
     if (動作 === "invite") return await 新增邀請(body, env, url);
     if (動作 === "update") return await 修改邀請(body, env);
     if (動作 === "status") return await 改狀態(body, env);
-    return notFound();
+    return notFound(env);
   } catch (e) {
     return json({ ok: false, error: e.message }, 500);
   }

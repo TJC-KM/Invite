@@ -17,7 +17,7 @@
     "CHURCH_ADDRESS": "台中市南屯區大墩四街 460 號",
     "CHURCH_PHONE": "04-2380-9800",
     "CHURCH_MAP": "https://maps.app.goo.gl/qpSyLTHQh3wudJ888",
-    "CHURCH_SITE": "https://li-ming-tjc.org",
+    "CHURCH_SITE": "https://tjclimin20.my.canva.site/singlepageweb",
 
     // og:image 要絕對網址，LINE 不吃相對路徑。
     // 部署後把這串換成實際的 workers.dev 網址，之後換子網域時再改一次。
