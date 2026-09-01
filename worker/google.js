@@ -221,3 +221,18 @@ export async function appendRow(env, tab, 資料) {
   if (!res.ok) throw new Error(`新增到「${tab}」失敗 ${res.status}：${JSON.stringify(data)}`);
   return data;
 }
+
+// Drive 會自動幫 PDF 產第一頁的縮圖。網址是短效的，所以每次都要重新問，
+// 拿到之後由 Worker 抓下來快取——外面不會看到 Google 的網址
+export async function thumbnailUrl(env, fileId, size = 600) {
+  const token = await getAccessToken(env);
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}` +
+      `?fields=thumbnailLink&supportsAllDrives=true`,
+    { headers: { authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) return "";
+  const data = await res.json();
+  if (!data.thumbnailLink) return "";
+  return data.thumbnailLink.replace(/=s\d+.*$/, `=s${size}`);
+}

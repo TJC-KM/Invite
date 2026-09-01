@@ -6,7 +6,7 @@
 import CARD_HTML from "./card.html";
 import NOTFOUND_HTML from "./notfound.html";
 import ADMIN_HTML from "./admin.html";
-import { readSheet, updateCell, appendRow, listFolder, fetchFile } from "./google.js";
+import { readSheet, updateCell, appendRow, listFolder, fetchFile, thumbnailUrl } from "./google.js";
 
 const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
 
@@ -27,6 +27,11 @@ export default {
 
     if (path.startsWith("img/")) {
       return imageProxy(path.slice(4), env, ctx);
+    }
+
+    // PDF 第一頁的預覽圖
+    if (path.startsWith("thumb/")) {
+      return thumbProxy(path.slice(6), env, ctx);
     }
 
     // 「我要參加」是公開的，不帶金鑰——但只認得完整正確的代碼
@@ -324,9 +329,12 @@ function renderCard(inv, env) {
     // Drive 的檢視器會逐頁串流，點下去就看得到第一頁
     const 主檔 = a.原始檔 || (a.類型 !== "圖片集" ? (a.檔案 || [])[0] : "");
     const 下載 = 主檔
-      ? `<a class="attach" href="https://drive.google.com/file/d/${esc(主檔)}/preview" target="_blank" rel="noopener">
-        <div class="ic">📖</div>
-        <div><div class="t">${esc(a.名稱)}</div><div class="s">${esc(a.說明 || "點開閱讀")}</div></div>
+      ? `<a class="attach-card" href="https://drive.google.com/file/d/${esc(主檔)}/preview" target="_blank" rel="noopener">
+        <div class="peek"><img src="/thumb/${esc(主檔)}" alt="${esc(a.名稱)} 第一頁" loading="lazy"></div>
+        <div class="attach">
+          <div class="ic">📖</div>
+          <div><div class="t">${esc(a.名稱)}</div><div class="s">${esc(a.說明 || "點開閱讀全文")}</div></div>
+        </div>
       </a>`
       : "";
     return `
@@ -963,6 +971,32 @@ function json(obj, status = 200) {
     status,
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
   });
+}
+
+// 見證 PDF 的第一頁預覽。Drive 產的縮圖網址會過期，
+// 所以每次快取沒中就重新問一次，抓下來自己快取一天
+async function thumbProxy(fileId, env, ctx) {
+  if (!/^[\w-]{10,}$/.test(fileId)) return new Response("Not found", { status: 404 });
+
+  const cache = caches.default;
+  const key = new Request(`https://thumb.local/${fileId}`);
+  const hit = await cache.match(key);
+  if (hit) return hit;
+
+  const url = await thumbnailUrl(env, fileId, 600);
+  if (!url) return new Response("沒有預覽圖", { status: 404 });
+
+  const upstream = await fetch(url);
+  if (!upstream.ok) return new Response("預覽圖讀不到", { status: 502 });
+
+  const res = new Response(upstream.body, {
+    headers: {
+      "content-type": upstream.headers.get("content-type") || "image/png",
+      "cache-control": "public, max-age=86400",
+    },
+  });
+  ctx.waitUntil(cache.put(key, res.clone()));
+  return res;
 }
 
 /* ────────────────────────────────────────────────

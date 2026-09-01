@@ -138,6 +138,19 @@ body{
 .pages{display:flex;flex-direction:column;gap:10px;}
 .pages img{width:100%;height:auto;display:block;border-radius:7px;border:1px solid var(--line);}
 
+/* 見證的第一頁預覽：只露出上半，讓人知道裡面是什麼、但要點進去才看得完 */
+.attach-card{display:block;text-decoration:none;color:inherit;}
+.peek{
+  position:relative;height:190px;overflow:hidden;
+  border:1px solid var(--line);border-bottom:0;border-radius:8px 8px 0 0;
+  background:var(--surface);
+}
+.peek img{width:100%;display:block;object-fit:cover;object-position:top center;}
+.peek::after{
+  content:'';position:absolute;left:0;right:0;bottom:0;height:70px;
+  background:linear-gradient(transparent,var(--surface));
+}
+.attach-card .attach{border-radius:0 0 8px 8px;}
 .attach{
   display:flex;align-items:center;gap:12px;padding:13px;
   border:1px solid var(--line);border-radius:8px;text-decoration:none;color:inherit;
