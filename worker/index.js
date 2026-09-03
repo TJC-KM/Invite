@@ -566,8 +566,8 @@ async function adminPage(url, env) {
     rows: 匯入面板 + (rows || 提示),
 
     fromChips: 邀請人們
-      .map(([n, c]) =>
-        `<a class="chip${n === 查詢 ? " on" : ""}" href="/admin?from=${encodeURIComponent(n)}">${esc(n)}<span class="n">${c}</span></a>`)
+      .map(([n]) =>
+        `<a class="chip${n === 查詢 ? " on" : ""}" href="/admin?from=${encodeURIComponent(n)}">${esc(n)}</a>`)
       .join(""),
 
     formTitle: 編輯中 ? `修改「${esc(編輯中.對象姓名)}」` : "新增邀請",
