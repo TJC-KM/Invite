@@ -296,18 +296,6 @@ button[disabled]{opacity:.5;cursor:default;}
   }
 
   document.addEventListener("click", function(e){
-    var sh = e.target.closest("[data-share]");
-    if (sh) {
-      var u = sh.getAttribute("data-share");
-      // 手機交給系統分享面板；桌機大多沒有，退成複製連結
-      if (navigator.share) {
-        navigator.share({ title: sh.getAttribute("data-title") || "", url: u }).catch(function(){});
-      } else {
-        copy(u);
-      }
-      return;
-    }
-
     var c = e.target.closest("[data-copy]");
     if (c && c.getAttribute("data-copy")) { copy(c.getAttribute("data-copy")); return; }
 

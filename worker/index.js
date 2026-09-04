@@ -649,8 +649,6 @@ async function adminPage(url, env) {
         <div class="evdate">${esc(e.日期 || "")}</div>
       </div>
       <div class="acts">
-        <button data-share="${esc(網址)}" data-title="${esc(e.名稱)}">分享</button>
-        <button data-copy="${esc(網址)}">複製連結</button>
         <a class="lnk" href="${esc(網址)}" target="_blank" rel="noopener">看公開頁</a>
       </div>
     </div>`;
@@ -661,7 +659,7 @@ async function adminPage(url, env) {
     eventLinks: 活動列
       ? `<div class="find"><h2>活動公開頁</h2>
           <p class="hint" style="margin:0 0 10px">
-            沒有任何個人資訊，可以貼在粉專、社群或群組。手機按「分享」會叫出系統的分享面板
+            沒有任何個人資訊，可以貼在粉專、社群或群組。分享的動作都在公開頁上
           </p>${活動列}</div>`
       : "",
     note: 說明,
