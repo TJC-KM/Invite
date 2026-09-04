@@ -243,9 +243,10 @@ button[disabled]{opacity:.5;cursor:default;}
       <div class="bar">
         <button onclick="location.search='?refresh=1'">重新整理快取</button>
         <a class="lnk" href="/admin?import=1">從海報資料夾匯入活動</a>
+        <button id="toggleEv" type="button">活動公開頁</button>
       </div>
 
-      {{eventLinks}}
+      <div id="evBox" class="hide">{{eventLinks}}</div>
 
       <form class="find" method="get" action="/admin">
         <label for="findFrom">看誰的名單</label>
@@ -323,6 +324,16 @@ button[disabled]{opacity:.5;cursor:default;}
       }).catch(function(){ say("連線失敗"); act.disabled = false; });
     }
   });
+
+  // 活動公開頁平常收起來，要用再展開
+  var evBox = document.getElementById("evBox");
+  var evBtn = document.getElementById("toggleEv");
+  if (evBox && evBtn) {
+    evBtn.addEventListener("click", function(){
+      var 開 = evBox.classList.toggle("hide") === false;
+      evBtn.textContent = 開 ? "收起活動公開頁" : "活動公開頁";
+    });
+  }
 
   var imp = document.getElementById("doImport");
   if (imp) {
