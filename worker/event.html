@@ -96,6 +96,9 @@ dd{margin:0;}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn-1{color:#17141f;}}
 .btn-2{border-color:var(--line);color:var(--ink);background:var(--surface);}
 
+.tip{
+  margin:12px 0 0;font-size:.78rem;color:var(--mute);line-height:1.7;text-align:center;
+}
 .foot{
   padding:18px 24px 26px;text-align:center;font-size:.74rem;color:var(--mute);
   border-top:1px solid var(--line);
@@ -139,10 +142,11 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-off
     <div class="sec">
       <div class="cta">
         <button class="btn btn-1" id="share" type="button">分享這個活動</button>
-        <button class="btn btn-2" id="saveImg" type="button" hidden>存圖片　發 IG 用</button>
+        <button class="btn btn-2" id="saveImg" type="button" hidden>分享（IG 用）</button>
         <a class="btn btn-2" href="{{mapUrl}}" target="_blank" rel="noopener">{{mapLabel}}</a>
         <a class="btn btn-2" href="tel:{{churchPhone}}">打電話問教會</a>
       </div>
+      <p class="tip" id="tip" hidden></p>
     </div>
 
     <div class="foot">
@@ -198,13 +202,10 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-off
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           return navigator.share({ files: [file], text: 文字 });
         }
-        // 退路：直接下載到相簿／下載資料夾
-        var a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = 圖名;
-        a.click();
-        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
-        say("圖片已下載，到 IG 手動發布");
+        // LINE 的內建瀏覽器沒有分享 API，下載也常被擋。
+        // 開新分頁最可靠——長按（電腦是右鍵）就能存圖
+        window.open(圖, "_blank", "noopener");
+        say("長按圖片即可儲存，再到 IG 發布");
       })
       .catch(function(){ say("圖片取得失敗，請稍後再試"); })
       .then(function(){
@@ -212,6 +213,15 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-off
         imgBtn.textContent = 原字;
       });
   });
+
+  // 沒有分享 API 的環境（LINE 內建瀏覽器就是）先講清楚，不要讓人以為壞了
+  if (!navigator.share) {
+    var tip = document.getElementById("tip");
+    tip.textContent = /Line\//i.test(navigator.userAgent)
+      ? "在 LINE 裡只能複製連結。想直接分享，請點右上角選單選「用其他瀏覽器開啟」"
+      : "這個瀏覽器不支援直接分享，按下去會複製連結";
+    tip.hidden = false;
+  }
 
   btn.addEventListener("click", function(){
     // 手機：交給系統的分享面板，LINE、FB、訊息都在裡面。
