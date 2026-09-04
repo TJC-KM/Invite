@@ -422,6 +422,23 @@ function isPreviewBot(ua) {
    公開活動頁　—— 給社群分享用，一個人的資料都沒有
    ──────────────────────────────────────────────── */
 
+// IG 版的圖。優先用「IG圖」欄，沒填就到海報資料夾找同一天、檔名帶 IG 的檔案，
+// 再沒有就退回海報原圖——至少有東西可以發，只是比例可能被 IG 裁掉
+function 找IG圖(e, cfg) {
+  const 指定 = 解析檔案(e.IG圖, cfg.海報清單);
+  if (指定) return 指定;
+
+  const 日期 = String(e.海報活動日期 || "").trim();
+  if (日期) {
+    const f = (cfg.海報清單 || []).find(
+      (x) => x.mimeType?.startsWith("image/") &&
+             x.name.startsWith(日期) && /ig/i.test(x.name)
+    );
+    if (f) return f.id;
+  }
+  return 解析檔案(e.海報, cfg.海報清單);
+}
+
 async function eventPage(代號, env) {
   const cfg = await loadConfig(env);
   const e = cfg.活動.find((x) => x.活動代號 === 代號);
@@ -461,6 +478,10 @@ async function eventPage(代號, env) {
 
     // 丟進 JS 的字串，用 JSON.stringify 才不會被引號或換行咬到
     shareText: JSON.stringify([e.名稱, e.日期, e.時間, e.地點].filter(Boolean).join("　")),
+
+    // 發 IG 用的圖。IG 貼文放不了可點的連結，資訊只能在圖片上
+    shareImg: JSON.stringify(找IG圖(e, cfg) ? `/img/${找IG圖(e, cfg)}` : ""),
+    shareImgName: JSON.stringify(`${String(e.名稱 || "活動").replace(/[\/:*?"<>|]/g, "")}.jpg`),
   });
 
   return new Response(html, {
@@ -849,7 +870,7 @@ async function 補欄位(env) {
   };
 
   await 確保欄位(分頁.邀請, ["稱呼", "回覆", "回覆時間"]);
-  const 活動標題 = await 確保欄位(分頁.活動, ["海報活動日期"]);
+  const 活動標題 = await 確保欄位(分頁.活動, ["海報活動日期", "IG圖"]);
 
   // 舊的活動列是手動建的，沒有機器讀得懂的日期。從中文日期欄回填一次
   const 回填 = [];

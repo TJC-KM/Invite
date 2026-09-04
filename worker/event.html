@@ -139,6 +139,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-off
     <div class="sec">
       <div class="cta">
         <button class="btn btn-1" id="share" type="button">分享這個活動</button>
+        <button class="btn btn-2" id="saveImg" type="button" hidden>存圖片　發 IG 用</button>
         <a class="btn btn-2" href="{{mapUrl}}" target="_blank" rel="noopener">{{mapLabel}}</a>
         <a class="btn btn-2" href="tel:{{churchPhone}}">打電話問教會</a>
       </div>
@@ -177,6 +178,40 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-off
       say("請長按網址列複製");
     }
   }
+
+  // IG 的貼文放不了可點的連結，所以宣傳只能靠圖片。
+  // 手機支援分享檔案就叫出分享面板（IG 會在裡面），否則直接下載
+  var 圖 = {{shareImg}};
+  var 圖名 = {{shareImgName}};
+  var imgBtn = document.getElementById("saveImg");
+  if (圖) imgBtn.hidden = false;
+
+  imgBtn.addEventListener("click", function(){
+    imgBtn.disabled = true;
+    var 原字 = imgBtn.textContent;
+    imgBtn.textContent = "準備中…";
+
+    fetch(圖)
+      .then(function(r){ return r.blob(); })
+      .then(function(blob){
+        var file = new File([blob], 圖名, { type: blob.type || "image/jpeg" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          return navigator.share({ files: [file], text: 文字 });
+        }
+        // 退路：直接下載到相簿／下載資料夾
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = 圖名;
+        a.click();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+        say("圖片已下載，到 IG 手動發布");
+      })
+      .catch(function(){ say("圖片取得失敗，請稍後再試"); })
+      .then(function(){
+        imgBtn.disabled = false;
+        imgBtn.textContent = 原字;
+      });
+  });
 
   btn.addEventListener("click", function(){
     // 手機：交給系統的分享面板，LINE、FB、訊息都在裡面。

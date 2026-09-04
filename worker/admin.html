@@ -242,11 +242,8 @@ button[disabled]{opacity:.5;cursor:default;}
     <div>
       <div class="bar">
         <button onclick="location.search='?refresh=1'">重新整理快取</button>
-        <a class="lnk" href="/admin?import=1">從海報資料夾匯入活動</a>
-        <button id="toggleEv" type="button">活動公開頁</button>
       </div>
 
-      <div id="evBox" class="hide">{{eventLinks}}</div>
 
       <form class="find" method="get" action="/admin">
         <label for="findFrom">看誰的名單</label>
@@ -260,6 +257,12 @@ button[disabled]{opacity:.5;cursor:default;}
       </form>
 
       {{rows}}
+
+      <div class="bar" style="margin:26px 0 0;padding-top:16px;border-top:1px solid var(--line)">
+        <a class="lnk" href="/admin?import=1">從海報資料夾匯入活動</a>
+        <button id="toggleEv" type="button">活動公開頁</button>
+      </div>
+      <div id="evBox" class="hide" style="margin-top:12px">{{eventLinks}}</div>
     </div>
   </div>
 </div>
