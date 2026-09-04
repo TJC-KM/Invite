@@ -81,6 +81,12 @@ button[disabled]{opacity:.5;cursor:default;}
 .findrow{display:flex;gap:8px;}
 .findrow input{flex:1;}
 .findrow button{white-space:nowrap;}
+.evrow{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  flex-wrap:wrap;padding:9px 0;border-top:1px solid var(--line);
+}
+.evname{font-size:.9rem;font-weight:500;}
+.evdate{font-size:.78rem;color:var(--mute);}
 .letterbar{display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .letterbar .hint{margin:0;}
 .letterbar .hint.changed{color:var(--teal);font-weight:500;}
@@ -239,6 +245,8 @@ button[disabled]{opacity:.5;cursor:default;}
         <a class="lnk" href="/admin?import=1">從海報資料夾匯入活動</a>
       </div>
 
+      {{eventLinks}}
+
       <form class="find" method="get" action="/admin">
         <label for="findFrom">看誰的名單</label>
         <div class="findrow">
@@ -284,6 +292,18 @@ button[disabled]{opacity:.5;cursor:default;}
   }
 
   document.addEventListener("click", function(e){
+    var sh = e.target.closest("[data-share]");
+    if (sh) {
+      var u = sh.getAttribute("data-share");
+      // 手機交給系統分享面板；桌機大多沒有，退成複製連結
+      if (navigator.share) {
+        navigator.share({ title: sh.getAttribute("data-title") || "", url: u }).catch(function(){});
+      } else {
+        copy(u);
+      }
+      return;
+    }
+
     var c = e.target.closest("[data-copy]");
     if (c && c.getAttribute("data-copy")) { copy(c.getAttribute("data-copy")); return; }
 

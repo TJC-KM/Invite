@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{pageTitle}}</title>
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ogTitle}}">
+<meta property="og:description" content="{{ogDesc}}">
+<meta property="og:image" content="{{ogImage}}">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500&family=JetBrains+Mono:wght@600&display=swap">
+<style>
+:root{
+  --paper:#f7f5fa; --surface:#ffffff; --line:#e2dded;
+  --violet:#6a5a96; --violet-soft:#efeaf7;
+  --gold:#8f6220; --mute:#6f6a7d; --ink:#2a2637;
+  --shadow:rgba(40,30,70,.10);
+  --cover-grad:linear-gradient(168deg,#efeaf7 0%,#f8f2ea 58%,#fdf6ec 100%);
+  --cover-ink:#2a2637; --cover-en:#6a5a96; --cover-gold:#82643a; --cover-rule:#c9b48c;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#15131e; --surface:#1e1b2b; --line:#312c44;
+    --violet:#a394d4; --violet-soft:#272138;
+    --gold:#d9ab5e; --mute:#948da8; --ink:#e9e5f2;
+    --shadow:rgba(0,0,0,.4);
+    --cover-grad:linear-gradient(168deg,#272138 0%,#2b2331 58%,#2f2620 100%);
+    --cover-ink:#e9e5f2; --cover-en:#a394d4; --cover-gold:#d9ab5e; --cover-rule:#5a4a33;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15131e; --surface:#1e1b2b; --line:#312c44;
+  --violet:#a394d4; --violet-soft:#272138;
+  --gold:#d9ab5e; --mute:#948da8; --ink:#e9e5f2;
+  --shadow:rgba(0,0,0,.4);
+  --cover-grad:linear-gradient(168deg,#272138 0%,#2b2331 58%,#2f2620 100%);
+  --cover-ink:#e9e5f2; --cover-en:#a394d4; --cover-gold:#d9ab5e; --cover-rule:#5a4a33;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Noto Sans TC',system-ui,sans-serif;font-weight:300;line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:440px;margin:0 auto;padding:0 0 40px;}
+.card{background:var(--surface);box-shadow:0 1px 3px var(--shadow);}
+@media (min-width:480px){
+  .wrap{padding:26px 18px 50px;}
+  .card{border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+}
+
+.cover{padding:24px 24px 26px;background:var(--cover-grad);color:var(--cover-ink);}
+.en{
+  font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.24em;
+  color:var(--cover-en);font-weight:600;
+}
+.zh{font-family:'Noto Serif TC',serif;font-size:.98rem;font-weight:600;margin-top:2px;}
+.dawn{
+  display:flex;align-items:center;gap:10px;margin-top:20px;
+  font-family:'Noto Serif TC',serif;font-size:.83rem;color:var(--cover-gold);letter-spacing:.14em;
+}
+.dawn::before,.dawn::after{content:'';height:1px;background:var(--cover-rule);flex:1;}
+
+.poster{width:100%;height:auto;display:block;}
+.sec{padding:24px;border-top:1px solid var(--line);}
+.sec-h{
+  font-family:'JetBrains Mono',monospace;font-size:.63rem;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--violet);font-weight:600;margin-bottom:12px;
+}
+h1{font-family:'Noto Serif TC',serif;font-size:1.24rem;font-weight:700;margin:0 0 10px;line-height:1.4;text-wrap:balance;}
+.tag{
+  padding:12px 14px;border-radius:8px;background:var(--violet-soft);
+  font-family:'Noto Serif TC',serif;font-size:.88rem;line-height:1.9;margin-bottom:16px;
+}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:.9rem;}
+dt{color:var(--mute);}
+dd{margin:0;}
+
+.ended{
+  margin-bottom:14px;padding:10px 13px;border-radius:8px;
+  border:1px solid var(--gold);color:var(--gold);font-size:.85rem;text-align:center;
+}
+
+.cta{display:flex;flex-direction:column;gap:9px;}
+.btn{
+  display:block;text-align:center;padding:12px;border-radius:8px;text-decoration:none;
+  font-size:.92rem;font-weight:500;border:1px solid transparent;cursor:pointer;
+  font-family:inherit;width:100%;transition:opacity .15s;
+}
+.btn:hover{opacity:.86;}
+.btn-1{background:var(--violet);color:#fff;}
+:root[data-theme="dark"] .btn-1{color:#17141f;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn-1{color:#17141f;}}
+.btn-2{border-color:var(--line);color:var(--ink);background:var(--surface);}
+
+.foot{
+  padding:18px 24px 26px;text-align:center;font-size:.74rem;color:var(--mute);
+  border-top:1px solid var(--line);
+}
+.foot a{color:inherit;text-decoration:underline;text-underline-offset:3px;}
+.foot a:hover{color:var(--violet);}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+  background:var(--violet);color:#fff;border-radius:8px;padding:9px 18px;
+  font-size:.86rem;opacity:0;transition:opacity .18s;pointer-events:none;
+}
+.toast.on{opacity:1;}
+a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="card">
+    <div class="cover">
+      <div class="en">{{churchEn}}</div>
+      <div class="zh">{{churchZh}}</div>
+      <div class="dawn">誠摯邀請</div>
+    </div>
+
+    {{posterImg}}
+
+    <div class="sec">
+      <div class="sec-h">Event</div>
+      {{endedNote}}
+      <h1>{{name}}</h1>
+      {{tagline}}
+      <dl>
+        <dt>日期</dt><dd>{{date}}</dd>
+        <dt>時間</dt><dd>{{time}}</dd>
+        <dt>地點</dt><dd>{{place}}</dd>
+      </dl>
+    </div>
+
+    <div class="sec">
+      <div class="cta">
+        <button class="btn btn-1" id="share" type="button">分享這個活動</button>
+        <a class="btn btn-2" href="{{mapUrl}}" target="_blank" rel="noopener">{{mapLabel}}</a>
+        <a class="btn btn-2" href="tel:{{churchPhone}}">打電話問教會</a>
+      </div>
+    </div>
+
+    <div class="foot">
+      {{churchZh}}<br>{{churchAddress}}　{{churchPhone}}<br>
+      <a href="{{churchSite}}" target="_blank" rel="noopener">教會官網</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已複製連結</div>
+
+<script>
+(function(){
+  "use strict";
+  var btn = document.getElementById("share");
+  var toast = document.getElementById("toast");
+  var 網址 = location.href.split("#")[0];
+  var 文字 = {{shareText}};
+
+  function say(msg){
+    toast.textContent = msg;
+    toast.classList.add("on");
+    setTimeout(function(){ toast.classList.remove("on"); }, 1600);
+  }
+
+  function 複製(){
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(網址).then(
+        function(){ say("已複製連結"); },
+        function(){ say("請長按網址列複製"); }
+      );
+    } else {
+      say("請長按網址列複製");
+    }
+  }
+
+  btn.addEventListener("click", function(){
+    // 手機：交給系統的分享面板，LINE、FB、訊息都在裡面。
+    // 桌機大多不支援，就退成複製連結
+    if (navigator.share) {
+      navigator.share({ title: document.title, text: 文字, url: 網址 })
+        .catch(function(){ /* 使用者取消，不必處理 */ });
+    } else {
+      複製();
+    }
+  });
+})();
+</script>
+</body>
+</html>

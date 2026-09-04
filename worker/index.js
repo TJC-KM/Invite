@@ -6,6 +6,7 @@
 import CARD_HTML from "./card.html";
 import NOTFOUND_HTML from "./notfound.html";
 import ADMIN_HTML from "./admin.html";
+import EVENT_HTML from "./event.html";
 import { readSheet, updateCell, appendRow, listFolder, fetchFile, thumbnailUrl } from "./google.js";
 
 const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
@@ -32,6 +33,11 @@ export default {
     // PDF 第一頁的預覽圖
     if (path.startsWith("thumb/")) {
       return thumbProxy(path.slice(6), env, ctx);
+    }
+
+    // 公開活動頁。沒有任何個人資訊，可以貼到粉專、社群、群組
+    if (path.startsWith("e/")) {
+      return eventPage(decodeURIComponent(path.slice(2)), env);
     }
 
     // 「我要參加」是公開的，不帶金鑰——但只認得完整正確的代碼
@@ -413,6 +419,59 @@ function isPreviewBot(ua) {
 }
 
 /* ────────────────────────────────────────────────
+   公開活動頁　—— 給社群分享用，一個人的資料都沒有
+   ──────────────────────────────────────────────── */
+
+async function eventPage(代號, env) {
+  const cfg = await loadConfig(env);
+  const e = cfg.活動.find((x) => x.活動代號 === 代號);
+  if (!e || !有效(e.啟用)) return notFound(env);
+
+  const 海報 = 解析檔案(e.海報, cfg.海報清單);
+  const 站台 = env.SITE_ORIGIN || "";
+  const 日期 = String(e.海報活動日期 || "").trim();
+  const 結束了 = 日期 && 日期 < 台北日期();
+
+  const html = fill(EVENT_HTML, {
+    pageTitle: `${esc(e.名稱)}｜${esc(env.CHURCH_NAME || "")}`,
+    ogTitle: esc(e.名稱),
+    ogDesc: esc([e.日期, e.時間, e.地點].filter(Boolean).join("　")),
+    ogImage: 海報 ? `${站台}/img/${esc(海報)}` : "",
+
+    posterImg: 海報
+      ? `<img class="poster" src="/img/${esc(海報)}" alt="${esc(e.名稱)}海報">`
+      : "",
+    endedNote: 結束了 ? `<div class="ended">這場活動已經結束了</div>` : "",
+
+    name: esc(e.名稱),
+    // 標語欄允許 <br> 控制斷行，跟卡片上的處理一致
+    tagline: e.標語 ? `<div class="tag">${e.標語}</div>` : "",
+    date: esc(e.日期 || ""),
+    time: esc(e.時間 || ""),
+    place: esc(e.地點 || ""),
+
+    mapUrl: esc(e.地圖連結 || env.CHURCH_MAP || "#"),
+    mapLabel: esc(文案(cfg.文案, "地圖按鈕", {})),
+
+    churchEn: esc(env.CHURCH_NAME_EN || ""),
+    churchZh: esc(env.CHURCH_NAME || ""),
+    churchAddress: esc(env.CHURCH_ADDRESS || ""),
+    churchPhone: esc(env.CHURCH_PHONE || ""),
+    churchSite: esc(env.CHURCH_SITE || ""),
+
+    // 丟進 JS 的字串，用 JSON.stringify 才不會被引號或換行咬到
+    shareText: JSON.stringify([e.名稱, e.日期, e.時間, e.地點].filter(Boolean).join("　")),
+  });
+
+  return new Response(html, {
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "public, max-age=300",
+    },
+  });
+}
+
+/* ────────────────────────────────────────────────
    維護介面　—— 新增邀請、複製連結、用 LINE 傳送、停用
    ──────────────────────────────────────────────── */
 
@@ -558,8 +617,32 @@ async function adminPage(url, env) {
   const 說明 =
     "卡片上只有邀請函、活動資訊與見證，沒有電話、地址這類敏感資料。" + 範例連結;
 
+  // 活動的公開頁入口。跟「邀請參加」的勾選清單分開——
+  // 那邊是「這張卡片邀哪幾場」，這邊是「把這場貼到社群」
+  const 活動列 = 啟用中(cfg.活動).filter(還沒過).map((e) => {
+    const 網址 = `${站台}/e/${encodeURIComponent(e.活動代號)}`;
+    return `
+    <div class="evrow">
+      <div>
+        <div class="evname">${esc(e.名稱)}</div>
+        <div class="evdate">${esc(e.日期 || "")}</div>
+      </div>
+      <div class="acts">
+        <button data-share="${esc(網址)}" data-title="${esc(e.名稱)}">分享</button>
+        <button data-copy="${esc(網址)}">複製連結</button>
+        <a class="lnk" href="${esc(網址)}" target="_blank" rel="noopener">看公開頁</a>
+      </div>
+    </div>`;
+  }).join("");
+
   const html = fill(ADMIN_HTML, {
     count: 全部.length,
+    eventLinks: 活動列
+      ? `<div class="find"><h2>活動公開頁</h2>
+          <p class="hint" style="margin:0 0 10px">
+            沒有任何個人資訊，可以貼在粉專、社群或群組。手機按「分享」會叫出系統的分享面板
+          </p>${活動列}</div>`
+      : "",
     note: 說明,
     origin: esc(站台),
     from: esc(查詢),
