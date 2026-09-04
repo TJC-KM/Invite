@@ -740,7 +740,6 @@ async function api(動作, request, url, env) {
   try {
     const body = await request.json();
     if (動作 === "setup") return await 補欄位(env);
-    if (動作 === "import") return await 匯入活動(body, env);
     if (動作 === "invite") return await 新增邀請(body, env, url);
     if (動作 === "update") return await 修改邀請(body, env);
     if (動作 === "status") return await 改狀態(body, env);
