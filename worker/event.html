@@ -164,6 +164,11 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-off
   var btn = document.getElementById("share");
   var toast = document.getElementById("toast");
   var 網址 = location.href.split("#")[0];
+
+  // 分享或複製出去的網址帶上 LINE 的官方參數：對方從 LINE 點開時，
+  // 會用手機的預設瀏覽器而不是 LINE 內建的——那裡才有分享面板。
+  // 其他平台會忽略這個參數，不影響
+  var 外開 = 網址 + (網址.indexOf("?") >= 0 ? "&" : "?") + "openExternalBrowser=1";
   var 文字 = {{shareText}};
 
   function say(msg){
@@ -174,7 +179,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-off
 
   function 複製(){
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(網址).then(
+      navigator.clipboard.writeText(外開).then(
         function(){ say("已複製連結"); },
         function(){ say("請長按網址列複製"); }
       );
@@ -227,7 +232,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-off
     // 手機：交給系統的分享面板，LINE、FB、訊息都在裡面。
     // 桌機大多不支援，就退成複製連結
     if (navigator.share) {
-      navigator.share({ title: document.title, text: 文字, url: 網址 })
+      navigator.share({ title: document.title, text: 文字, url: 外開 })
         .catch(function(){ /* 使用者取消，不必處理 */ });
     } else {
       複製();
