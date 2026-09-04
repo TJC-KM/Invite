@@ -87,6 +87,12 @@ button[disabled]{opacity:.5;cursor:default;}
 }
 .evname{font-size:.9rem;font-weight:500;}
 .evdate{font-size:.78rem;color:var(--mute);}
+.callout{
+  margin:0 0 13px;padding:10px 13px;border-radius:8px;
+  background:var(--violet-soft);color:var(--ink);font-size:.85rem;line-height:1.7;
+}
+.callout b{font-weight:500;}
+.callout .why{display:block;font-size:.75rem;color:var(--mute);}
 .letterbar{display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .letterbar .hint{margin:0;}
 .letterbar .hint.changed{color:var(--teal);font-weight:500;}
@@ -165,22 +171,40 @@ button[disabled]{opacity:.5;cursor:default;}
             <input type="text" id="name" name="對象姓名" required autocomplete="off" value="{{vName}}">
           </div>
 
+          <div class="fld">
+            <label>卡片上怎麼叫他？</label>
+            <div class="checks">
+              <label class="check">
+                <input type="radio" name="叫法" value="稱謂" {{modeHon}}>
+                <span>姓名加稱謂<br><span class="d">簡嘉雯小姐、陳志成弟兄</span></span>
+              </label>
+              <label class="check">
+                <input type="radio" name="叫法" value="稱呼" {{modeNick}}>
+                <span>換一個稱呼<br><span class="d">阿姨、小雯、女兒</span></span>
+              </label>
+            </div>
+          </div>
+
           <div class="fld" id="honFld">
-            <label for="hon">稱謂 <span class="opt">接在姓名後面</span></label>
+            <label for="hon">稱謂</label>
             <input type="text" id="hon" name="稱謂" autocomplete="off"
                    list="honList" placeholder="先生、小姐、弟兄、姊妹" value="{{vHon}}">
             <datalist id="honList">{{honOptions}}</datalist>
-            <div class="hint" id="honHint">可以用選的，也可以自己打</div>
+            <div class="hint">可以用選的，也可以自己打</div>
           </div>
 
-          <div class="fld">
-            <label for="nick">稱呼 <span class="opt">選填（暱稱）</span></label>
+          <div class="fld" id="nickFld">
+            <label for="nick">稱呼</label>
             <input type="text" id="nick" name="稱呼" autocomplete="off"
                    list="nickList" placeholder="阿姨、小雯、林大哥" value="{{vNick}}">
             <datalist id="nickList">{{nickOptions}}</datalist>
-            <div class="hint">填了就整張卡片都這樣叫他（親愛的阿姨），姓名和稱謂都不出現。<br>
-              「女兒、女婿」這種不能接在姓名後面的，要填在這裡</div>
+            <div class="hint">「女兒、女婿」這種不能接在姓名後面的，用這個</div>
           </div>
+
+          <div class="callout" id="nameBox">
+            卡片上會叫他：<b id="nameOut">—</b>
+          </div>
+
 
           <div class="fld">
             <label for="from">邀請人</label>
@@ -355,19 +379,33 @@ button[disabled]{opacity:.5;cursor:default;}
     });
   }
 
-  // 填了稱呼，稱謂就不會出現在卡片上——讓表單自己說出來，
-  // 不然填完的人會困惑「我選的小姐去哪了」
-  var nick = document.getElementById("nick");
+  // 稱謂和稱呼本來就是二選一，做成勾選就沒有「為什麼我填的不見了」。
+  // 再加一行預覽，直接把卡片上的結果寫出來
+  var nameIn = document.getElementById("name");
+  var honIn = document.getElementById("hon");
+  var nickIn = document.getElementById("nick");
   var honFld = document.getElementById("honFld");
-  var honHint = document.getElementById("honHint");
-  if (nick && honFld) {
-    var 原提示 = honHint.textContent;
-    var sync = function(){
-      var 有 = nick.value.trim() !== "";
-      honFld.style.opacity = 有 ? ".45" : "";
-      honHint.textContent = 有 ? "已填稱呼，卡片上不會出現稱謂" : 原提示;
-    };
-    nick.addEventListener("input", sync);
+  var nickFld = document.getElementById("nickFld");
+  var nameOut = document.getElementById("nameOut");
+  var modes = document.querySelectorAll('input[name="叫法"]');
+
+  function 用稱呼(){
+    var m = document.querySelector('input[name="叫法"]:checked');
+    return m && m.value === "稱呼";
+  }
+
+  function sync(){
+    var 呼模式 = 用稱呼();
+    honFld.hidden = 呼模式;
+    nickFld.hidden = !呼模式;
+    nameOut.textContent = 呼模式
+      ? (nickIn.value.trim() || "（還沒填稱呼）")
+      : ((nameIn.value.trim() + honIn.value.trim()) || "—");
+  }
+
+  if (nameOut) {
+    [].forEach.call(modes, function(m){ m.addEventListener("change", sync); });
+    [nameIn, honIn, nickIn].forEach(function(el){ el.addEventListener("input", sync); });
     sync();
   }
 
@@ -439,6 +477,9 @@ button[disabled]{opacity:.5;cursor:default;}
     });
     data["活動"] = [].slice.call(f.querySelectorAll('input[name="活動"]:checked'))
       .map(function(i){ return i.value; }).join(",");
+
+    // 二選一：沒選到的那一欄一律清空，資料才不會自相矛盾
+    if (用稱呼()) { data["稱謂"] = ""; } else { data["稱呼"] = ""; }
 
     // 信件框如果跟模板原文一模一樣，就當作「沿用模板」存空值。
     // 畫面上看起來一樣，但這張卡片還跟著模板走，之後模板改了它也會跟著改
