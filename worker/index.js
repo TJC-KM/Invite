@@ -678,8 +678,7 @@ async function adminPage(url, env) {
     cancelRow: 編輯中
       ? `<a class="lnk" href="/admin?from=${encodeURIComponent(編輯中.邀請人 || "")}">取消</a>`
       : "",
-    // 編輯已經有稱呼的那一筆時，勾選要停在「換一個稱呼」上
-    modeHon: 編輯中 && String(編輯中.稱呼 || '').trim() ? '' : 'checked',
+    // 預設是姓名加稱謂；編輯已經有稱呼的那一筆時，勾選要自動打勾
     modeNick: 編輯中 && String(編輯中.稱呼 || '').trim() ? 'checked' : '',
     vName: v("對象姓名"),
     vHon: v("稱謂"),

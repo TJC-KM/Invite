@@ -172,17 +172,10 @@ button[disabled]{opacity:.5;cursor:default;}
           </div>
 
           <div class="fld">
-            <label>卡片上怎麼叫他？</label>
-            <div class="checks">
-              <label class="check">
-                <input type="radio" name="叫法" value="稱謂" {{modeHon}}>
-                <span>姓名加稱謂<br><span class="d">簡嘉雯小姐、陳志成弟兄</span></span>
-              </label>
-              <label class="check">
-                <input type="radio" name="叫法" value="稱呼" {{modeNick}}>
-                <span>換一個稱呼<br><span class="d">阿姨、小雯、女兒</span></span>
-              </label>
-            </div>
+            <label class="check">
+              <input type="checkbox" id="useNick" {{modeNick}}>
+              <span>改用稱呼<br><span class="d">不叫姓名，改叫阿姨、小雯、女兒</span></span>
+            </label>
           </div>
 
           <div class="fld" id="honFld">
@@ -387,11 +380,10 @@ button[disabled]{opacity:.5;cursor:default;}
   var honFld = document.getElementById("honFld");
   var nickFld = document.getElementById("nickFld");
   var nameOut = document.getElementById("nameOut");
-  var modes = document.querySelectorAll('input[name="叫法"]');
+  var useNick = document.getElementById("useNick");
 
   function 用稱呼(){
-    var m = document.querySelector('input[name="叫法"]:checked');
-    return m && m.value === "稱呼";
+    return !!(useNick && useNick.checked);
   }
 
   function sync(){
@@ -404,7 +396,7 @@ button[disabled]{opacity:.5;cursor:default;}
   }
 
   if (nameOut) {
-    [].forEach.call(modes, function(m){ m.addEventListener("change", sync); });
+    useNick.addEventListener("change", sync);
     [nameIn, honIn, nickIn].forEach(function(el){ el.addEventListener("input", sync); });
     sync();
   }
