@@ -76,10 +76,31 @@ export async function 找回饋(env, code) {
 }
 
 /* ── 填寫頁 ─────────────────────────────────────── */
+// 已經傳上去的檔案，回頭要顯示名字。通常只有零到三個，
+// 一個一個問就好——Drive 沒有「一次問這幾個 ID」的用法
+async function 檔案清單(env, 值) {
+  const ids = String(值 || "").split(/[,，]/).map((x) => x.trim()).filter(Boolean);
+  if (!ids.length) return [];
+  const token = await getAccessToken(env);
+  return Promise.all(ids.map(async (id) => {
+    try {
+      const r = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,mimeType&supportsAllDrives=true`,
+        { headers: { authorization: `Bearer ${token}` } }
+      ).then((x) => x.json());
+      return { id, 名稱: r.name || id };
+    } catch (e) {
+      return { id, 名稱: id };   // 問不到就顯示 ID，總比整頁壞掉好
+    }
+  }));
+}
+
 
 async function 填寫頁(code, request, env, ctx) {
   const [r, cfg] = await Promise.all([找回饋(env, code), 設定(env)]);
   if (!r || r.狀態 === "已停用") return null;
+
+  const 檔案 = await 檔案清單(env, r.檔案);
 
   const 稱呼 = String(r.稱呼 || "").trim() || String(r.信徒姓名 || "").trim();
   const 已送 = r.狀態 === "已填寫" || r.狀態 === "已完成";
@@ -101,6 +122,14 @@ async function 填寫頁(code, request, env, ctx) {
     saveLabel: esc(文案(cfg, "暫存按鈕", {})),
     submitLabel: esc(文案(cfg, "送出按鈕", {})),
     doneMsg: esc(文案(cfg, "送出後訊息", {})),
+    recNote: esc(文案(cfg, "推薦說明", {})),
+    uploadTip: esc(`單一檔案最多 ${文案(cfg, "單檔上限MB", {}) || 500} MB。選好就會開始傳，不用等按送出`),
+    fileList: 檔案.map((f) => `
+      <div class="item ok">
+        <div class="n">${esc(f.名稱)}</div>
+        <div class="s">已上傳　·　<a href="https://drive.google.com/file/d/${
+          esc(f.id)}/view" target="_blank" rel="noopener">看檔案</a></div>
+      </div>`).join(""),
     sentClass: 已送 ? "sent" : "",
     savedNote: 已送 ? "" : esc(r.最後修改 ? `上次存檔　${r.最後修改}` : ""),
   });
@@ -184,7 +213,148 @@ async function 存檔(request, env) {
       await updateCell(env, 分頁.回饋, `${欄名(欄[k])}${r._row}`, v, 表(env));
     }
 
+    if (body.推薦) await 存推薦(env, code, body.推薦);
+
     return json({ ok: true, 時間: 現在.replace(/^.*?\s/, "") });
+  } catch (e) {
+    return json({ ok: false, error: e.message }, 500);
+  }
+}
+
+/* ── 推薦別人 ────────────────────────────────────
+   這是整套系統會自己長大的地方：寫的人想起另一個人，
+   幹部就多一份可以邀請的名單。
+
+   只在「先儲存」和「送出」時才寫，自動存草稿不寫——
+   打字停三秒就來一次的話，推薦分頁會被灌爆
+   ──────────────────────────────────────────────── */
+
+async function 存推薦(env, code, 清單) {
+  const 要存 = (Array.isArray(清單) ? 清單 : [])
+    .map((x) => ({
+      被推薦人: String((x && x.被推薦人) || "").trim().slice(0, 40),
+      推薦原因: String((x && x.推薦原因) || "").trim().slice(0, 500),
+    }))
+    .filter((x) => x.被推薦人);
+  if (!要存.length) return;
+
+  // 同一個人重複送出的時候不要一直長新列
+  const 舊 = (await 讀回饋(env, 分頁.推薦).catch(() => []))
+    .filter((r) => String(r.來自代碼 || "").toLowerCase() === code)
+    .map((r) => String(r.被推薦人 || "").trim());
+
+  for (const x of 要存) {
+    if (舊.includes(x.被推薦人)) continue;
+    await appendRow(env, 分頁.推薦, {
+      來自代碼: code,
+      被推薦人: x.被推薦人,
+      推薦原因: x.推薦原因,
+      處理狀態: "待處理",
+      建單代碼: "",
+      建立時間: 台北時間(),
+    }, 表(env));
+    舊.push(x.被推薦人);
+  }
+}
+
+/* ── 上傳 ────────────────────────────────────────
+   檔案不經過 Worker。Worker 只跟 Drive 要一個 resumable 網址，
+   瀏覽器自己 PUT 上去——影片動輒好幾百 MB，Worker 的請求上限是 100 MB，
+   繞過去是唯一解，順便也不用替別人的影片付流量。
+
+   要 Google 簽網址的時候一定要帶 Origin，簽出來的網址才肯接受
+   從我們這個網域來的跨域 PUT。漏了這個 header，瀏覽器會被 CORS 擋下來
+   ──────────────────────────────────────────────── */
+
+async function 要上傳網址(request, env, url) {
+  if (request.method !== "POST") return json({ ok: false, error: "只收 POST" }, 405);
+
+  let body;
+  try { body = await request.json(); }
+  catch (e) { return json({ ok: false, error: "看不懂的內容" }, 400); }
+
+  const code = String(body.代碼 || "").toLowerCase();
+  if (!CODE_RE.test(code)) return json({ ok: false, error: "連結不正確" }, 400);
+
+  try {
+    const r = await 找回饋(env, code);
+    if (!r) return json({ ok: false, error: "找不到這份回饋單" }, 404);
+    if (r.狀態 === "已停用") return json({ ok: false, error: "這份回饋單已經關閉了" }, 403);
+
+    const cfg = await 設定(env);
+    const 上限 = (parseInt(文案(cfg, "單檔上限MB", {}), 10) || 500) * 1024 * 1024;
+    const 大小 = Number(body.大小) || 0;
+    if (大小 > 上限) {
+      return json({ ok: false, error: `這個檔案 ${(大小 / 1048576).toFixed(0)} MB，超過 ${
+        Math.round(上限 / 1048576)} MB 的上限` }, 413);
+    }
+
+    // 檔名前面掛上人名，資料夾裡才看得出誰是誰
+    const 原名 = String(body.檔名 || "檔案").replace(/[\\/:*?"<>|]/g, "_").slice(0, 120);
+    const 檔名 = `${String(r.信徒姓名 || "").trim() || code}－${原名}`;
+    const 型態 = String(body.型態 || "application/octet-stream").slice(0, 100);
+
+    const token = await getAccessToken(env);
+    const res = await fetch(
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true",
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json; charset=UTF-8",
+          "X-Upload-Content-Type": 型態,
+          "X-Upload-Content-Length": String(大小),
+          // 少了這行，瀏覽器 PUT 上去會被 CORS 擋掉
+          Origin: env.SITE_ORIGIN || url.origin,
+        },
+        body: JSON.stringify({ name: 檔名, parents: [env.FEEDBACK_FOLDER] }),
+      }
+    );
+
+    const 網址 = res.headers.get("location");
+    if (!res.ok || !網址) {
+      const t = await res.text();
+      return json({ ok: false, error: `要不到上傳網址 ${res.status}：${t.slice(0, 200)}` }, 502);
+    }
+
+    return json({ ok: true, 網址, 檔名 });
+  } catch (e) {
+    return json({ ok: false, error: e.message }, 500);
+  }
+}
+
+// 瀏覽器傳完之後回來把檔案 ID 記到回饋單上。
+// 分成兩步是因為 Worker 根本沒看到那個檔案，只有瀏覽器知道傳完了沒
+async function 記檔案(request, env) {
+  if (request.method !== "POST") return json({ ok: false, error: "只收 POST" }, 405);
+
+  let body;
+  try { body = await request.json(); }
+  catch (e) { return json({ ok: false, error: "看不懂的內容" }, 400); }
+
+  const code = String(body.代碼 || "").toLowerCase();
+  if (!CODE_RE.test(code)) return json({ ok: false, error: "連結不正確" }, 400);
+
+  const 新增 = (Array.isArray(body.檔案) ? body.檔案 : [])
+    .map((x) => String(x || "").trim())
+    .filter((x) => /^[\w-]{25,}$/.test(x));
+  if (!新增.length) return json({ ok: false, error: "沒有檔案" }, 400);
+
+  try {
+    const r = await 找回饋(env, code);
+    if (!r) return json({ ok: false, error: "找不到這份回饋單" }, 404);
+
+    const 欄 = await 標題索引(env);
+    if (欄.檔案 == null) return json({ ok: false, error: "試算表沒有「檔案」這一欄" }, 500);
+
+    const 舊 = String(r.檔案 || "").split(/[,，]/).map((x) => x.trim()).filter(Boolean);
+    const 全部 = [...new Set([...舊, ...新增])];
+
+    await updateCell(env, 分頁.回饋, `${欄名(欄.檔案)}${r._row}`, 全部.join(","), 表(env));
+    if (欄.最後修改 != null) {
+      await updateCell(env, 分頁.回饋, `${欄名(欄.最後修改)}${r._row}`, 台北時間(), 表(env));
+    }
+    return json({ ok: true, 共: 全部.length });
   } catch (e) {
     return json({ ok: false, error: e.message }, 500);
   }
@@ -216,7 +386,13 @@ async function 維護頁(url, env) {
   else if (q) 列 = 全部.filter((r) => String(r.信徒姓名 || "").includes(q) ||
                                      String(r.稱呼 || "").includes(q));
 
-  const cfg = await 設定(env, { 即時: true });
+  const [cfg, 推薦列] = await Promise.all([
+    設定(env, { 即時: true }),
+    讀回饋(env, 分頁.推薦).catch(() => []),
+  ]);
+
+  const 待處理 = 推薦列.filter((r) => (r.處理狀態 || "待處理") === "待處理" && r.被推薦人);
+  const 攤開 = url.searchParams.get("rec") === "1";
 
   const rows = 列.filter((r) => r.代碼).map((r) => 一列(r, 站台, cfg, 剛建)).join("");
 
@@ -227,6 +403,17 @@ async function 維護頁(url, env) {
       }</div></div>`;
 
   return new Response(fill(FADMIN_HTML, {
+    recBox: 待處理.length
+      ? (攤開
+          ? `<div class="box"><h2>信徒推薦的人（${待處理.length}）</h2>${
+              待處理.map((r) => 推薦一列(r)).join("")
+            }</div>`
+          : `<div class="box"><h2>信徒推薦的人</h2><div class="empty">有 ${
+              待處理.length
+            } 位等著處理。<a href="/f/admin?rec=1${
+              by ? `&by=${encodeURIComponent(by)}` : ""
+            }">攤開來看</a></div></div>`)
+      : "",
     lastBy: esc(by),
     byOptions: 指派人們.map(([n]) => `<option value="${esc(n)}">`).join(""),
     byChips: 指派人們.map(([n, c]) =>
@@ -294,6 +481,23 @@ function 一列(r, 站台, cfg, 剛建) {
   </div>`;
 }
 
+function 推薦一列(r) {
+  return `
+  <div class="card">
+    <div class="top">
+      <span class="who">${esc(r.被推薦人)}</span>
+      <span class="pill wait">待處理</span>
+    </div>
+    ${r.推薦原因 ? `<div class="ask">${esc(r.推薦原因)}</div>` : ""}
+    <div class="meta">${esc(r.建立時間 || "")}</div>
+    <div class="acts">
+      <button type="button" data-rec="${r._row}" data-name="${esc(r.被推薦人)}"
+              data-why="${esc(r.推薦原因 || "")}">建回饋單給他</button>
+      <button type="button" data-skip="${r._row}">先不處理</button>
+    </div>
+  </div>`;
+}
+
 /* ── 維護介面的 API ─────────────────────────────── */
 
 async function 維護API(動作, request, url, env) {
@@ -303,6 +507,7 @@ async function 維護API(動作, request, url, env) {
     const body = await request.json();
     if (動作 === "new") return await 建立回饋單(body, env, url);
     if (動作 === "status") return await 改狀態(body, env);
+    if (動作 === "skip") return await 跳過推薦(body, env);
     return json({ ok: false, error: "不認得的動作" }, 404);
   } catch (e) {
     return json({ ok: false, error: e.message }, 500);
@@ -338,8 +543,50 @@ async function 建立回饋單(body, env, url) {
     開啟次數: 0,
   }, 表(env));
 
+  // 從推薦來的，把那一列標記掉，幹部才不會重複建
+  const 列號 = parseInt(body.推薦列, 10);
+  if (列號 > 1) {
+    try {
+      const 欄 = await 標題索引推薦(env);
+      if (欄.處理狀態 != null) {
+        await updateCell(env, 分頁.推薦, `${欄名(欄.處理狀態)}${列號}`, "已建單", 表(env));
+      }
+      if (欄.建單代碼 != null) {
+        await updateCell(env, 分頁.推薦, `${欄名(欄.建單代碼)}${列號}`, 代碼, 表(env));
+      }
+    } catch (e) {
+      // 標記失敗不影響回饋單已經建好這件事
+    }
+  }
+
   const 站台 = env.SITE_ORIGIN || url.origin;
   return json({ ok: true, 代碼, 網址: `${站台}/f/${代碼}` });
+}
+
+async function 跳過推薦(body, env) {
+  const 列號 = parseInt(body.列, 10);
+  if (!(列號 > 1)) return json({ ok: false, error: "列號不正確" }, 400);
+  const 欄 = await 標題索引推薦(env);
+  if (欄.處理狀態 == null) return json({ ok: false, error: "推薦分頁沒有「處理狀態」這一欄" }, 500);
+  await updateCell(env, 分頁.推薦, `${欄名(欄.處理狀態)}${列號}`, "不處理", 表(env));
+  return json({ ok: true });
+}
+
+// 推薦分頁的標題列。跟回饋單那份一樣的道理，記在模組變數裡
+let 推薦標題快取 = null;
+async function 標題索引推薦(env) {
+  if (推薦標題快取) return 推薦標題快取;
+  const token = await getAccessToken(env);
+  const url =
+    `https://sheets.googleapis.com/v4/spreadsheets/${env.FEEDBACK_SHEET_ID}` +
+    `/values/${encodeURIComponent(`${分頁.推薦}!A1:Z1`)}`;
+  const data = await fetch(url, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json());
+  const m = {};
+  ((data.values && data.values[0]) || []).forEach((h, i) => {
+    const k = String(h).trim(); if (k) m[k] = i;
+  });
+  推薦標題快取 = m;
+  return m;
 }
 
 async function 改狀態(body, env) {
@@ -366,6 +613,8 @@ async function 改狀態(body, env) {
 
 export async function 回饋路由(路徑, request, url, env, ctx) {
   if (路徑 === "api/save") return 存檔(request, env);
+  if (路徑 === "api/upload-url") return 要上傳網址(request, env, url);
+  if (路徑 === "api/attach") return 記檔案(request, env);
 
   if (路徑 === "admin") return 維護頁(url, env);
   if (路徑.startsWith("admin/api/")) return 維護API(路徑.slice(10), request, url, env);

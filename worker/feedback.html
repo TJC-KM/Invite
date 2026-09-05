@@ -103,6 +103,34 @@ textarea{min-height:280px;resize:vertical;}
 /* 只有一個大框，不要切成一格一格的問答，那會讓人只寫得出短句 */
 #content{font-family:'Noto Serif TC',serif;font-size:1.02rem;line-height:2;}
 
+/* ── 檔案 ── */
+.files{border-top:1px solid var(--line);padding-top:18px;}
+.pick{
+  display:block;width:100%;text-align:center;padding:15px;
+  border:1px dashed var(--line);border-radius:11px;color:var(--violet);
+  font-size:.9rem;cursor:pointer;background:transparent;
+}
+.pick:active{background:var(--violet-soft);}
+#file{display:none;}
+.list{display:flex;flex-direction:column;gap:9px;margin-top:12px;}
+.item{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.82rem;}
+.item .n{word-break:break-all;}
+.item .s{font-size:.7rem;color:var(--mute);margin-top:2px;}
+.item .s.bad{color:#b4453d;}
+.bar{height:4px;border-radius:99px;background:var(--line);margin-top:8px;overflow:hidden;}
+.bar i{display:block;height:100%;width:0;background:var(--violet);transition:width .25s;}
+.item.ok{border-color:var(--ok);}
+.item.ok .bar{display:none;}
+
+/* ── 推薦 ── */
+.rec{border-top:1px solid var(--line);padding-top:18px;}
+.rec .row{display:flex;flex-direction:column;gap:7px;margin-bottom:11px;}
+.rec .row input:first-child{font-weight:400;}
+.more{
+  background:transparent;border:1px dashed var(--line);color:var(--violet);
+  width:100%;padding:11px;font-size:.85rem;font-weight:400;
+}
+
 /* ── 底部 ── */
 .act{
   position:sticky;bottom:0;background:var(--surface);
@@ -165,6 +193,28 @@ body.sent .done{display:block;}
       <label for="content">你的心得</label>
       <textarea id="content" placeholder="{{hint}}">{{content}}</textarea>
       <div class="tip">寫多寫少都可以。中途離開沒關係，這頁會自己幫你記住</div>
+    </div>
+
+
+    <div class="f files">
+      <label>照片、影片或文件</label>
+      <input type="file" id="file" multiple>
+      <button type="button" class="pick" id="pick">＋　加檔案</button>
+      <div class="tip">{{uploadTip}}</div>
+      <div class="list" id="list">{{fileList}}</div>
+    </div>
+
+
+    <div class="f rec">
+      <label>還有誰？</label>
+      <div class="tip" style="margin:0 0 11px">{{recNote}}</div>
+      <div id="recs">
+        <div class="row">
+          <input type="text" class="rn" placeholder="他的名字">
+          <input type="text" class="rw" placeholder="為什麼想到他（選填）">
+        </div>
+      </div>
+      <button type="button" class="more" id="addRec">＋　再加一位</button>
     </div>
 
     <div class="f">
@@ -246,6 +296,7 @@ body.sent .done{display:block;}
     var 資料 = 現值();
     資料.代碼 = CODE;
     資料.模式 = 模式;
+    if (!安靜) 資料.推薦 = 推薦名單();
     if (!安靜) { draft.disabled = true; send.disabled = true; }
     if (模式 === "submit") 說("送出中…");
     else if (!安靜) 說("儲存中…");
@@ -265,6 +316,107 @@ body.sent .done{display:block;}
       draft.disabled = false; send.disabled = false;
       說("網路好像不太順，你寫的字還在，等一下再按一次");
     });
+  }
+
+/* ── 上傳 ────────────────────────────────────
+     檔案不經過我們的伺服器，是瀏覽器直接 PUT 給 Google。
+     影片很大，所以選好就立刻開始傳，不等按送出——
+     不然使用者會盯著一個沒反應的畫面好幾分鐘
+     ──────────────────────────────────────────── */
+
+  var pick = $("pick"), file = $("file"), list = $("list");
+  var 傳好的 = [];
+
+  pick.addEventListener("click", function(){ file.click(); });
+  file.addEventListener("change", function(){
+    [].slice.call(file.files).forEach(傳一個);
+    file.value = "";   // 同一個檔案想再選一次也要能觸發
+  });
+
+  function 大小字(n){
+    return n > 1048576 ? (n / 1048576).toFixed(1) + " MB"
+         : n > 1024    ? Math.round(n / 1024) + " KB"
+         : n + " B";
+  }
+
+  function 傳一個(f){
+    var box = document.createElement("div");
+    box.className = "item";
+    box.innerHTML = '<div class="n"></div><div class="s"></div><div class="bar"><i></i></div>';
+    box.querySelector(".n").textContent = f.name;
+    var 狀 = box.querySelector(".s"), 條 = box.querySelector(".bar i");
+    狀.textContent = 大小字(f.size) + "　準備中…";
+    list.appendChild(box);
+
+    fetch("/f/api/upload-url", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ 代碼: CODE, 檔名: f.name, 型態: f.type, 大小: f.size })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (!d || !d.ok) { 壞掉(d && d.error); return; }
+
+      var xhr = new XMLHttpRequest();
+      xhr.open("PUT", d.網址, true);
+      if (f.type) xhr.setRequestHeader("content-type", f.type);
+
+      xhr.upload.onprogress = function(e){
+        if (!e.lengthComputable) return;
+        var p = Math.round(e.loaded / e.total * 100);
+        條.style.width = p + "%";
+        狀.textContent = 大小字(f.size) + "　傳送中 " + p + "%";
+      };
+      xhr.onload = function(){
+        if (xhr.status < 200 || xhr.status >= 300) { 壞掉("傳送失敗 " + xhr.status); return; }
+        var id = "";
+        try { id = JSON.parse(xhr.responseText).id; } catch (e) {}
+        if (!id) { 壞掉("傳完了但拿不到檔案編號"); return; }
+
+        box.className = "item ok";
+        狀.textContent = 大小字(f.size) + "　已上傳";
+        傳好的.push(id);
+        記回去(id);
+      };
+      xhr.onerror = function(){ 壞掉("網路中斷了，這個檔案要重傳"); };
+      xhr.send(f);
+    }).catch(function(){ 壞掉("連不上，等一下再試"); });
+
+    function 壞掉(訊){
+      狀.className = "s bad";
+      狀.textContent = 訊 || "傳不上去";
+      條.parentNode.style.display = "none";
+    }
+  }
+
+  // 傳一個記一個。不等全部傳完才記，中途關掉至少前面幾個還在
+  function 記回去(id){
+    fetch("/f/api/attach", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ 代碼: CODE, 檔案: [id] })
+    });
+  }
+
+/* ── 推薦 ────────────────────────────────────
+     只在按了「先儲存」或「送出」的時候一起送。
+     自動存草稿不帶，不然推薦分頁會被每三秒灌一次
+     ──────────────────────────────────────────── */
+
+  $("addRec").addEventListener("click", function(){
+    var d = document.createElement("div");
+    d.className = "row";
+    d.innerHTML = '<input type="text" class="rn" placeholder="他的名字">' +
+                  '<input type="text" class="rw" placeholder="為什麼想到他（選填）">';
+    $("recs").appendChild(d);
+    d.querySelector(".rn").focus();
+  });
+
+  function 推薦名單(){
+    return [].slice.call(document.querySelectorAll("#recs .row")).map(function(r){
+      return {
+        被推薦人: r.querySelector(".rn").value.trim(),
+        推薦原因: r.querySelector(".rw").value.trim()
+      };
+    }).filter(function(x){ return x.被推薦人; });
   }
 
   draft.addEventListener("click", function(){ 髒 = true; 送出去("draft", false); });

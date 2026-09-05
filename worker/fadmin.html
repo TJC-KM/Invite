@@ -125,6 +125,8 @@ button:disabled{opacity:.5;cursor:default;}
     </form>
   </div>
 
+  {{recBox}}
+
   {{rows}}
 
 </div>
@@ -139,7 +141,8 @@ button:disabled{opacity:.5;cursor:default;}
       信徒姓名: $("name").value.trim(),
       稱呼: $("nick").value.trim(),
       指派人: $("by").value.trim(),
-      引言: $("ask").value.trim()
+      引言: $("ask").value.trim(),
+      推薦列: $("make").getAttribute("data-rec") || ""
     };
     if (!資料.信徒姓名) { say("要填信徒姓名"); $("name").focus(); return; }
     if (!資料.引言)    { say("要填引言，他才知道要寫什麼"); $("ask").focus(); return; }
@@ -176,6 +179,35 @@ button:disabled{opacity:.5;cursor:default;}
       navigator.clipboard.writeText(c.getAttribute("data-copy")).then(function(){
         var 原 = c.textContent; c.textContent = "已複製";
         setTimeout(function(){ c.textContent = 原; }, 1400);
+      });
+      return;
+    }
+
+    // 從推薦建單：不直接建，先把名字帶進上面的表單。
+    // 引言要幹部自己想——推薦原因是別人講的，不能拿來當問題問本人
+    var rec = e.target.closest("[data-rec]");
+    if (rec) {
+      $("name").value = rec.getAttribute("data-name");
+      $("nick").value = "";
+      $("ask").value = "";
+      $("make").setAttribute("data-rec", rec.getAttribute("data-rec"));
+      var why = rec.getAttribute("data-why");
+      say(why ? "推薦他的人說：" + why + "　——引言請你自己寫" : "名字帶上去了，寫一段引言");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      $("ask").focus();
+      return;
+    }
+
+    var skip = e.target.closest("[data-skip]");
+    if (skip) {
+      skip.disabled = true;
+      fetch("/f/admin/api/skip", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ 列: skip.getAttribute("data-skip") })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if (d && d.ok) location.reload();
+        else { skip.disabled = false; alert((d && d.error) || "改不動"); }
       });
       return;
     }
