@@ -493,7 +493,7 @@ function 推薦一列(r) {
     <div class="acts">
       <button type="button" data-rec="${r._row}" data-name="${esc(r.被推薦人)}"
               data-why="${esc(r.推薦原因 || "")}">建回饋單給他</button>
-      <button type="button" data-skip="${r._row}">先不處理</button>
+      <button type="button" data-skip="${r._row}">略過</button>
     </div>
   </div>`;
 }
@@ -568,7 +568,7 @@ async function 跳過推薦(body, env) {
   if (!(列號 > 1)) return json({ ok: false, error: "列號不正確" }, 400);
   const 欄 = await 標題索引推薦(env);
   if (欄.處理狀態 == null) return json({ ok: false, error: "推薦分頁沒有「處理狀態」這一欄" }, 500);
-  await updateCell(env, 分頁.推薦, `${欄名(欄.處理狀態)}${列號}`, "不處理", 表(env));
+  await updateCell(env, 分頁.推薦, `${欄名(欄.處理狀態)}${列號}`, "略過", 表(env));
   return json({ ok: true });
 }
 

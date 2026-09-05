@@ -170,13 +170,22 @@ ul.plain li::before{
 
 <div class="wrap">
 
-<div class="eyebrow">Build Spec · Rev 1 · 2026-09-04</div>
+<div class="eyebrow">Build Spec · Rev 2 · 2026-09-06</div>
 <h1>心得回饋系統規格</h1>
 <p class="lede">
   信徒寫下活動或事件的心得感動，教會保存下來。
   跟邀請卡同一個 Worker、同一把服務帳戶金鑰，但另一份試算表。
   <a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 →</a>
 </p>
+
+<div class="verdict">
+  <p><b>Rev 2：已經做完上線了。</b>這一版把規格改成跟實際做出來的東西一致——
+  規劃時猜錯的地方就照實改掉，不留兩份說法。</p>
+  <p>改動的地方：路由全部收進 <code>/f/</code> 底下、
+  狀態「已收錄」改叫「已完成」、草稿從兩層變三層、
+  上傳多一支寫回檔案 ID 的 API、從推薦建單時<b>不</b>預填引言。
+  每一項下面都寫了為什麼。</p>
+</div>
 
 <nav class="toc">
   <ol>
@@ -212,10 +221,11 @@ ul.plain li::before{
 <p>新增的東西只有兩樣：<b>檔案上傳</b>，和<b>推薦別人</b>。</p>
 
 <div class="warn">
-  <div class="h">程式要拆檔，不要塞進同一支 index.js</div>
-  <p>邀請卡的 <code>index.js</code> 已經接近一千行。回饋系統加進去會變成沒人敢改的檔案。
-  路由入口共用，邏輯拆成 <code>invite.js</code> 和 <code>feedback.js</code>，
-  <code>google.js</code> 是兩邊共用的底層。</p>
+  <div class="h">程式先拆檔，才動手加功能</div>
+  <p>邀請卡的 <code>index.js</code> 當時已經一千一百行。回饋系統直接加進去，
+  會變成沒人敢改的檔案。所以第一件事是拆——<b>先拆再加，不然之後拆不動</b>。</p>
+  <p>路由入口共用，邏輯拆成 <code>invite.js</code> 和 <code>feedback.js</code>，
+  <code>google.js</code> 和 <code>lib.js</code> 是兩邊共用的底層。檔案配置見第 2 節。</p>
 </div>
 
 
@@ -244,14 +254,47 @@ ul.plain li::before{
   <thead><tr><th>路徑</th><th>做什麼</th><th>誰能進</th></tr></thead>
   <tbody>
     <tr><td><code>/f/&lt;代碼&gt;</code></td><td>填寫頁</td><td>有連結的人</td></tr>
-    <tr><td><code>/api/f/save</code></td><td>存草稿／送出心得</td><td>要正確代碼</td></tr>
-    <tr><td><code>/api/f/upload-url</code></td><td>跟 Drive 要一個上傳網址</td><td>要正確代碼</td></tr>
+    <tr><td><code>/f/api/save</code></td><td>存草稿／送出心得／收推薦</td><td>要正確代碼</td></tr>
+    <tr><td><code>/f/api/upload-url</code></td><td>跟 Drive 要一個上傳網址</td><td>要正確代碼</td></tr>
+    <tr><td><code>/f/api/attach</code></td><td>瀏覽器傳完後回報檔案 ID</td><td>要正確代碼</td></tr>
     <tr><td><code>/f/admin</code></td><td>維護介面</td><td>任何人　見第 8 節</td></tr>
-    <tr><td><code>/f/admin/api/*</code></td><td>建立、查詢、處理推薦</td><td>任何人</td></tr>
+    <tr><td><code>/f/admin/api/new</code></td><td>建立回饋單</td><td>任何人</td></tr>
+    <tr><td><code>/f/admin/api/status</code></td><td>改狀態</td><td>任何人</td></tr>
+    <tr><td><code>/f/admin/api/skip</code></td><td>略過一筆推薦</td><td>任何人</td></tr>
   </tbody>
 </table></div>
 
 <p class="sub">邀請卡的路徑（<code>/&lt;代碼&gt;</code>、<code>/e/*</code>、<code>/img/*</code>、<code>/thumb/*</code>、<code>/admin</code>）完全不動。</p>
+
+<div class="win">
+  <div class="h">Rev 1 寫的是 <code>/api/f/save</code>，改成 <code>/f/api/save</code></div>
+  <p>心得回饋的東西全部收在 <code>/f/</code> 這一個前綴底下，路由表看一眼就知道哪一條屬於哪一套。
+  原本那種寫法會讓 <code>/api/</code> 底下同時住著兩套系統的東西，
+  哪天要一次保護、一次擋爬蟲、一次搬走，都得先分辨每一條是誰的。</p>
+</div>
+
+<h3>程式檔案</h3>
+<p>加心得回饋之前先把 <code>index.js</code> 拆開了。原本一千一百行，
+兩套系統擠在裡面會變成沒人敢動的檔案。</p>
+<div class="tw"><table>
+  <thead><tr><th>檔案</th><th>裝什麼</th></tr></thead>
+  <tbody>
+    <tr><td><code>index.js</code></td><td>只有路由。看路徑決定交給誰，六十幾行</td></tr>
+    <tr><td><code>invite.js</code></td><td>邀請卡：卡片、公開活動頁、維護介面、我要參加、圖片代理</td></tr>
+    <tr><td><code>feedback.js</code></td><td>心得回饋：填寫頁、維護介面、上傳、推薦</td></tr>
+    <tr><td><code>lib.js</code></td><td>兩邊都要用的小工具：跳脫、填樣板、日期、代碼、JSON 回應</td></tr>
+    <tr><td><code>google.js</code></td><td>簽 JWT、換權杖、讀寫試算表、讀寫雲端硬碟</td></tr>
+  </tbody>
+</table></div>
+
+<div class="warn">
+  <div class="h"><code>readSheet</code> 多收一個「試算表」參數</div>
+  <p>原本三個函式都寫死 <code>env.SHEET_ID</code>。心得是<b>另一份完全獨立的試算表</b>，
+  不是同一份的另一個分頁，所以 <code>readSheet</code>／<code>updateCell</code>／<code>appendRow</code>
+  都多收一個選項。</p>
+  <p>漏傳的話不會報錯，會<b>安靜地讀到邀請卡那一份</b>——所以 <code>feedback.js</code>
+  裡統一包成一個 <code>表(env)</code>，每次呼叫都帶著。</p>
+</div>
 
 <h3>設定值</h3>
 <pre><span class="c">// wrangler.jsonc，加兩個</span>
@@ -282,7 +325,7 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
     <tr><td>稱呼</td><td>幹部</td><td>選填。填了頁面上就這樣叫他</td></tr>
     <tr><td>引言 <span class="req">*</span></td><td>幹部</td><td><b>純文字，直接打</b>。「你被選任為幹部時，心裡在想什麼？」</td></tr>
     <tr><td>指派人</td><td>幹部</td><td>誰發的這張單，查詢時用它分組</td></tr>
-    <tr><td>狀態</td><td>幹部</td><td>草稿／已發送／已填寫／已收錄／已停用</td></tr>
+    <tr><td>狀態</td><td>幹部</td><td>草稿／已發送／已填寫／已完成／已停用</td></tr>
     <tr><td>填寫日期</td><td>信徒</td><td>預設今天，可以改——寫的可能是上個月的事</td></tr>
     <tr><td>心得內容</td><td>信徒</td><td>一格最多五萬字，長篇也放得下</td></tr>
     <tr><td>檔案</td><td>信徒</td><td>雲端硬碟檔案 ID，逗號分隔</td></tr>
@@ -299,6 +342,13 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   <b>引言不一定對應活動</b>，可能是「被選任當幹部的心情」這種事件，
   也可能是幹部臨時想問的一句話。做成題目庫反而多一層要維護的東西。</p>
   <p>直接在回饋單那一列打字，最單純。</p>
+</div>
+
+<div class="win">
+  <div class="h">「已收錄」改叫「已完成」</div>
+  <p>「收錄」聽起來像是已經編進刊物了，但這個狀態實際的意思是
+  <b>幹部處理完這一張了</b>——可能收錄、可能只是看過覺得很好、也可能還在等本人同意。
+  用「已完成」比較不會讓人誤會這篇已經被拿去用了。</p>
 </div>
 
 <h4>分頁 2：推薦</h4>
@@ -351,11 +401,17 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 <div class="warn">
   <div class="h">草稿不能丟——這比上傳功能重要</div>
   <p>長篇心得寫到一半，電話進來、瀏覽器被系統關掉，字沒了，
-  <b>那個人不會再寫第二次</b>。要做兩層：</p>
-  <p><b>一、瀏覽器本機自動暫存。</b>打字就存進 <code>localStorage</code>，
-  斷線、關掉、當機都留得住。重新打開同一個連結自動帶回來。</p>
-  <p><b>二、一顆「先儲存」。</b>寫回試算表，換一支手機也接得下去。
-  狀態維持在「已填寫」之前，幹部知道還沒完成。</p>
+  <b>那個人不會再寫第二次</b>。Rev 1 規劃兩層，實作做成四層：</p>
+  <p><b>一、打字停三秒自動寫回試算表。</b>使用者<b>就算從來沒按過任何按鈕</b>，
+  東西也不會不見——這是最重要的一層，因為長輩不見得會意識到要按儲存。
+  順帶的好處是幹部那邊看得到寫作進度。</p>
+  <p><b>二、一顆「先儲存」。</b>給想要「我按了才安心」的人。
+  按完顯示存檔時間，換一支手機也接得下去。</p>
+  <p><b>三、關掉分頁前再補一次。</b><code>pagehide</code> 事件配
+  <code>keepalive</code> 送出——不加 <code>keepalive</code> 的話，
+  瀏覽器會在頁面消失的瞬間把請求砍掉。</p>
+  <p><b>四、<code>localStorage</code> 墊底。</b>前三層都要有網路；
+  網路整段掛掉時，字至少還在這台裝置上，重新打開同一個連結會問要不要接回來。</p>
 </div>
 
 <div class="win">
@@ -366,8 +422,11 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 </div>
 
 <h3>送出之後</h3>
-<p>顯示設定檔的感謝訊息，並且<b>仍然可以再修改</b>——直到幹部把狀態改成「已收錄」才鎖定。
-心得這種東西，隔天想到更好的說法是常有的事。</p>
+<p>頁面換成感謝畫面（文字走設定檔），底下留一顆<b>「我要再修改」</b>。
+心得這種東西，隔天想到更好的說法是常有的事，
+<b>不該把人鎖在自己按下的送出鍵外面</b>。</p>
+<p class="sub">再次修改不會覆蓋「提交時間」——那一欄只記第一次送出，
+才看得出他原本是什麼時候交的。「最後修改」每次都更新。</p>
 
 
 <h2 id="s5"><span class="n">05</span>上傳</h2>
@@ -380,7 +439,17 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 <pre>瀏覽器 ──① 要上傳網址──▶ Worker ──▶ Google 簽出臨時網址
 瀏覽器 ◀──② 回傳網址────┘
 瀏覽器 ──③ XHR PUT 檔案本體 ─────────────▶ Google Drive
-                              <span class="c">（不經過 Worker）</span></pre>
+                              <span class="c">（不經過 Worker）</span>
+瀏覽器 ──④ 回報檔案 ID──▶ Worker ──▶ 寫進試算表「檔案」欄</pre>
+
+<div class="warn">
+  <div class="h">為什麼要有第 ④ 步</div>
+  <p>檔案既然不經過 Worker，Worker 就<b>不知道傳完了沒</b>，
+  也拿不到 Google 給的檔案編號。只有瀏覽器讀得到 PUT 的回應，
+  所以得由它回頭告訴我們一聲。</p>
+  <p>實作成<b>傳一個記一個</b>，不等全部傳完才記——
+  傳到一半關掉的話，前面幾個至少已經在試算表上了。</p>
+</div>
 
 <p>這樣做的理由：<b>Worker 一次請求最多只收 100 MB</b>，手機錄的影片動不動就超過。
 走直傳沒有這個上限，也不吃 Worker 的資源，而且前端拿得到上傳進度。</p>
@@ -390,6 +459,9 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   <p>同一個 Cloudflare 帳號下的 <code>LimingUploader</code>
   （<a href="https://github.com/TJC-KM/LimingUploader">TJC-KM/LimingUploader</a>）
   已經在線上跑這套做法。不共用程式碼——兩個 Worker 各自獨立——但沿用同一個已驗證的機制。</p>
+  <p>它其實<b>兩種都留著</b>：<code>/upload</code> 走 Worker 中轉，
+  <code>/upload-url</code> 走瀏覽器直傳。小檔中轉最單純，一次請求就好、不用煩惱 CORS；
+  影片只能直傳。心得回饋要收影片，所以只做直傳這一條。</p>
 </div>
 
 <h3>兩個容易漏掉的細節</h3>
@@ -398,6 +470,11 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   <p>沒帶的話，Google 簽出來的網址不接受瀏覽器跨域 PUT，前端會撞 CORS 而且訊息難懂。</p>
   <p>還有 <code>supportsAllDrives=true</code>——共用雲端硬碟必備，
   就是邀請卡那邊踩過、會安靜回空清單的同一個參數。</p>
+  <p>帶對了之後 Google 會這樣回，<code>Access-Control-Allow-Origin</code>
+  就是瀏覽器讀不讀得到檔案編號的關鍵：</p>
+  <pre style="margin:8px 0 0"><span class="c">HTTP/1.1 200 OK</span>
+Access-Control-Allow-Origin: https://invite.liming-tjc.org
+{"id":"1z2xpMOg…","name":"王小明－受洗那天.mp4"}</pre>
 </div>
 
 <h3>限制與規矩</h3>
@@ -406,19 +483,30 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   <li><b>上傳前顯示檔案大小</b>　讓人自己有感，比事後解釋有效</li>
   <li><b>進度條</b>　影片會傳很久，沒有動靜的畫面會讓人以為當掉</li>
   <li><b>空間的清理由幹部手動處理</b>　系統只負責收，不會自己刪</li>
+  <li><b>選好就開始傳</b>　不等按送出。影片要傳好幾分鐘，
+      不能讓人先填完別的欄位、按了送出才開始等</li>
+  <li><b>檔名前面掛人名</b>　存成「王小明－受洗那天.mp4」，資料夾裡才分得出誰是誰</li>
 </ul>
 
-<p class="sub">上傳完成後，檔案 ID 寫進「檔案」欄。維護介面用既有的
-<code>/thumb/&lt;檔案 ID&gt;</code> 顯示縮圖——Drive 會自動幫 PDF、Word、影片產第一頁或首格畫面。</p>
+<p class="sub">上傳完成後，檔案 ID 寫進「檔案」欄，逗號分隔。
+填寫頁重新打開時會把已經傳過的檔案列出來，附一個開 Drive 的連結。</p>
+
+<div class="warn">
+  <div class="h">還沒做：維護介面的縮圖</div>
+  <p>本來規劃維護介面用既有的 <code>/thumb/&lt;檔案 ID&gt;</code> 顯示縮圖
+  （Drive 會自動幫 PDF、影片產第一頁或首格畫面），這一版沒做。
+  現在幹部要看附件得先開試算表拿 ID。等真的開始有人傳檔案再補。</p>
+</div>
 
 
 <h2 id="s6"><span class="n">06</span>維護介面</h2>
 
-<p><code>/f/admin</code>　左邊建立回饋單，右邊查詢。跟邀請卡同一個形狀。</p>
+<p><code>/f/admin</code>　由上而下：建立回饋單、查詢、待處理的推薦、查詢結果。
+手機上是單欄，跟邀請卡同一個形狀。</p>
 
 <h3>建立回饋單</h3>
-<p>信徒姓名、稱呼（選填）、<b>引言（直接打字）</b>、指派人。送出後產生連結，
-給三顆按鈕：複製連結、預覽、用 LINE 傳送。</p>
+<p>信徒姓名、稱呼（選填）、指派人、<b>引言（直接打字）</b>。
+建好之後頁面重整，新的那一張會用紫色外框標出來。</p>
 
 <h3>查詢</h3>
 <div class="win">
@@ -427,12 +515,19 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   過濾在<b>伺服器端</b>做——沒查詢時 HTML 裡根本不含其他人的內容。</p>
 </div>
 
-<p>每一列顯示：信徒姓名、引言前幾個字、狀態、開啟次數、有沒有附件、推薦了幾個人。
-動作：預覽、修改、用 LINE 傳送、標記已收錄、停用。</p>
+<p>每一列顯示：信徒姓名、稱呼、狀態、開啟次數、引言、字數、最後存檔時間、
+送出時間、聯絡方式、專屬網址。
+動作：看內容、開啟、複製連結、用 LINE 傳、標記完成、停用（停用後可重新啟用）。</p>
 
-<h3>看心得</h3>
-<p>點開一列展開全文，附件用縮圖排在下面，點縮圖開 Drive 檢視器。
-影片直接用 Drive 的播放器，不自己做播放。</p>
+<div class="win">
+  <div class="h">心得內容預設收起來，要按「看內容」才展開</div>
+  <p>幹部開這一頁的場合，旁邊常常有別人看得到螢幕——
+  可能在教會辦公室、可能在聚會後的走廊。
+  名字和狀態看得到沒關係，<b>心得本文不該一捲到就攤在畫面上</b>。</p>
+</div>
+
+<p class="sub">還沒做：修改回饋單內容的按鈕（現在要改引言得開試算表）、
+附件縮圖、每一列顯示推薦了幾個人。</p>
 
 
 <h2 id="s7"><span class="n">07</span>推薦的閉環</h2>
@@ -444,12 +539,30 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 <p>填寫頁的「推薦其他人」寫進推薦分頁，狀態是「待處理」。
 維護介面有一區列出所有待處理的推薦：</p>
 
-<pre>王小明 推薦了 <span class="k">李美惠</span>
+<pre><span class="k">李美惠</span>　　待處理
 「她在講習會上的分享很感人」
-                         [ 建立回饋單 ]  [ 略過 ]</pre>
+                         [ 建回饋單給他 ]  [ 略過 ]</pre>
 
-<p>按下「建立回饋單」：姓名自動帶入、引言預填推薦原因（可改）、指派人帶目前查詢的人，
-產生連結之後把代碼寫回推薦那一列的「建單代碼」，狀態改成「已建單」。</p>
+<p>按下「建回饋單給他」：姓名帶進上面的建立表單、指派人保持不變、
+<b>引言留白</b>。建立成功之後把代碼寫回推薦那一列的「建單代碼」，
+狀態改成「已建單」，那一筆就從待處理清單消失。</p>
+
+<div class="win">
+  <div class="h">引言刻意不預填推薦原因</div>
+  <p>Rev 1 規劃「引言預填推薦原因（可改）」，實作時改掉了。</p>
+  <p>推薦原因是<b>第三個人講的話</b>——「她在講習會上的分享很感人」。
+  原封不動轉頭去問本人，會變成「請你談談你的分享很感人」，
+  又怪又有壓力，而且等於告訴她背後有人在議論她。</p>
+  <p>所以只帶名字過去，推薦原因顯示在旁邊當參考，
+  引言由幹部自己重新想一句怎麼問。這一步不能省。</p>
+</div>
+
+<div class="warn">
+  <div class="h">待處理清單預設只顯示數量</div>
+  <p>維護頁上半部一律不列名單，但推薦如果也藏起來就沒人會去處理。
+  折衷成顯示「有 3 位等著處理」加一個「攤開來看」的連結——
+  數字看得到，名字要多按一下。</p>
+</div>
 
 <p class="sub">這樣一來，「誰推薦了誰、後來有沒有真的去邀請」在試算表上查得到，
 不會變成一堆沒人接手的線索。</p>
@@ -464,7 +577,8 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   以及<b>預設不列名單、要先選指派人</b>——不會有人一打開就看到所有人的心得。</p>
   <p>要補起來的話，Cloudflare Access 的條件是齊的（網域已在 Cloudflare、
   <code>/f/admin</code> 路徑獨立），設定約五分鐘。
-  <b>但 <code>/api/f/*</code> 不能一起擋</b>，否則信徒就送不出心得了。</p>
+  <b>但 <code>/f/api/*</code> 不能一起擋</b>，否則信徒就送不出心得了——
+  這幾支是給信徒的手機打的，不是給幹部的。</p>
 </div>
 
 <h3>信徒那一端的邊界</h3>
@@ -487,6 +601,11 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 <h2 id="s9"><span class="n">09</span>建置步驟</h2>
 <p class="sub">可以打勾，進度存在這台裝置的瀏覽器裡。
 標著 <span class="who you">你</span> 的是我沒辦法代做的。</p>
+
+<div class="verdict">
+  <p><b>第 1 到 10 步都做完了，2026-09-06 上線。</b>
+  只剩最後一步：你自己用手機從 LINE 走一遍。</p>
+</div>
 
 <ol class="steps" id="steps">
   <li data-k="1"><input type="checkbox" tabindex="-1"><div class="bd">
@@ -528,7 +647,8 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   <li data-k="9"><input type="checkbox" tabindex="-1"><div class="bd">
     <div class="st">上傳</div>
     <div class="sd">要上傳網址的 API、前端 XHR 進度條、單檔上限、寫回檔案 ID。
-    先用照片測，再測大影片</div></div></li>
+    實測傳過一個檔案進共用雲端硬碟，也測過超過上限會被擋。
+    <b>大影片還沒實測</b>——那要用真的手機才測得準</div></div></li>
 
   <li data-k="10"><input type="checkbox" tabindex="-1"><div class="bd">
     <div class="st">推薦與閉環</div>
@@ -537,7 +657,13 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   <li data-k="11"><input type="checkbox" tabindex="-1"><div class="bd">
     <div class="st">端到端測試<span class="who you">你</span></div>
     <div class="sd">用另一支手機，從 LINE 點開填一份完整的：長心得、傳一支影片、推薦一個人。
-    確認幹部那邊看得到、縮圖出得來</div></div></li>
+    重點看三件事：<b>LINE 內建瀏覽器裡選得到檔案嗎</b>、
+    <b>大影片的進度條會不會卡住</b>、<b>寫到一半切走再回來字還在不在</b></div></div></li>
+
+  <li data-k="12"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">刪掉測試資料<span class="who you">你</span></div>
+    <div class="sd">試算表裡有「測試－請刪除」和「測試被推薦人」兩列，
+    雲端資料夾裡有一個測試文字檔</div></div></li>
 </ol>
 <button class="reset" id="reset" type="button">清除打勾</button>
 
@@ -549,10 +675,33 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   <li><b>信徒要不要看得到自己以前寫過的</b>　要的話就需要身分，不只是一個代碼。第一版不做</li>
   <li><b>要不要通知</b>　信徒送出後，幹部怎麼知道？第一版靠幹部自己開來看。之後可以考慮排程每天彙整一次</li>
   <li><b>心得要不要能匯出</b>　真的要編成刊物時，一篇一篇複製很累。等有這個需求再說</li>
+  <li><b>維護介面要不要能改引言</b>　現在打錯字只能開試算表改。看幹部實際會不會踩到</li>
+  <li><b>同一個人多張回饋單</b>　現在每次都是新的一張、新的一個代碼。
+      如果同一位信徒被問了五件事，他手上就有五個連結，會不會亂還不知道</li>
 </ul>
 
+<h3>做的時候撞到、值得記著的兩件事</h3>
+
+<div class="warn">
+  <div class="h">改了權限範圍，要記得換權杖的快取鍵</div>
+  <p><code>drive.readonly</code> 換成 <code>drive</code> 之後一直拿到
+  「403 insufficient authentication scopes」——因為 KV 裡<b>還存著舊範圍簽出來的權杖</b>，
+  而它一小時才過期。</p>
+  <p>結構性的解法是把快取鍵改成帶版本號的 <code>tok:v2-drive</code>。
+  <b>以後改 SCOPES 就跟著把號碼加一</b>，新舊權杖自然分開，不用去清快取。</p>
+</div>
+
+<div class="warn">
+  <div class="h">拆檔時撿到一個沒人發現的舊漏洞</div>
+  <p>邀請卡維護介面的「匯入」按鈕打的是 <code>/admin/api/import</code>，
+  但 API 的分派表裡從來沒有這個動作——<code>匯入活動()</code> 一直是死程式，
+  按下去只會拿到一頁 404 的 HTML。</p>
+  <p>會拖這麼久沒被發現，是因為<b>失敗的樣子跟沒反應很像</b>。
+  補一行分派就好了。</p>
+</div>
+
 <div class="foot">
-  心得回饋規格 Rev 1 · 2026-09-04　|　搭配<a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 Rev 5</a> 使用
+  心得回饋規格 Rev 2 · 2026-09-06　|　搭配<a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 Rev 5</a> 使用
 </div>
 
 </div>
@@ -560,19 +709,23 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 <script>
 (function(){
   'use strict';
-  var KEY = 'feedback-spec-steps-v1';
+  // Rev 2：第 1–10 步已經做完，預設就打好勾。
+  // 鍵名跟著換版本，不然看過 Rev 1 的人會停在自己當初的進度
+  var KEY = 'feedback-spec-steps-v2';
+  var 預設 = {1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,10:1};
   var list = document.getElementById('steps');
   var reset = document.getElementById('reset');
 
   function load(){
-    try { return JSON.parse(localStorage.getItem(KEY) || '{}'); }
-    catch(e){ return {}; }
+    try { return JSON.parse(localStorage.getItem(KEY)); }
+    catch(e){ return null; }
   }
   function save(s){
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e){}
   }
 
-  var state = load();
+  // 沒存過才套預設。存過一個空的，代表他自己按了清除，要尊重
+  var state = load() || Object.assign({}, 預設);
 
   function paint(){
     [].forEach.call(list.children, function(li){
