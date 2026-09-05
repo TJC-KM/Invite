@@ -25,7 +25,11 @@
 
     "SHEET_ID": "19NHEQ-5VRJbuTxZTrWPHJ9FlaTPGw2Rj1ZzBkIyEWik",
     "POSTER_FOLDER": "1kkkt_UT-ZYT36ti_nlXnChKjKVm6Hu00",
-    "ATTACH_FOLDER": "1UDdNmla_1XCVXUe5A5sWlGyLJPYsCfM1"
+    "ATTACH_FOLDER": "1UDdNmla_1XCVXUe5A5sWlGyLJPYsCfM1",
+
+    // 心得回饋（第二套系統，另一份試算表、另一個資料夾）
+    "FEEDBACK_SHEET_ID": "16FbxB-og9tcvrWoRATbq5y7njE1RFicBlY5CVTYbXg0",
+    "FEEDBACK_FOLDER": "18xF4E-3RRIgxah_WSfS5aaiWul6Nj12r"
   },
 
   // 服務帳戶金鑰不放這裡（這個檔案會進 git）：

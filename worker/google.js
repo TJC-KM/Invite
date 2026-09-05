@@ -7,8 +7,14 @@
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets",
-  "https://www.googleapis.com/auth/drive.readonly",
+  // 心得回饋要上傳檔案，所以不能只有 readonly。
+  // 注意：完整範圍不等於看得到整個雲端硬碟——仍然只碰得到分享給服務帳戶的東西
+  "https://www.googleapis.com/auth/drive",
 ].join(" ");
+
+// 快取鍵帶著範圍的版本號。改了 SCOPES 就要跟著加號碼——
+// 否則舊範圍的權杖會繼續被拿來用，症狀是莫名其妙的 403 insufficient scopes
+const TOKEN_KEY = "tok:v2-drive";
 
 // 同一個 isolate 內重複使用，省下 KV 的往返
 let memoToken = null; // { token, exp }
@@ -19,7 +25,7 @@ export async function getAccessToken(env) {
   if (memoToken && memoToken.exp > now + 60) return memoToken.token;
 
   if (env.CACHE) {
-    const cached = await env.CACHE.get("tok:v1", "json");
+    const cached = await env.CACHE.get(TOKEN_KEY, "json");
     if (cached && cached.exp > now + 60) {
       memoToken = cached;
       return cached.token;
@@ -60,7 +66,7 @@ export async function getAccessToken(env) {
   const exp = now + (data.expires_in || 3600);
   memoToken = { token, exp };
   if (env.CACHE) {
-    await env.CACHE.put("tok:v1", JSON.stringify(memoToken), {
+    await env.CACHE.put(TOKEN_KEY, JSON.stringify(memoToken), {
       expirationTtl: Math.max(60, (data.expires_in || 3600) - 300),
     });
   }
