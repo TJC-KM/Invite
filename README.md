@@ -12,11 +12,13 @@
 | [`docs/規格.html`](docs/規格.html) | **完整規格**——架構、資料表、命名規則、建置步驟。雙擊開啟 |
 | [`docs/原型.html`](docs/原型.html) | 可行性原型，可點的模擬版。雙擊開啟 |
 | [`docs/施做步驟.html`](docs/施做步驟.html) | **施做計畫**——決策、階段順序、每步驗收條件、回推時程。雙擊開啟 |
+| [`docs/心得回饋規格.html`](docs/心得回饋規格.html) | **心得回饋規格**——第二套系統，同一個 Worker、另一份試算表。雙擊開啟 |
 
 線上版（同一份內容）：
 - 規格 <https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff>
 - 原型 <https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89>
 - 施做計畫 <https://claude.ai/code/artifact/bcbcbc21-e866-4552-ab71-cc75651378a2>
+- 心得回饋規格 <https://claude.ai/code/artifact/2d871db7-7a0b-453e-af21-fcae58a51e8e>
 
 ## 現在長什麼樣
 

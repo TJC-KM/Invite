@@ -1,0 +1,602 @@
+<meta charset="utf-8">
+<title>心得回饋系統規格</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --paper:#f7f5fa; --surface:#ffffff; --line:#e2dded;
+  --violet:#6a5a96; --violet-soft:#efeaf7;
+  --gold:#8f6220; --gold-soft:#f7efe0;
+  --teal:#2c6e63; --teal-soft:#e4f0ed;
+  --mute:#6f6a7d; --ink:#2a2637;
+  --shadow:rgba(40,30,70,.09);
+  --head:#f0ecf6; --th-fg:#676375;
+  --code-bg:#f4f1f9;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#15131e; --surface:#1e1b2b; --line:#312c44;
+    --violet:#a394d4; --violet-soft:#272138;
+    --gold:#d9ab5e; --gold-soft:#2d2418;
+    --teal:#6fc4b3; --teal-soft:#172b28;
+    --mute:#948da8; --ink:#e9e5f2;
+    --shadow:rgba(0,0,0,.4);
+    --head:#242032; --th-fg:#a49db8;
+    --code-bg:#191622;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15131e; --surface:#1e1b2b; --line:#312c44;
+  --violet:#a394d4; --violet-soft:#272138;
+  --gold:#d9ab5e; --gold-soft:#2d2418;
+  --teal:#6fc4b3; --teal-soft:#172b28;
+  --mute:#948da8; --ink:#e9e5f2;
+  --shadow:rgba(0,0,0,.4);
+  --head:#242032; --th-fg:#a49db8;
+  --code-bg:#191622;
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Noto Sans TC',system-ui,sans-serif;font-weight:300;line-height:1.8;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:860px;margin:0 auto;padding:48px 22px 90px;}
+
+.eyebrow{
+  font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--violet);font-weight:600;margin-bottom:12px;
+}
+h1{
+  font-family:'Noto Serif TC',serif;font-weight:700;
+  font-size:clamp(1.85rem,4.4vw,2.6rem);line-height:1.28;margin:0 0 14px;text-wrap:balance;
+}
+.lede{color:var(--mute);font-size:1.02rem;max-width:62ch;margin:0;}
+
+h2{
+  font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.34rem;
+  margin:56px 0 6px;padding-top:22px;border-top:1px solid var(--line);
+  display:flex;align-items:baseline;gap:11px;text-wrap:balance;
+}
+h2 .n{font-family:'JetBrains Mono',monospace;font-size:.76rem;color:var(--violet);font-weight:600;flex:none;}
+h3{font-family:'Noto Serif TC',serif;font-weight:600;font-size:1.02rem;margin:30px 0 9px;}
+h4{font-family:'Noto Serif TC',serif;font-weight:600;font-size:.95rem;margin:24px 0 6px;}
+p{margin:0 0 14px;}
+p.sub{color:var(--mute);font-size:.93rem;margin-top:-2px;}
+b,strong{font-weight:500;color:var(--ink);}
+a{color:var(--violet);}
+
+code{
+  font-family:'JetBrains Mono',monospace;font-size:.84em;
+  background:var(--violet-soft);color:var(--violet);padding:1px 5px;border-radius:3px;
+}
+pre{
+  background:var(--code-bg);border:1px solid var(--line);border-radius:8px;
+  padding:15px 17px;overflow-x:auto;margin:12px 0;
+  font-family:'JetBrains Mono',monospace;font-size:.79rem;line-height:1.85;
+  color:var(--ink);font-weight:400;
+}
+pre .c{color:var(--mute);}
+pre .k{color:var(--violet);font-weight:600;}
+
+.toc{
+  background:var(--surface);border:1px solid var(--line);border-radius:9px;
+  padding:18px 22px;margin:34px 0 0;box-shadow:0 1px 3px var(--shadow);
+}
+.toc ol{margin:0;padding-left:20px;columns:2;column-gap:30px;}
+@media (max-width:600px){.toc ol{columns:1;}}
+.toc li{font-size:.9rem;margin-bottom:5px;break-inside:avoid;}
+.toc a{text-decoration:none;}
+.toc a:hover{text-decoration:underline;}
+
+.verdict{
+  border-left:3px solid var(--violet);background:var(--violet-soft);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:26px 0;
+}
+.verdict p:last-child{margin-bottom:0;}
+.warn{
+  border-left:3px solid var(--gold);background:var(--gold-soft);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:22px 0;
+}
+.warn p:last-child{margin-bottom:0;}
+.warn .h{font-weight:500;color:var(--gold);margin-bottom:5px;}
+.win{
+  border-left:3px solid var(--teal);background:var(--teal-soft);
+  padding:16px 20px;border-radius:0 8px 8px 0;margin:22px 0;
+}
+.win p:last-child{margin-bottom:0;}
+.win .h{font-weight:500;color:var(--teal);margin-bottom:5px;}
+
+.arch{display:flex;flex-direction:column;align-items:center;margin:26px 0 8px;}
+.abox{
+  width:100%;max-width:460px;border:1px solid var(--line);border-radius:9px;
+  background:var(--surface);padding:15px 18px;box-shadow:0 1px 3px var(--shadow);
+}
+.abox .t{font-weight:500;font-size:.97rem;margin-bottom:3px;}
+.abox .d{font-size:.82rem;color:var(--mute);line-height:1.65;}
+.abox.db{border-color:var(--teal);background:var(--teal-soft);}
+.abox.db .t{color:var(--teal);}
+.abox.wk{border-color:var(--violet);background:var(--violet-soft);}
+.abox.wk .t{color:var(--violet);}
+.arr{color:var(--mute);font-size:.75rem;padding:9px 0;text-align:center;font-family:'JetBrains Mono',monospace;}
+
+.tw{overflow-x:auto;margin:14px 0 8px;border:1px solid var(--line);border-radius:9px;background:var(--surface);}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.87rem;}
+th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;}
+th{background:var(--head);font-weight:500;font-size:.8rem;color:var(--th-fg);white-space:nowrap;}
+tr:last-child td{border-bottom:0;}
+td:first-child{white-space:nowrap;font-weight:500;}
+td code{white-space:nowrap;}
+.req{color:var(--violet);font-weight:600;}
+
+ul.plain{list-style:none;padding:0;margin:12px 0;}
+ul.plain li{padding:7px 0 7px 22px;position:relative;font-size:.92rem;border-bottom:1px solid var(--line);}
+ul.plain li:last-child{border-bottom:0;}
+ul.plain li::before{
+  content:'';position:absolute;left:4px;top:16px;width:5px;height:5px;
+  border-radius:50%;background:var(--violet);
+}
+
+.steps{list-style:none;padding:0;margin:16px 0;}
+.steps li{
+  display:flex;gap:13px;align-items:flex-start;padding:12px 14px;margin-bottom:8px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);
+  cursor:pointer;transition:border-color .13s,opacity .13s;
+}
+.steps li:hover{border-color:var(--violet);}
+.steps li.done{opacity:.5;}
+.steps li.done .st{text-decoration:line-through;}
+.steps input{margin:5px 0 0;accent-color:var(--violet);flex:none;width:16px;height:16px;cursor:pointer;}
+.steps .bd{flex:1;min-width:0;}
+.steps .st{font-size:.92rem;font-weight:500;}
+.steps .sd{font-size:.82rem;color:var(--mute);line-height:1.65;margin-top:2px;}
+.steps .sd code{font-size:.78rem;}
+.steps .who{
+  font-family:'JetBrains Mono',monospace;font-size:.66rem;letter-spacing:.1em;
+  border:1px solid var(--line);border-radius:20px;padding:1px 8px;color:var(--mute);
+  margin-left:7px;vertical-align:2px;
+}
+.steps .who.you{border-color:var(--gold);color:var(--gold);}
+.reset{
+  background:none;border:1px solid var(--line);border-radius:6px;color:var(--mute);
+  font-family:inherit;font-size:.8rem;padding:6px 13px;cursor:pointer;
+}
+.reset:hover{border-color:var(--violet);color:var(--violet);}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+.foot{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);font-size:.82rem;color:var(--mute);}
+</style>
+
+<div class="wrap">
+
+<div class="eyebrow">Build Spec · Rev 1 · 2026-09-04</div>
+<h1>心得回饋系統規格</h1>
+<p class="lede">
+  信徒寫下活動或事件的心得感動，教會保存下來。
+  跟邀請卡同一個 Worker、同一把服務帳戶金鑰，但另一份試算表。
+  <a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 →</a>
+</p>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#s1">為什麼共用同一個 Worker</a></li>
+    <li><a href="#s2">系統架構</a></li>
+    <li><a href="#s3">資料表與設定</a></li>
+    <li><a href="#s4">填寫頁</a></li>
+    <li><a href="#s5">上傳</a></li>
+    <li><a href="#s6">維護介面</a></li>
+    <li><a href="#s7">推薦的閉環</a></li>
+    <li><a href="#s8">隱私與同意</a></li>
+    <li><a href="#s9">建置步驟</a></li>
+    <li><a href="#s10">尚未決定</a></li>
+  </ol>
+</nav>
+
+
+<h2 id="s1"><span class="n">01</span>為什麼共用同一個 Worker</h2>
+
+<div class="verdict">
+  <p><b>骨架完全一樣：代碼連結、試算表當資料庫、Worker 伺服器端渲染、KV 快取、維護介面。</b>
+  差別只在資料流的方向——邀請卡是教會寫給人看，回饋單是人寫給教會。</p>
+</div>
+
+<p>沿用的東西：</p>
+<ul class="plain">
+  <li><b>服務帳戶</b>　同一把 <code>GOOGLE_KEY</code>，不用另外申請身分。新的試算表和資料夾分享給它就行</li>
+  <li><b>google.js</b>　簽 JWT 換權杖、讀分頁、寫儲存格、新增列、列資料夾、Drive 縮圖，全部照用</li>
+  <li><b>代碼規則</b>　12 碼、字集去掉易混淆字元、不可流水號（邀請卡規格第 8 節）</li>
+  <li><b>維護介面的形狀</b>　左邊建立、右邊查詢，先查才列</li>
+</ul>
+
+<p>新增的東西只有兩樣：<b>檔案上傳</b>，和<b>推薦別人</b>。</p>
+
+<div class="warn">
+  <div class="h">程式要拆檔，不要塞進同一支 index.js</div>
+  <p>邀請卡的 <code>index.js</code> 已經接近一千行。回饋系統加進去會變成沒人敢改的檔案。
+  路由入口共用，邏輯拆成 <code>invite.js</code> 和 <code>feedback.js</code>，
+  <code>google.js</code> 是兩邊共用的底層。</p>
+</div>
+
+
+<h2 id="s2"><span class="n">02</span>系統架構</h2>
+
+<div class="arch">
+  <div class="abox">
+    <div class="t">填寫頁　<code>/f/&lt;12碼&gt;</code></div>
+    <div class="d">信徒的專屬連結，免登入、可分次寫完</div>
+  </div>
+  <div class="arr">↓　　同一個 Worker　　↓</div>
+  <div class="abox wk">
+    <div class="t">維護介面　<code>/f/admin</code></div>
+    <div class="d">幹部建立回饋單、查看心得、處理推薦</div>
+  </div>
+  <div class="arr">↓</div>
+  <div class="abox db">
+    <div class="t">Google 試算表「心得回饋」</div>
+    <div class="d">另一份，跟邀請卡分開。三個分頁</div>
+  </div>
+  <div class="arr">＋ 共用雲端硬碟「心得回饋-附件」（照片、文件、影片）</div>
+</div>
+
+<h3>路由</h3>
+<div class="tw"><table>
+  <thead><tr><th>路徑</th><th>做什麼</th><th>誰能進</th></tr></thead>
+  <tbody>
+    <tr><td><code>/f/&lt;代碼&gt;</code></td><td>填寫頁</td><td>有連結的人</td></tr>
+    <tr><td><code>/api/f/save</code></td><td>存草稿／送出心得</td><td>要正確代碼</td></tr>
+    <tr><td><code>/api/f/upload-url</code></td><td>跟 Drive 要一個上傳網址</td><td>要正確代碼</td></tr>
+    <tr><td><code>/f/admin</code></td><td>維護介面</td><td>任何人　見第 8 節</td></tr>
+    <tr><td><code>/f/admin/api/*</code></td><td>建立、查詢、處理推薦</td><td>任何人</td></tr>
+  </tbody>
+</table></div>
+
+<p class="sub">邀請卡的路徑（<code>/&lt;代碼&gt;</code>、<code>/e/*</code>、<code>/img/*</code>、<code>/thumb/*</code>、<code>/admin</code>）完全不動。</p>
+
+<h3>設定值</h3>
+<pre><span class="c">// wrangler.jsonc，加兩個</span>
+FEEDBACK_SHEET_ID  = <span class="k">"&lt;心得回饋試算表 ID&gt;"</span>
+FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
+
+<div class="warn">
+  <div class="h">權限範圍要從唯讀改成可寫</div>
+  <p>現在跟 Google 要的是 <code>spreadsheets</code> ＋ <code>drive.readonly</code>。
+  要上傳檔案就得把後者換成 <code>drive</code>。</p>
+  <p>容易誤會的地方：<b>改成完整範圍，不等於服務帳戶能翻遍整個雲端硬碟</b>。
+  它仍然只看得到「有分享給它的東西」。範圍決定能做什麼類型的操作，
+  分享才決定能碰哪些檔案——兩道鎖是獨立的。</p>
+</div>
+
+
+<h2 id="s3"><span class="n">03</span>資料表與設定</h2>
+
+<p>三個分頁。第一列是標題列，程式用標題文字對應欄位——跟邀請卡同一套規則，
+所以標題不要改，欄位順序可以隨意調。</p>
+
+<h4>分頁 1：回饋單</h4>
+<div class="tw"><table>
+  <thead><tr><th>欄位</th><th>誰填</th><th>說明</th></tr></thead>
+  <tbody>
+    <tr><td>代碼</td><td>系統</td><td>隨機 12 碼，就是網址最後那串</td></tr>
+    <tr><td>信徒姓名 <span class="req">*</span></td><td>幹部</td><td>名單上認人用</td></tr>
+    <tr><td>稱呼</td><td>幹部</td><td>選填。填了頁面上就這樣叫他</td></tr>
+    <tr><td>引言 <span class="req">*</span></td><td>幹部</td><td><b>純文字，直接打</b>。「你被選任為幹部時，心裡在想什麼？」</td></tr>
+    <tr><td>指派人</td><td>幹部</td><td>誰發的這張單，查詢時用它分組</td></tr>
+    <tr><td>狀態</td><td>幹部</td><td>草稿／已發送／已填寫／已收錄／已停用</td></tr>
+    <tr><td>填寫日期</td><td>信徒</td><td>預設今天，可以改——寫的可能是上個月的事</td></tr>
+    <tr><td>心得內容</td><td>信徒</td><td>一格最多五萬字，長篇也放得下</td></tr>
+    <tr><td>檔案</td><td>信徒</td><td>雲端硬碟檔案 ID，逗號分隔</td></tr>
+    <tr><td>聯絡方式</td><td>信徒</td><td>選填。之後徵詢同意時用</td></tr>
+    <tr><td>提交時間</td><td>系統</td><td>第一次送出的時間</td></tr>
+    <tr><td>最後修改</td><td>系統</td><td>每次儲存都更新</td></tr>
+    <tr><td>開啟次數</td><td>系統</td><td>知道他點開了沒，方便關懷提醒</td></tr>
+  </tbody>
+</table></div>
+
+<div class="win">
+  <div class="h">引言不用題目庫</div>
+  <p>原本規劃一張「引言」分頁當題目庫，用代號引用。後來拿掉了——
+  <b>引言不一定對應活動</b>，可能是「被選任當幹部的心情」這種事件，
+  也可能是幹部臨時想問的一句話。做成題目庫反而多一層要維護的東西。</p>
+  <p>直接在回饋單那一列打字，最單純。</p>
+</div>
+
+<h4>分頁 2：推薦</h4>
+<p class="sub">獨立一張，因為一張回饋單可能推薦好幾個人，幹部要逐一處理。</p>
+<div class="tw"><table>
+  <thead><tr><th>欄位</th><th>說明</th></tr></thead>
+  <tbody>
+    <tr><td>來自代碼</td><td>哪一張回饋單推薦的</td></tr>
+    <tr><td>被推薦人</td><td>信徒填的名字</td></tr>
+    <tr><td>推薦原因</td><td>「她在講習會上的分享很感人」</td></tr>
+    <tr><td>處理狀態</td><td>待處理／已建單／略過</td></tr>
+    <tr><td>建單代碼</td><td>幹部按「建立回饋單」後自動填，形成閉環</td></tr>
+    <tr><td>建立時間</td><td>系統</td></tr>
+  </tbody>
+</table></div>
+
+<h4>分頁 3：設定檔</h4>
+<p class="sub">頁面上的字句放這裡，改字不用改程式。沒建也不會壞，程式有預設值。</p>
+<div class="tw"><table>
+  <thead><tr><th>代號</th><th>內容</th></tr></thead>
+  <tbody>
+    <tr><td>頁首標題</td><td>心得回饋</td></tr>
+    <tr><td>保存說明</td><td>你的分享教會會妥善保存。若有機會用在見證或刊物，一定會先跟你本人聯絡。</td></tr>
+    <tr><td>心得提示</td><td>想到什麼就寫什麼，長短都可以</td></tr>
+    <tr><td>推薦說明</td><td>還有誰的經歷讓你印象深刻？我們可以也去邀請他分享</td></tr>
+    <tr><td>送出按鈕</td><td>送出</td></tr>
+    <tr><td>送出後訊息</td><td>謝謝你的分享 🙏</td></tr>
+    <tr><td>單檔上限MB</td><td>500</td></tr>
+    <tr><td>LINE訊息</td><td>{對象全稱}平安，想邀請你寫一段心得：{網址}</td></tr>
+  </tbody>
+</table></div>
+
+
+<h2 id="s4"><span class="n">04</span>填寫頁</h2>
+
+<p>信徒點開 <code>/f/&lt;代碼&gt;</code> 看到的東西，由上而下：</p>
+
+<ul class="plain">
+  <li><b>教會抬頭</b>　跟邀請卡同一個視覺</li>
+  <li><b>引言</b>　幹部打的那段話，就是這張單在問什麼</li>
+  <li><b>填寫日期</b>　預設今天，可以改</li>
+  <li><b>心得內容</b>　<b>一個大框</b>，不切格子</li>
+  <li><b>加照片、文件或影片</b>　可多選，見第 5 節</li>
+  <li><b>推薦其他人</b>　姓名＋原因，可以加好幾組</li>
+  <li><b>聯絡方式</b>　選填</li>
+  <li><b>保存說明</b>　設定檔那段文字</li>
+  <li><b>先儲存</b>　和　<b>送出</b></li>
+</ul>
+
+<div class="warn">
+  <div class="h">草稿不能丟——這比上傳功能重要</div>
+  <p>長篇心得寫到一半，電話進來、瀏覽器被系統關掉，字沒了，
+  <b>那個人不會再寫第二次</b>。要做兩層：</p>
+  <p><b>一、瀏覽器本機自動暫存。</b>打字就存進 <code>localStorage</code>，
+  斷線、關掉、當機都留得住。重新打開同一個連結自動帶回來。</p>
+  <p><b>二、一顆「先儲存」。</b>寫回試算表，換一支手機也接得下去。
+  狀態維持在「已填寫」之前，幹部知道還沒完成。</p>
+</div>
+
+<div class="win">
+  <div class="h">引言只當提示，不切成一題一格</div>
+  <p>幹部可能一次問兩三件事，但表單上仍然只給一個大框。
+  長輩不喜歡被格子綁住，而且真正的心得往往寫著寫著就跨題了。
+  引言放在上面看得到就好。</p>
+</div>
+
+<h3>送出之後</h3>
+<p>顯示設定檔的感謝訊息，並且<b>仍然可以再修改</b>——直到幹部把狀態改成「已收錄」才鎖定。
+心得這種東西，隔天想到更好的說法是常有的事。</p>
+
+
+<h2 id="s5"><span class="n">05</span>上傳</h2>
+
+<div class="verdict">
+  <p><b>檔案不經過 Worker，瀏覽器直接傳給 Google。</b></p>
+  <p>Worker 只負責跟 Drive 要一個臨時上傳網址，位元組走瀏覽器到 Google 的直線。</p>
+</div>
+
+<pre>瀏覽器 ──① 要上傳網址──▶ Worker ──▶ Google 簽出臨時網址
+瀏覽器 ◀──② 回傳網址────┘
+瀏覽器 ──③ XHR PUT 檔案本體 ─────────────▶ Google Drive
+                              <span class="c">（不經過 Worker）</span></pre>
+
+<p>這樣做的理由：<b>Worker 一次請求最多只收 100 MB</b>，手機錄的影片動不動就超過。
+走直傳沒有這個上限，也不吃 Worker 的資源，而且前端拿得到上傳進度。</p>
+
+<div class="win">
+  <div class="h">這條路教會內部已經走通過</div>
+  <p>同一個 Cloudflare 帳號下的 <code>LimingUploader</code>
+  （<a href="https://github.com/TJC-KM/LimingUploader">TJC-KM/LimingUploader</a>）
+  已經在線上跑這套做法。不共用程式碼——兩個 Worker 各自獨立——但沿用同一個已驗證的機制。</p>
+</div>
+
+<h3>兩個容易漏掉的細節</h3>
+<div class="warn">
+  <div class="h">申請上傳網址時要帶 <code>Origin</code></div>
+  <p>沒帶的話，Google 簽出來的網址不接受瀏覽器跨域 PUT，前端會撞 CORS 而且訊息難懂。</p>
+  <p>還有 <code>supportsAllDrives=true</code>——共用雲端硬碟必備，
+  就是邀請卡那邊踩過、會安靜回空清單的同一個參數。</p>
+</div>
+
+<h3>限制與規矩</h3>
+<ul class="plain">
+  <li><b>單檔上限</b>　放設定檔（<code>單檔上限MB</code>），預設 500 MB。超過就擋下並說明</li>
+  <li><b>上傳前顯示檔案大小</b>　讓人自己有感，比事後解釋有效</li>
+  <li><b>進度條</b>　影片會傳很久，沒有動靜的畫面會讓人以為當掉</li>
+  <li><b>空間的清理由幹部手動處理</b>　系統只負責收，不會自己刪</li>
+</ul>
+
+<p class="sub">上傳完成後，檔案 ID 寫進「檔案」欄。維護介面用既有的
+<code>/thumb/&lt;檔案 ID&gt;</code> 顯示縮圖——Drive 會自動幫 PDF、Word、影片產第一頁或首格畫面。</p>
+
+
+<h2 id="s6"><span class="n">06</span>維護介面</h2>
+
+<p><code>/f/admin</code>　左邊建立回饋單，右邊查詢。跟邀請卡同一個形狀。</p>
+
+<h3>建立回饋單</h3>
+<p>信徒姓名、稱呼（選填）、<b>引言（直接打字）</b>、指派人。送出後產生連結，
+給三顆按鈕：複製連結、預覽、用 LINE 傳送。</p>
+
+<h3>查詢</h3>
+<div class="win">
+  <div class="h">預設不列任何名單，要先選指派人</div>
+  <p>打開只看到建立表單和一排指派人。點一位才列出他發出去的回饋單。
+  過濾在<b>伺服器端</b>做——沒查詢時 HTML 裡根本不含其他人的內容。</p>
+</div>
+
+<p>每一列顯示：信徒姓名、引言前幾個字、狀態、開啟次數、有沒有附件、推薦了幾個人。
+動作：預覽、修改、用 LINE 傳送、標記已收錄、停用。</p>
+
+<h3>看心得</h3>
+<p>點開一列展開全文，附件用縮圖排在下面，點縮圖開 Drive 檢視器。
+影片直接用 Drive 的播放器，不自己做播放。</p>
+
+
+<h2 id="s7"><span class="n">07</span>推薦的閉環</h2>
+
+<div class="verdict">
+  <p><b>信徒推薦別人 → 幹部按一顆按鈕 → 新的回饋單就建好了。</b></p>
+</div>
+
+<p>填寫頁的「推薦其他人」寫進推薦分頁，狀態是「待處理」。
+維護介面有一區列出所有待處理的推薦：</p>
+
+<pre>王小明 推薦了 <span class="k">李美惠</span>
+「她在講習會上的分享很感人」
+                         [ 建立回饋單 ]  [ 略過 ]</pre>
+
+<p>按下「建立回饋單」：姓名自動帶入、引言預填推薦原因（可改）、指派人帶目前查詢的人，
+產生連結之後把代碼寫回推薦那一列的「建單代碼」，狀態改成「已建單」。</p>
+
+<p class="sub">這樣一來，「誰推薦了誰、後來有沒有真的去邀請」在試算表上查得到，
+不會變成一堆沒人接手的線索。</p>
+
+
+<h2 id="s8"><span class="n">08</span>隱私與同意</h2>
+
+<div class="warn">
+  <div class="h">現況：維護介面沒有身分驗證</div>
+  <p>跟邀請卡一樣的決定：不設帳號系統。知道網址的人就進得去。</p>
+  <p>緩衝有兩層：<code>robots.txt</code> 擋搜尋引擎收錄，
+  以及<b>預設不列名單、要先選指派人</b>——不會有人一打開就看到所有人的心得。</p>
+  <p>要補起來的話，Cloudflare Access 的條件是齊的（網域已在 Cloudflare、
+  <code>/f/admin</code> 路徑獨立），設定約五分鐘。
+  <b>但 <code>/api/f/*</code> 不能一起擋</b>，否則信徒就送不出心得了。</p>
+</div>
+
+<h3>信徒那一端的邊界</h3>
+<ul class="plain">
+  <li><b>只能讀寫自己那一張</b>　公開路徑上唯一的動作，就是寫入自己代碼對應的那一列</li>
+  <li><b>代碼猜不到</b>　12 碼、約 8×10<sup>17</sup> 種組合，而且不可流水號</li>
+  <li><b>看不到別人的</b>　沒有列表、沒有搜尋，只認完整正確的代碼</li>
+</ul>
+
+<h3>同意是人的流程，不是系統的勾選</h3>
+<div class="win">
+  <div class="h">不做「我同意公開」的勾選框</div>
+  <p>教會的流程是<b>事後徵詢</b>——真的要用在見證或刊物時，才跟本人聯絡。
+  放一個勾選框反而會誤導，讓人以為勾了就等於授權出版。</p>
+  <p>填寫頁上只放一段說明（設定檔可改），加一個選填的聯絡方式。
+  真正的同意發生在電話或面對面，系統不假裝能代替那件事。</p>
+</div>
+
+
+<h2 id="s9"><span class="n">09</span>建置步驟</h2>
+<p class="sub">可以打勾，進度存在這台裝置的瀏覽器裡。
+標著 <span class="who you">你</span> 的是我沒辦法代做的。</p>
+
+<ol class="steps" id="steps">
+  <li data-k="1"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">建立試算表「心得回饋」<span class="who you">你</span></div>
+    <div class="sd">分享給 <code>liming-invite@liming-invite.iam.gserviceaccount.com</code>，
+    給<b>編輯者</b>。取消勾選「通知使用者」——服務帳戶沒有信箱，寄了會退信</div></div></li>
+
+  <li data-k="2"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">共用雲端硬碟開資料夾「心得回饋-附件」<span class="who you">你</span></div>
+    <div class="sd">同一個服務帳戶加成<b>內容管理員</b>——要能寫入，不是檢視者</div></div></li>
+
+  <li data-k="3"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">匯入三個分頁的 CSV<span class="who you">你</span></div>
+    <div class="sd">我會產好給你。匯入時記得關掉「將文字轉換為數字、日期和公式」</div></div></li>
+
+  <li data-k="4"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">把兩個 ID 給我</div>
+    <div class="sd">試算表 ID 和資料夾 ID，我填進 <code>wrangler.jsonc</code></div></div></li>
+
+  <li data-k="5"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">權限範圍改成可寫</div>
+    <div class="sd"><code>drive.readonly</code> → <code>drive</code>。
+    改完先確認邀請卡的海報和見證都還讀得到</div></div></li>
+
+  <li data-k="6"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">程式拆檔</div>
+    <div class="sd"><code>invite.js</code> ／ <code>feedback.js</code> ／ 共用的 <code>google.js</code>。
+    先拆再加功能，不然之後拆不動</div></div></li>
+
+  <li data-k="7"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">填寫頁 ＋ 存草稿</div>
+    <div class="sd">引言、心得大框、日期、聯絡方式、本機自動暫存、「先儲存」寫回試算表。
+    <b>先做這個</b>，它自己就已經能用了</div></div></li>
+
+  <li data-k="8"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">維護介面：建立與查詢</div>
+    <div class="sd">建立回饋單、產生連結、用 LINE 傳送、先查才列</div></div></li>
+
+  <li data-k="9"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">上傳</div>
+    <div class="sd">要上傳網址的 API、前端 XHR 進度條、單檔上限、寫回檔案 ID。
+    先用照片測，再測大影片</div></div></li>
+
+  <li data-k="10"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">推薦與閉環</div>
+    <div class="sd">填寫頁的推薦區、維護介面的待處理清單、一鍵建單回填</div></div></li>
+
+  <li data-k="11"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">端到端測試<span class="who you">你</span></div>
+    <div class="sd">用另一支手機，從 LINE 點開填一份完整的：長心得、傳一支影片、推薦一個人。
+    確認幹部那邊看得到、縮圖出得來</div></div></li>
+</ol>
+<button class="reset" id="reset" type="button">清除打勾</button>
+
+
+<h2 id="s10"><span class="n">10</span>尚未決定</h2>
+
+<ul class="plain">
+  <li><b>影片要留多久</b>　系統只負責收，不會自己刪。空間的清理由幹部手動處理——但「多久算舊」還沒有規矩</li>
+  <li><b>信徒要不要看得到自己以前寫過的</b>　要的話就需要身分，不只是一個代碼。第一版不做</li>
+  <li><b>要不要通知</b>　信徒送出後，幹部怎麼知道？第一版靠幹部自己開來看。之後可以考慮排程每天彙整一次</li>
+  <li><b>心得要不要能匯出</b>　真的要編成刊物時，一篇一篇複製很累。等有這個需求再說</li>
+</ul>
+
+<div class="foot">
+  心得回饋規格 Rev 1 · 2026-09-04　|　搭配<a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 Rev 5</a> 使用
+</div>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var KEY = 'feedback-spec-steps-v1';
+  var list = document.getElementById('steps');
+  var reset = document.getElementById('reset');
+
+  function load(){
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}'); }
+    catch(e){ return {}; }
+  }
+  function save(s){
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e){}
+  }
+
+  var state = load();
+
+  function paint(){
+    [].forEach.call(list.children, function(li){
+      var on = !!state[li.dataset.k];
+      li.classList.toggle('done', on);
+      li.querySelector('input').checked = on;
+    });
+  }
+
+  list.addEventListener('click', function(e){
+    var li = e.target.closest('li[data-k]');
+    if (!li) return;
+    var k = li.dataset.k;
+    if (state[k]) delete state[k]; else state[k] = true;
+    save(state);
+    paint();
+  });
+
+  reset.addEventListener('click', function(){
+    state = {};
+    save(state);
+    paint();
+  });
+
+  paint();
+})();
+</script>
