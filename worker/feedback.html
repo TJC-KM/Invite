@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{pageTitle}}</title>
+
+<!-- 心得是私人的東西，別讓任何爬蟲收進索引 -->
+<meta name="robots" content="noindex,nofollow">
+<meta property="og:title" content="{{pageTitle}}">
+<meta property="og:description" content="這是給你的專屬連結">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --paper:#f7f5fa;
+  --surface:#ffffff;
+  --line:#e2dded;
+  --violet:#6a5a96;
+  --violet-soft:#efeaf7;
+  --gold:#8f6220;
+  --mute:#6f6a7d;
+  --ink:#2a2637;
+  --shadow:rgba(40,30,70,.10);
+  --field:#ffffff;
+  --cover-grad:linear-gradient(168deg,#efeaf7 0%,#f8f2ea 58%,#fdf6ec 100%);
+  --cover-ink:#2a2637;
+  --cover-en:#6a5a96;
+  --cover-meta:#6b6579;
+  --ok:#3f7a52;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#15131e;
+    --surface:#1e1b2b;
+    --line:#312c44;
+    --violet:#a394d4;
+    --violet-soft:#272138;
+    --gold:#d9ab5e;
+    --mute:#948da8;
+    --ink:#e9e5f2;
+    --shadow:rgba(0,0,0,.4);
+    --field:#171423;
+    --cover-grad:linear-gradient(168deg,#221d34 0%,#2c2336 58%,#3b2c27 100%);
+    --cover-ink:#f1ecf8;
+    --cover-en:#b3a3e0;
+    --cover-meta:#9d95b3;
+    --ok:#7fc394;
+  }
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Noto Sans TC',system-ui,sans-serif;
+  font-weight:300;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.page{max-width:430px;margin:0 auto;background:var(--surface);min-height:100vh;}
+@media (min-width:520px){
+  .page{margin:26px auto;min-height:0;border:1px solid var(--line);
+        border-radius:18px;overflow:hidden;box-shadow:0 14px 44px var(--shadow);}
+}
+
+/* ── 封面 ── */
+.cover{padding:26px 24px 28px;background:var(--cover-grad);color:var(--cover-ink);}
+.church{display:flex;flex-direction:column;gap:2px;margin-bottom:28px;}
+.church .en{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.24em;
+            color:var(--cover-en);font-weight:600;}
+.church .zh{font-family:'Noto Serif TC',serif;font-size:.98rem;font-weight:600;}
+.title{font-family:'Noto Serif TC',serif;font-size:1.55rem;font-weight:600;line-height:1.4;}
+.greet{font-size:.92rem;color:var(--cover-meta);margin-top:6px;}
+
+/* ── 引言 ── */
+.ask{
+  margin:0;padding:22px 24px 24px;
+  background:var(--violet-soft);border-bottom:1px solid var(--line);
+}
+.ask .lab{font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.22em;
+          color:var(--violet);font-weight:600;text-transform:uppercase;}
+.ask .txt{
+  font-family:'Noto Serif TC',serif;font-size:1.12rem;line-height:1.85;
+  margin-top:10px;white-space:pre-wrap;
+}
+.ask .from{font-size:.76rem;color:var(--mute);margin-top:12px;}
+
+/* ── 表單 ── */
+.form{padding:24px 24px 20px;display:flex;flex-direction:column;gap:20px;}
+.f label{display:block;font-size:.78rem;font-weight:500;color:var(--mute);margin-bottom:6px;}
+.f .tip{font-size:.72rem;color:var(--mute);font-weight:300;margin-top:6px;}
+input[type=text],input[type=date],textarea{
+  width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;
+  background:var(--field);color:var(--ink);
+  font-family:inherit;font-size:1rem;font-weight:300;line-height:1.8;
+}
+input:focus,textarea:focus{outline:none;border-color:var(--violet);}
+textarea{min-height:280px;resize:vertical;}
+
+/* 只有一個大框，不要切成一格一格的問答，那會讓人只寫得出短句 */
+#content{font-family:'Noto Serif TC',serif;font-size:1.02rem;line-height:2;}
+
+/* ── 底部 ── */
+.act{
+  position:sticky;bottom:0;background:var(--surface);
+  border-top:1px solid var(--line);padding:14px 24px 18px;
+  display:flex;gap:10px;align-items:center;
+}
+button{
+  font-family:inherit;font-size:.95rem;font-weight:500;cursor:pointer;
+  border-radius:11px;padding:13px 18px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);
+}
+button.main{flex:1;background:var(--violet);border-color:var(--violet);color:#fff;}
+button:disabled{opacity:.5;cursor:default;}
+.state{font-size:.74rem;color:var(--mute);padding:0 24px 14px;min-height:1.2em;}
+.state.ok{color:var(--ok);}
+
+.keep{
+  padding:18px 24px 26px;border-top:1px solid var(--line);
+  font-size:.76rem;color:var(--mute);line-height:1.9;
+}
+.keep b{font-weight:500;color:var(--ink);}
+.foot{padding:0 24px 24px;font-size:.7rem;color:var(--mute);}
+.foot a{color:var(--violet);}
+
+/* ── 送出後 ── */
+.done{display:none;padding:40px 24px 44px;text-align:center;}
+.done .big{font-family:'Noto Serif TC',serif;font-size:1.3rem;line-height:1.8;}
+.done .sub{font-size:.8rem;color:var(--mute);margin-top:14px;}
+.done button{margin-top:22px;}
+body.sent .form,body.sent .act,body.sent .ask{display:none;}
+body.sent .done{display:block;}
+</style>
+</head>
+<body class="{{sentClass}}">
+<div class="page">
+
+  <div class="cover">
+    <div class="church">
+      <div class="en">{{churchEn}}</div>
+      <div class="zh">{{churchZh}}</div>
+    </div>
+    <div class="title">{{pageTitle}}</div>
+    <div class="greet">{{greet}}</div>
+  </div>
+
+  <div class="ask">
+    <div class="lab">請你談談</div>
+    <div class="txt">{{prompt}}</div>
+    <div class="from">{{promptFrom}}</div>
+  </div>
+
+  <div class="form">
+    <div class="f">
+      <label for="date">這件事情發生的日子</label>
+      <input type="date" id="date" value="{{date}}">
+      <div class="tip">記不清楚就填個大概，或是留空</div>
+    </div>
+
+    <div class="f">
+      <label for="content">你的心得</label>
+      <textarea id="content" placeholder="{{hint}}">{{content}}</textarea>
+      <div class="tip">寫多寫少都可以。中途離開沒關係，這頁會自己幫你記住</div>
+    </div>
+
+    <div class="f">
+      <label for="contact">方便聯絡你的方式</label>
+      <input type="text" id="contact" value="{{contact}}" placeholder="電話或 LINE，選填">
+      <div class="tip">只有教會看得到，用在需要跟你確認的時候</div>
+    </div>
+  </div>
+
+  <div class="state" id="state">{{savedNote}}</div>
+
+  <div class="act">
+    <button type="button" id="draft">{{saveLabel}}</button>
+    <button type="button" class="main" id="send">{{submitLabel}}</button>
+  </div>
+
+  <div class="done">
+    <div class="big">{{doneMsg}}</div>
+    <div class="sub">還想補充的話，隨時回到這個連結就可以</div>
+    <button type="button" id="again">我要再修改</button>
+  </div>
+
+  <div class="keep">
+    <b>關於你寫的這些</b><br>
+    {{keepNote}}
+  </div>
+
+  <div class="foot">{{churchZh}}　<a href="{{churchSite}}">教會官網</a></div>
+</div>
+
+<script>
+(function(){
+  var CODE = "{{code}}";
+  var KEY  = "feedback:" + CODE;
+  var $ = function(id){ return document.getElementById(id); };
+  var state = $("state"), draft = $("draft"), send = $("send");
+  var 髒 = false, 存過 = false;
+
+  function 現值(){
+    return { 填寫日期: $("date").value, 心得內容: $("content").value, 聯絡方式: $("contact").value };
+  }
+  function 說(字, ok){
+    state.textContent = 字;
+    state.className = ok ? "state ok" : "state";
+  }
+
+  // 本機暫存：網路斷了、手機被切走、不小心關掉，回來字都還在。
+  // 伺服器上的版本才是正式的，這裡只是防丟
+  try {
+    var 舊 = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (舊 && 舊.心得內容 && 舊.心得內容 !== $("content").value) {
+      if (!$("content").value.trim()) {
+        $("content").value = 舊.心得內容;
+        if (舊.填寫日期) $("date").value = 舊.填寫日期;
+        if (舊.聯絡方式) $("contact").value = 舊.聯絡方式;
+        說("接回你上次沒寫完的內容");
+      }
+    }
+  } catch (e) {}
+
+  function 暫存本機(){
+    try { localStorage.setItem(KEY, JSON.stringify(現值())); } catch (e) {}
+  }
+
+  ["date","content","contact"].forEach(function(id){
+    $(id).addEventListener("input", function(){ 髒 = true; 暫存本機(); });
+  });
+
+  // 打完字停三秒就自動存回試算表。幹部那邊看得到進度，
+  // 也代表使用者就算從來沒按過任何按鈕，東西也不會不見
+  var 計時;
+  $("content").addEventListener("input", function(){
+    clearTimeout(計時);
+    計時 = setTimeout(function(){ 送出去("draft", true); }, 3000);
+  });
+
+  function 送出去(模式, 安靜){
+    if (模式 === "draft" && !髒) return;
+    var 資料 = 現值();
+    資料.代碼 = CODE;
+    資料.模式 = 模式;
+    if (!安靜) { draft.disabled = true; send.disabled = true; }
+    if (模式 === "submit") 說("送出中…");
+    else if (!安靜) 說("儲存中…");
+
+    return fetch("/f/api/save", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(資料)
+    }).then(function(r){ return r.json(); }).then(function(d){
+      draft.disabled = false; send.disabled = false;
+      if (!d || !d.ok) { 說((d && d.error) || "存不起來，等一下再試一次"); return; }
+      髒 = false; 存過 = true;
+      try { localStorage.removeItem(KEY); } catch (e) {}
+      if (模式 === "submit") { document.body.className = "sent"; window.scrollTo(0, 0); }
+      else 說("已經幫你存起來了　" + d.時間, true);
+    }).catch(function(){
+      draft.disabled = false; send.disabled = false;
+      說("網路好像不太順，你寫的字還在，等一下再按一次");
+    });
+  }
+
+  draft.addEventListener("click", function(){ 髒 = true; 送出去("draft", false); });
+  send.addEventListener("click", function(){
+    if (!$("content").value.trim()) { 說("還沒寫東西喔"); $("content").focus(); return; }
+    送出去("submit", false);
+  });
+  $("again").addEventListener("click", function(){
+    document.body.className = "";
+    $("content").focus();
+  });
+
+  // 關掉分頁前最後補一次。用 keepalive，不然請求會被瀏覽器砍掉
+  window.addEventListener("pagehide", function(){
+    if (!髒) return;
+    var 資料 = 現值(); 資料.代碼 = CODE; 資料.模式 = "draft";
+    try {
+      fetch("/f/api/save", {
+        method: "POST", keepalive: true,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(資料)
+      });
+    } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>

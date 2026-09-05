@@ -134,11 +134,11 @@ function b64url(input) {
 // 讀一張分頁，回傳物件陣列。第一列是標題列，用標題文字當 key，
 // 所以欄位順序可以隨意調、加欄位也不會壞。
 // 每筆多帶一個 _row（試算表列號），寫回去時才不用重新找列。
-export async function readSheet(env, tab) {
+export async function readSheet(env, tab, { 試算表 } = {}) {
   const token = await getAccessToken(env);
   const range = encodeURIComponent(`${tab}!A1:Z1000`);
   const url =
-    `https://sheets.googleapis.com/v4/spreadsheets/${env.SHEET_ID}` +
+    `https://sheets.googleapis.com/v4/spreadsheets/${試算表 || env.SHEET_ID}` +
     `/values/${range}?majorDimension=ROWS`;
 
   const res = await fetch(url, { headers: { authorization: `Bearer ${token}` } });
@@ -159,11 +159,11 @@ export async function readSheet(env, tab) {
 }
 
 // 更新單一儲存格。開啟次數用得到
-export async function updateCell(env, tab, a1, value) {
+export async function updateCell(env, tab, a1, value, { 試算表 } = {}) {
   const token = await getAccessToken(env);
   const range = encodeURIComponent(`${tab}!${a1}`);
   const url =
-    `https://sheets.googleapis.com/v4/spreadsheets/${env.SHEET_ID}` +
+    `https://sheets.googleapis.com/v4/spreadsheets/${試算表 || env.SHEET_ID}` +
     `/values/${range}?valueInputOption=RAW`;
   const res = await fetch(url, {
     method: "PUT",
@@ -200,11 +200,12 @@ export async function fetchFile(env, fileId) {
 }
 
 // 新增一列。照標題列的順序組值，所以欄位順序被調動也不會錯位
-export async function appendRow(env, tab, 資料) {
+export async function appendRow(env, tab, 資料, { 試算表 } = {}) {
   const token = await getAccessToken(env);
+  const 表 = 試算表 || env.SHEET_ID;
 
   const head = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${env.SHEET_ID}` +
+    `https://sheets.googleapis.com/v4/spreadsheets/${表}` +
       `/values/${encodeURIComponent(`${tab}!A1:Z1`)}`,
     { headers: { authorization: `Bearer ${token}` } }
   ).then((r) => r.json());
@@ -214,7 +215,7 @@ export async function appendRow(env, tab, 資料) {
   const values = [標題.map((h) => 資料[String(h).trim()] ?? "")];
 
   const url =
-    `https://sheets.googleapis.com/v4/spreadsheets/${env.SHEET_ID}` +
+    `https://sheets.googleapis.com/v4/spreadsheets/${表}` +
     `/values/${encodeURIComponent(`${tab}!A1`)}:append` +
     `?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
 

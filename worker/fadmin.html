@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>心得回饋　維護</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600&family=Noto+Sans+TC:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{
+  --paper:#f7f5fa;--surface:#fff;--line:#e2dded;--violet:#6a5a96;--violet-soft:#efeaf7;
+  --mute:#6f6a7d;--ink:#2a2637;--shadow:rgba(40,30,70,.09);--field:#fff;
+  --ok:#3f7a52;--ok-soft:#e6f2ea;--warn:#8a6d1f;--warn-soft:#f7efd9;--off:#8a8794;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#15131e;--surface:#1e1b2b;--line:#312c44;--violet:#a394d4;--violet-soft:#272138;
+    --mute:#948da8;--ink:#e9e5f2;--shadow:rgba(0,0,0,.4);--field:#171423;
+    --ok:#7fc394;--ok-soft:#1d2c22;--warn:#d9ab5e;--warn-soft:#2d2718;--off:#6d6879;
+  }
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);
+     font-family:'Noto Sans TC',system-ui,sans-serif;font-weight:300;line-height:1.7;}
+.wrap{max-width:620px;margin:0 auto;padding:22px 16px 60px;}
+h1{font-family:'Noto Serif TC',serif;font-size:1.25rem;font-weight:600;margin:0 0 4px;}
+.lead{font-size:.8rem;color:var(--mute);margin-bottom:22px;}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+     padding:18px;margin-bottom:18px;box-shadow:0 6px 20px var(--shadow);}
+h2{font-size:.9rem;font-weight:500;margin:0 0 14px;}
+label{display:block;font-size:.76rem;color:var(--mute);margin:0 0 5px;}
+label .hint{font-weight:300;opacity:.85;}
+input[type=text],textarea,select{
+  width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;
+  background:var(--field);color:var(--ink);font-family:inherit;font-size:.95rem;font-weight:300;}
+input:focus,textarea:focus{outline:none;border-color:var(--violet);}
+textarea{min-height:96px;resize:vertical;line-height:1.8;}
+.f{margin-bottom:14px;}
+.two{display:flex;gap:10px;}
+.two .f{flex:1;}
+button,.btn{font-family:inherit;font-size:.88rem;font-weight:400;cursor:pointer;
+  border-radius:9px;padding:10px 14px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);text-decoration:none;display:inline-block;}
+button.main{background:var(--violet);border-color:var(--violet);color:#fff;font-weight:500;}
+button:disabled{opacity:.5;cursor:default;}
+.say{font-size:.78rem;color:var(--mute);margin-top:10px;min-height:1.2em;}
+.say.ok{color:var(--ok);}
+
+/* ── 查詢 ── */
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;}
+.chip{font-size:.8rem;padding:6px 12px;border:1px solid var(--line);border-radius:999px;
+      color:var(--ink);text-decoration:none;background:var(--surface);}
+.chip.on{background:var(--violet);border-color:var(--violet);color:#fff;}
+
+/* ── 結果 ── */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:13px;
+      padding:15px 16px;margin-bottom:11px;}
+.card.off{opacity:.55;}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:9px;}
+.who{font-size:1rem;font-weight:500;}
+.pill{font-size:.68rem;padding:2px 9px;border-radius:999px;background:var(--violet-soft);
+      color:var(--violet);}
+.pill.done{background:var(--ok-soft);color:var(--ok);}
+.pill.wait{background:var(--warn-soft);color:var(--warn);}
+.pill.dead{background:transparent;color:var(--off);border:1px solid var(--line);}
+.ask{font-size:.8rem;color:var(--mute);border-left:2px solid var(--line);
+     padding-left:10px;margin:0 0 10px;white-space:pre-wrap;}
+.body{display:none;white-space:pre-wrap;font-size:.9rem;line-height:1.95;
+      background:var(--violet-soft);border-radius:9px;padding:13px 14px;margin-bottom:10px;}
+.body.open{display:block;}
+.meta{font-size:.7rem;color:var(--mute);margin-bottom:10px;}
+.url{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--mute);
+     word-break:break-all;margin-bottom:9px;}
+.acts{display:flex;flex-wrap:wrap;gap:7px;}
+.acts button,.acts .btn{padding:7px 11px;font-size:.8rem;}
+.empty{font-size:.85rem;color:var(--mute);padding:8px 2px;}
+.new{border-color:var(--violet);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>心得回饋　維護</h1>
+  <div class="lead">建立回饋單、看信徒寫回來的內容。這一頁裡有信徒的姓名和心得，別在公開場合開著。</div>
+
+  <div class="box">
+    <h2>建立一份回饋單</h2>
+
+    <div class="two">
+      <div class="f">
+        <label for="name">信徒姓名 <span class="hint">內部用</span></label>
+        <input type="text" id="name" autocomplete="off">
+      </div>
+      <div class="f">
+        <label for="nick">稱呼 <span class="hint">選填，頁面上這樣叫他</span></label>
+        <input type="text" id="nick" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="f">
+      <label for="by">指派人 <span class="hint">你是誰，之後用這個查</span></label>
+      <input type="text" id="by" list="byList" autocomplete="off" value="{{lastBy}}">
+      <datalist id="byList">{{byOptions}}</datalist>
+    </div>
+
+    <div class="f">
+      <label for="ask">引言 <span class="hint">你想請他談的那件事，直接打字</span></label>
+      <textarea id="ask" placeholder="例：你被選任為幹部的時候，心裡在想什麼？"></textarea>
+    </div>
+
+    <button type="button" class="main" id="make">建立並產生連結</button>
+    <div class="say" id="say"></div>
+  </div>
+
+  <div class="box">
+    <h2>查詢</h2>
+    <div class="chips">{{byChips}}</div>
+    <form method="get" action="/f/admin">
+      <div class="two">
+        <div class="f" style="margin:0">
+          <input type="text" name="q" value="{{q}}" placeholder="或直接打信徒姓名" autocomplete="off">
+        </div>
+        <button type="submit">查</button>
+      </div>
+    </form>
+  </div>
+
+  {{rows}}
+
+</div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var say = function(t, ok){ $("say").textContent = t; $("say").className = ok ? "say ok" : "say"; };
+
+  $("make").addEventListener("click", function(){
+    var 資料 = {
+      信徒姓名: $("name").value.trim(),
+      稱呼: $("nick").value.trim(),
+      指派人: $("by").value.trim(),
+      引言: $("ask").value.trim()
+    };
+    if (!資料.信徒姓名) { say("要填信徒姓名"); $("name").focus(); return; }
+    if (!資料.引言)    { say("要填引言，他才知道要寫什麼"); $("ask").focus(); return; }
+
+    $("make").disabled = true;
+    say("建立中…");
+    fetch("/f/admin/api/new", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(資料)
+    }).then(function(r){ return r.json(); }).then(function(d){
+      $("make").disabled = false;
+      if (!d || !d.ok) { say((d && d.error) || "建立失敗"); return; }
+      say("建好了，重新整理…", true);
+      location.href = "/f/admin?by=" + encodeURIComponent(資料.指派人) + "&new=" + d.代碼;
+    }).catch(function(){
+      $("make").disabled = false;
+      say("網路不太順，再試一次");
+    });
+  });
+
+  // 心得內容預設收起來。維護的人常常是在別人看得到螢幕的場合開這一頁
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("[data-open]");
+    if (b) {
+      var el = document.getElementById("body-" + b.getAttribute("data-open"));
+      el.classList.toggle("open");
+      b.textContent = el.classList.contains("open") ? "收起來" : "看內容";
+      return;
+    }
+
+    var c = e.target.closest("[data-copy]");
+    if (c) {
+      navigator.clipboard.writeText(c.getAttribute("data-copy")).then(function(){
+        var 原 = c.textContent; c.textContent = "已複製";
+        setTimeout(function(){ c.textContent = 原; }, 1400);
+      });
+      return;
+    }
+
+    var s = e.target.closest("[data-status]");
+    if (s) {
+      var 新狀態 = s.getAttribute("data-status");
+      if (新狀態 === "已停用" && !confirm("停用之後這個連結就打不開了，確定嗎？")) return;
+      s.disabled = true;
+      fetch("/f/admin/api/status", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ 代碼: s.getAttribute("data-code"), 狀態: 新狀態 })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if (d && d.ok) location.reload();
+        else { s.disabled = false; alert((d && d.error) || "改不動"); }
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>
