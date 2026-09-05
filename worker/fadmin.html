@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>心得回饋　維護</title>
+<title>感動回饋　維護</title>
 <meta name="robots" content="noindex,nofollow">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600&family=Noto+Sans+TC:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap">
 <style>
 :root{
-  --paper:#f7f5fa;--surface:#fff;--line:#e2dded;--violet:#6a5a96;--violet-soft:#efeaf7;
-  --mute:#6f6a7d;--ink:#2a2637;--shadow:rgba(40,30,70,.09);--field:#fff;
+  --paper:#f4f7fb;--surface:#fff;--line:#dde4ef;--blue:#3d5a8a;--blue-soft:#e9effa;
+  --mute:#666f84;--ink:#242a38;--shadow:rgba(30,45,80,.09);--field:#fff;
   --ok:#3f7a52;--ok-soft:#e6f2ea;--warn:#8a6d1f;--warn-soft:#f7efd9;--off:#8a8794;
 }
 @media (prefers-color-scheme:dark){
   :root{
-    --paper:#15131e;--surface:#1e1b2b;--line:#312c44;--violet:#a394d4;--violet-soft:#272138;
-    --mute:#948da8;--ink:#e9e5f2;--shadow:rgba(0,0,0,.4);--field:#171423;
+    --paper:#111520;--surface:#1a1f2d;--line:#2b3243;--blue:#8fb0e0;--blue-soft:#1c2331;
+    --mute:#8c94a8;--ink:#e6e9f1;--shadow:rgba(0,0,0,.4);--field:#141926;
     --ok:#7fc394;--ok-soft:#1d2c22;--warn:#d9ab5e;--warn-soft:#2d2718;--off:#6d6879;
   }
 }
@@ -33,7 +33,7 @@ label .hint{font-weight:300;opacity:.85;}
 input[type=text],textarea,select{
   width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;
   background:var(--field);color:var(--ink);font-family:inherit;font-size:.95rem;font-weight:300;}
-input:focus,textarea:focus{outline:none;border-color:var(--violet);}
+input:focus,textarea:focus{outline:none;border-color:var(--blue);}
 textarea{min-height:96px;resize:vertical;line-height:1.8;}
 .f{margin-bottom:14px;}
 .two{display:flex;gap:10px;}
@@ -41,7 +41,7 @@ textarea{min-height:96px;resize:vertical;line-height:1.8;}
 button,.btn{font-family:inherit;font-size:.88rem;font-weight:400;cursor:pointer;
   border-radius:9px;padding:10px 14px;border:1px solid var(--line);
   background:var(--surface);color:var(--ink);text-decoration:none;display:inline-block;}
-button.main{background:var(--violet);border-color:var(--violet);color:#fff;font-weight:500;}
+button.main{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:500;}
 button:disabled{opacity:.5;cursor:default;}
 .say{font-size:.78rem;color:var(--mute);margin-top:10px;min-height:1.2em;}
 .say.ok{color:var(--ok);}
@@ -50,7 +50,7 @@ button:disabled{opacity:.5;cursor:default;}
 .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;}
 .chip{font-size:.8rem;padding:6px 12px;border:1px solid var(--line);border-radius:999px;
       color:var(--ink);text-decoration:none;background:var(--surface);}
-.chip.on{background:var(--violet);border-color:var(--violet);color:#fff;}
+.chip.on{background:var(--blue);border-color:var(--blue);color:#fff;}
 
 /* ── 結果 ── */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:13px;
@@ -58,15 +58,15 @@ button:disabled{opacity:.5;cursor:default;}
 .card.off{opacity:.55;}
 .top{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:9px;}
 .who{font-size:1rem;font-weight:500;}
-.pill{font-size:.68rem;padding:2px 9px;border-radius:999px;background:var(--violet-soft);
-      color:var(--violet);}
+.pill{font-size:.68rem;padding:2px 9px;border-radius:999px;background:var(--blue-soft);
+      color:var(--blue);}
 .pill.done{background:var(--ok-soft);color:var(--ok);}
 .pill.wait{background:var(--warn-soft);color:var(--warn);}
 .pill.dead{background:transparent;color:var(--off);border:1px solid var(--line);}
 .ask{font-size:.8rem;color:var(--mute);border-left:2px solid var(--line);
      padding-left:10px;margin:0 0 10px;white-space:pre-wrap;}
 .body{display:none;white-space:pre-wrap;font-size:.9rem;line-height:1.95;
-      background:var(--violet-soft);border-radius:9px;padding:13px 14px;margin-bottom:10px;}
+      background:var(--blue-soft);border-radius:9px;padding:13px 14px;margin-bottom:10px;}
 .body.open{display:block;}
 .meta{font-size:.7rem;color:var(--mute);margin-bottom:10px;}
 .url{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--mute);
@@ -74,21 +74,21 @@ button:disabled{opacity:.5;cursor:default;}
 .acts{display:flex;flex-wrap:wrap;gap:7px;}
 .acts button,.acts .btn{padding:7px 11px;font-size:.8rem;}
 .empty{font-size:.85rem;color:var(--mute);padding:8px 2px;}
-.new{border-color:var(--violet);}
+.new{border-color:var(--blue);}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <h1>心得回饋　維護</h1>
-  <div class="lead">建立回饋單、看信徒寫回來的內容。這一頁裡有信徒的姓名和心得，別在公開場合開著。</div>
+  <h1>感動回饋　維護</h1>
+  <div class="lead">建立回饋單、看弟兄姊妹寫回來的內容。這一頁裡有名字和他們寫的東西，別在公開場合開著。</div>
 
   <div class="box">
     <h2>建立一份回饋單</h2>
 
     <div class="two">
       <div class="f">
-        <label for="name">信徒姓名 <span class="hint">內部用</span></label>
+        <label for="name">姓名 <span class="hint">內部認人用</span></label>
         <input type="text" id="name" autocomplete="off">
       </div>
       <div class="f">
@@ -118,7 +118,7 @@ button:disabled{opacity:.5;cursor:default;}
     <form method="get" action="/f/admin">
       <div class="two">
         <div class="f" style="margin:0">
-          <input type="text" name="q" value="{{q}}" placeholder="或直接打信徒姓名" autocomplete="off">
+          <input type="text" name="q" value="{{q}}" placeholder="或直接打姓名" autocomplete="off">
         </div>
         <button type="submit">查</button>
       </div>
@@ -144,7 +144,7 @@ button:disabled{opacity:.5;cursor:default;}
       引言: $("ask").value.trim(),
       推薦列: $("make").getAttribute("data-rec") || ""
     };
-    if (!資料.信徒姓名) { say("要填信徒姓名"); $("name").focus(); return; }
+    if (!資料.信徒姓名) { say("要填姓名"); $("name").focus(); return; }
     if (!資料.引言)    { say("要填引言，他才知道要寫什麼"); $("ask").focus(); return; }
 
     $("make").disabled = true;
