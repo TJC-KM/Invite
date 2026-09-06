@@ -230,11 +230,6 @@ body.sent .done{display:block;}
       <button type="button" class="more" id="addRec">＋　再加一位</button>
     </div>
 
-    <div class="f">
-      <label for="contact">方便聯絡你的方式<span class="opt">非必填</span></label>
-      <input type="text" id="contact" value="{{contact}}" placeholder="電話或 LINE">
-      <div class="tip">只有教會看得到，用在需要跟你確認的時候</div>
-    </div>
   </div>
 
   <div class="state" id="state">{{savedNote}}</div>
@@ -264,7 +259,7 @@ body.sent .done{display:block;}
   var 髒 = false;
 
   function 現值(){
-    return { 填寫日期: $("date").value, 心得內容: $("content").value, 聯絡方式: $("contact").value };
+    return { 填寫日期: $("date").value, 心得內容: $("content").value };
   }
   function 說(字, ok){
     state.textContent = 字;
@@ -278,7 +273,6 @@ body.sent .done{display:block;}
     if (舊 && 舊.心得內容 && !$("content").value.trim()) {
       $("content").value = 舊.心得內容;
       if (舊.填寫日期) $("date").value = 舊.填寫日期;
-      if (舊.聯絡方式) $("contact").value = 舊.聯絡方式;
       說("接回你上次沒寫完的內容");
     }
   } catch (e) {}
@@ -287,7 +281,7 @@ body.sent .done{display:block;}
     try { localStorage.setItem(KEY, JSON.stringify(現值())); } catch (e) {}
   }
 
-  ["date","content","contact"].forEach(function(id){
+  ["date","content"].forEach(function(id){
     $(id).addEventListener("input", function(){ 髒 = true; 暫存本機(); });
   });
 
