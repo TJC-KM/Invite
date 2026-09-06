@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>心得回饋系統規格</title>
+<title>感動回饋系統規格</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 
 <style>
@@ -170,21 +170,29 @@ ul.plain li::before{
 
 <div class="wrap">
 
-<div class="eyebrow">Build Spec · Rev 2 · 2026-09-06</div>
-<h1>心得回饋系統規格</h1>
+<div class="eyebrow">Build Spec · Rev 3 · 2026-09-06</div>
+<h1>感動回饋系統規格</h1>
 <p class="lede">
-  信徒寫下活動或事件的心得感動，教會保存下來。
+  弟兄姊妹寫下事件裡的感動，教會保存下來。
   跟邀請卡同一個 Worker、同一把服務帳戶金鑰，但另一份試算表。
   <a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 →</a>
 </p>
 
 <div class="verdict">
-  <p><b>Rev 2：已經做完上線了。</b>這一版把規格改成跟實際做出來的東西一致——
-  規劃時猜錯的地方就照實改掉，不留兩份說法。</p>
-  <p>改動的地方：路由全部收進 <code>/f/</code> 底下、
-  狀態「已收錄」改叫「已完成」、草稿從兩層變三層、
-  上傳多一支寫回檔案 ID 的 API、從推薦建單時<b>不</b>預填引言。
-  每一項下面都寫了為什麼。</p>
+  <p><b>Rev 3：文案和版面大改，功能沒動。</b></p>
+  <p>系統本身在 Rev 2 就做完了。這一版改的是<b>怎麼開口請人寫</b>——
+  名字從「心得回饋」改成「感動回饋」、
+  說明從一行變成一封信並且搬到表單前面、
+  明講可以用 Word 打完再上傳、
+  聯絡方式的欄位拿掉、配色從紫換成藍。</p>
+  <p>會有這一版，是因為第一版做完擺出來看，發現
+  <b>功能都在，但沒有人會知道自己該寫什麼、為什麼要寫</b>。</p>
+</div>
+
+<div class="win">
+  <div class="h">Rev 2 的重點（仍然有效）</div>
+  <p>路由全部收進 <code>/f/</code> 底下、狀態「已收錄」改叫「已完成」、
+  草稿四層、上傳多一支寫回檔案 ID 的 API、從推薦建單時<b>不</b>預填引言。</p>
 </div>
 
 <nav class="toc">
@@ -246,7 +254,7 @@ ul.plain li::before{
     <div class="t">Google 試算表「心得回饋」</div>
     <div class="d">另一份，跟邀請卡分開。三個分頁</div>
   </div>
-  <div class="arr">＋ 共用雲端硬碟「心得回饋-附件」（照片、文件、影片）</div>
+  <div class="arr">＋ 共用雲端硬碟資料夾「06.心得回饋」（Word、照片、影片）</div>
 </div>
 
 <h3>路由</h3>
@@ -271,6 +279,16 @@ ul.plain li::before{
   <p>心得回饋的東西全部收在 <code>/f/</code> 這一個前綴底下，路由表看一眼就知道哪一條屬於哪一套。
   原本那種寫法會讓 <code>/api/</code> 底下同時住著兩套系統的東西，
   哪天要一次保護、一次擋爬蟲、一次搬走，都得先分辨每一條是誰的。</p>
+</div>
+
+<div class="win">
+  <div class="h">對外叫「感動回饋」，程式裡還是叫 feedback</div>
+  <p>頁面上的名字改了，但檔名、變數、試算表欄位、雲端資料夾都<b>不跟著改</b>。</p>
+  <p>對外的用詞會再變——教會平常講的是感動、是回饋，哪一個順口要用了才知道。
+  程式裡的名字跟著改一次，就要動十幾個檔案、還要改雲端硬碟，
+  而且改完舊的連結和舊的紀錄就對不上了。</p>
+  <p><b>名字是給人看的，識別碼是給機器用的，兩者不必一致。</b>
+  頁面上的字全部走設定檔，本來就改得動。</p>
 </div>
 
 <h3>程式檔案</h3>
@@ -366,67 +384,134 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 </table></div>
 
 <h4>分頁 3：設定檔</h4>
-<p class="sub">頁面上的字句放這裡，改字不用改程式。沒建也不會壞，程式有預設值。</p>
+<p class="sub">頁面上<b>每一個字</b>都放這裡，改字不用改程式、不用重新部署。
+沒建分頁也不會壞，程式有一整套預設值。</p>
 <div class="tw"><table>
-  <thead><tr><th>代號</th><th>內容</th></tr></thead>
+  <thead><tr><th>代號</th><th>出現在哪</th></tr></thead>
   <tbody>
-    <tr><td>頁首標題</td><td>心得回饋</td></tr>
-    <tr><td>保存說明</td><td>你的分享教會會妥善保存。若有機會用在見證或刊物，一定會先跟你本人聯絡。</td></tr>
-    <tr><td>心得提示</td><td>想到什麼就寫什麼，長短都可以</td></tr>
-    <tr><td>推薦說明</td><td>還有誰的經歷讓你印象深刻？我們可以也去邀請他分享</td></tr>
-    <tr><td>送出按鈕</td><td>送出</td></tr>
-    <tr><td>送出後訊息</td><td>謝謝你的分享 🙏</td></tr>
-    <tr><td>單檔上限MB</td><td>500</td></tr>
-    <tr><td>LINE訊息</td><td>{對象全稱}平安，想邀請你寫一段心得：{網址}</td></tr>
+    <tr><td>頁首標題</td><td>最上面那行大字。目前是「感動回饋」</td></tr>
+    <tr><td>說明標題</td><td>那封信的標題。目前是「為什麼想請你寫下來」</td></tr>
+    <tr><td>邀請說明</td><td><b>那封信的正文</b>。空一行就是換一段</td></tr>
+    <tr><td>保存說明</td><td>信底下那塊淺藍色的；送出之後的畫面會再出現一次</td></tr>
+    <tr><td>心得提示</td><td>大框裡的淡色提示字</td></tr>
+    <tr><td>心得說明</td><td>大框下面的小字——講「可以改用 Word」的那段</td></tr>
+    <tr><td>上傳說明</td><td>加檔案按鈕下面的小字</td></tr>
+    <tr><td>推薦說明</td><td>「還有誰？」下面的小字</td></tr>
+    <tr><td>存檔提醒</td><td>按了先儲存之後，接在時間後面那句</td></tr>
+    <tr><td>送出按鈕　暫存按鈕</td><td>兩顆按鈕上的字</td></tr>
+    <tr><td>送出後訊息</td><td>送出之後的大字</td></tr>
+    <tr><td>單檔上限MB</td><td>超過就擋下來並說明原因</td></tr>
+    <tr><td>LINE訊息</td><td>維護介面「用 LINE 傳」帶的訊息</td></tr>
   </tbody>
 </table></div>
+
+<div class="win">
+  <div class="h">文案全部外移，是為了讓寫字的人不用找工程師</div>
+  <p>教會怎麼講話、哪些詞會讓長輩覺得生分，幹部比寫程式的人清楚。
+  所以連「你想說的」這種欄位標籤以外的每一句，都放到試算表上。
+  改完最多兩分鐘生效（設定檔快取 120 秒）。</p>
+</div>
 
 
 <h2 id="s4"><span class="n">04</span>填寫頁</h2>
 
-<p>信徒點開 <code>/f/&lt;代碼&gt;</code> 看到的東西，由上而下：</p>
+<p>點開 <code>/f/&lt;代碼&gt;</code> 看到的東西，由上而下：</p>
 
 <ul class="plain">
-  <li><b>教會抬頭</b>　跟邀請卡同一個視覺</li>
+  <li><b>教會抬頭</b>　＋「感動回饋」＋「○○○平安」</li>
+  <li><b>那封信</b>　<b>為什麼想請你寫下來</b>——六段，見下</li>
+  <li><b>保存說明</b>　淺藍色那塊。教會會怎麼對待你寫的東西</li>
   <li><b>引言</b>　幹部打的那段話，就是這張單在問什麼</li>
-  <li><b>填寫日期</b>　預設今天，可以改</li>
-  <li><b>心得內容</b>　<b>一個大框</b>，不切格子</li>
-  <li><b>加照片、文件或影片</b>　可多選，見第 5 節</li>
-  <li><b>推薦其他人</b>　姓名＋原因，可以加好幾組</li>
-  <li><b>聯絡方式</b>　選填</li>
-  <li><b>保存說明</b>　設定檔那段文字</li>
+  <li><b>日期</b>　非必填，預設今天</li>
+  <li><b>你想說的</b>　<b>一個大框</b>，下面明講可以改用 Word</li>
+  <li><b>文件、照片或影片</b>　非必填，見第 5 節</li>
+  <li><b>還有誰？</b>　非必填，姓名＋原因（多行），可以加好幾組</li>
   <li><b>先儲存</b>　和　<b>送出</b></li>
 </ul>
 
-<div class="warn">
-  <div class="h">草稿不能丟——這比上傳功能重要</div>
-  <p>長篇心得寫到一半，電話進來、瀏覽器被系統關掉，字沒了，
-  <b>那個人不會再寫第二次</b>。Rev 1 規劃兩層，實作做成四層：</p>
-  <p><b>一、打字停三秒自動寫回試算表。</b>使用者<b>就算從來沒按過任何按鈕</b>，
-  東西也不會不見——這是最重要的一層，因為長輩不見得會意識到要按儲存。
-  順帶的好處是幹部那邊看得到寫作進度。</p>
-  <p><b>二、一顆「先儲存」。</b>給想要「我按了才安心」的人。
-  按完顯示存檔時間，換一支手機也接得下去。</p>
-  <p><b>三、關掉分頁前再補一次。</b><code>pagehide</code> 事件配
-  <code>keepalive</code> 送出——不加 <code>keepalive</code> 的話，
-  瀏覽器會在頁面消失的瞬間把請求砍掉。</p>
-  <p><b>四、<code>localStorage</code> 墊底。</b>前三層都要有網路；
-  網路整段掛掉時，字至少還在這台裝置上，重新打開同一個連結會問要不要接回來。</p>
+<div class="verdict">
+  <p><b>說明擺在表單前面，不是擺在最後。</b></p>
+  <p>Rev 1、Rev 2 都把「保存說明」放在整頁最底下。實際看過才發現不對——
+  人要先知道<b>為什麼有人要他寫這個</b>，才寫得下去。
+  說明放在按鈕旁邊，等於是寫完了才告訴他這些字會怎麼被使用。</p>
 </div>
 
+<h3>那封信</h3>
+<p>語氣參考邀請卡的「給慕道者的信」：謙卑、懇請、不給壓力。六段各有各的工作——</p>
+
+<div class="tw"><table>
+  <thead><tr><th>段</th><th>這一段在做什麼</th></tr></thead>
+  <tbody>
+    <tr><td>有些事情，如果沒有記下來，就真的過去了</td><td>先講一件他自己也同意的事</td></tr>
+    <tr><td>這些年神在我們中間做了很多事——⋯⋯</td><td>舉三個具體的樣子，讓他對號入座</td></tr>
+    <tr><td>教會想做的其實很單純⋯⋯才有機會來邀稿、邀請你分享</td><td><b>回覆的價值</b>：有紀錄，將來才邀得到人</td></tr>
+    <tr><td>但這封信不回也沒關係，真的⋯⋯記得的人是你，不是這個網頁</td><td><b>不回覆也沒關係</b>：主動把壓力拿掉</td></tr>
+    <tr><td>所以不用有壓力。寫多寫少都好⋯⋯</td><td>把「寫得不好」這個顧慮也拿掉</td></tr>
+    <tr><td>我們知道⋯⋯這份工作我們也做得不夠好</td><td>教會自己先低頭，然後道謝</td></tr>
+  </tbody>
+</table></div>
+
 <div class="win">
-  <div class="h">引言只當提示，不切成一題一格</div>
-  <p>幹部可能一次問兩三件事，但表單上仍然只給一個大框。
-  長輩不喜歡被格子綁住，而且真正的心得往往寫著寫著就跨題了。
-  引言放在上面看得到就好。</p>
+  <div class="h">「有價值」要放在「不回也沒關係」前面</div>
+  <p>順序反過來的話，會變成先給台階、再開條件，讀起來像客套。</p>
+  <p>而且這兩段<b>一定要並存</b>。只留「你寫回來教會才邀得到你」，
+  那是情緒勒索；只留「不回也沒關係」，那就沒有人會回。</p>
+</div>
+
+<h3>可以不在這裡打字</h3>
+<div class="verdict">
+  <p><b>很歡迎大家打在 Word 裡再上傳。</b></p>
+  <p>心得的字通常很多，網頁上那個框只是方便，不是規定。</p>
+</div>
+
+<p>這件事要<b>明講</b>。Rev 2 的提示只寫了單檔上限幾 MB，結果是
+——沒有人會自己想到「原來我可以少打一點字，用檔案就好」。
+上傳區看起來只是個附加功能，不像一條正經的路。</p>
+
+<p class="sub">所以「送出」的檢查也放寬了：一個字都沒打、只傳了檔案，一樣送得出去。</p>
+
+<h3>草稿不能丟——這比上傳功能重要</h3>
+<div class="warn">
+  <div class="h">四層</div>
+  <p>長篇寫到一半，電話進來、瀏覽器被系統關掉，字沒了，
+  <b>那個人不會再寫第二次</b>。</p>
+  <p><b>一、打字停三秒自動寫回試算表。</b>他<b>就算從來沒按過任何按鈕</b>，
+  東西也不會不見——不見得每個人都會意識到要按儲存。
+  順帶的好處是幹部看得到寫作進度。</p>
+  <p><b>二、一顆「先儲存」。</b>給想要「我按了才安心」的人。
+  按完顯示存檔時間，換一支手機也接得下去。</p>
+  <p><b>三、關掉分頁前再補一次。</b><code>pagehide</code> 配 <code>keepalive</code>
+  ——不加 <code>keepalive</code> 的話，瀏覽器會在頁面消失的瞬間把請求砍掉。</p>
+  <p><b>四、<code>localStorage</code> 墊底。</b>前三層都要有網路；
+  網路整段掛掉時，字至少還在這台裝置上。</p>
 </div>
 
 <h3>送出之後</h3>
-<p>頁面換成感謝畫面（文字走設定檔），底下留一顆<b>「我要再修改」</b>。
-心得這種東西，隔天想到更好的說法是常有的事，
+<p>頁面換成感謝畫面，<b>保存說明在這裡再出現一次</b>——他剛剛按下送出，
+正是最想再確認一遍「這些字會怎麼被使用」的時候。</p>
+<p>底下留一顆<b>「我要再修改」</b>。心得這種東西，隔天想到更好的說法是常有的事，
 <b>不該把人鎖在自己按下的送出鍵外面</b>。</p>
-<p class="sub">再次修改不會覆蓋「提交時間」——那一欄只記第一次送出，
-才看得出他原本是什麼時候交的。「最後修改」每次都更新。</p>
+<p class="sub">再次修改不會覆蓋「提交時間」——那一欄只記第一次送出。「最後修改」每次都更新。</p>
+
+<h3>拿掉的兩樣東西</h3>
+<div class="win">
+  <div class="h">「— 某某　邀請你寫的」</div>
+  <p>原本會在引言下面署名指派人。拿掉了——
+  寫的人不需要知道是誰指派的，那是幹部之間的分工。
+  署了名反而像在說「有人在盯你」。</p>
+</div>
+<div class="warn">
+  <div class="h">聯絡方式的欄位</div>
+  <p>聯絡的頻率低到不值得為它擺一個輸入框，需要時幹部自己打電話就好。
+  <b>試算表那一欄留著</b>，改成人工填。</p>
+  <p>這件事帶出一個洞：存檔原本無條件寫回聯絡方式，
+  欄位一拿掉，每次自動存草稿都會拿空字串<b>把幹部手動填的電話洗掉</b>。
+  改成只寫「這次真的有送來」的欄位。</p>
+</div>
+
+<h3>配色</h3>
+<p>藍色漸層。邀請卡是紫的——兩套系統一眼分得出來，
+幹部同時開著兩個分頁時才不會按錯。維護介面也一起改藍。</p>
 
 
 <h2 id="s5"><span class="n">05</span>上傳</h2>
@@ -480,7 +565,9 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 <h3>限制與規矩</h3>
 <ul class="plain">
   <li><b>單檔上限</b>　放設定檔（<code>單檔上限MB</code>），預設 500 MB。超過就擋下並說明</li>
-  <li><b>上傳前顯示檔案大小</b>　讓人自己有感，比事後解釋有效</li>
+  <li><b>不在畫面上強調檔案大小</b>　Rev 2 把「單檔最多 500 MB」寫在提示裡，
+      結果只是讓人以為這一區是給大檔用的。改成講「很歡迎用 Word」，
+      上限留在程式裡擋就好</li>
   <li><b>進度條</b>　影片會傳很久，沒有動靜的畫面會讓人以為當掉</li>
   <li><b>空間的清理由幹部手動處理</b>　系統只負責收，不會自己刪</li>
   <li><b>選好就開始傳</b>　不等按送出。影片要傳好幾分鐘，
@@ -502,7 +589,7 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 <h2 id="s6"><span class="n">06</span>維護介面</h2>
 
 <p><code>/f/admin</code>　由上而下：建立回饋單、查詢、待處理的推薦、查詢結果。
-手機上是單欄，跟邀請卡同一個形狀。</p>
+手機上是單欄，跟邀請卡同一個形狀，但配色是藍的。</p>
 
 <h3>建立回饋單</h3>
 <p>信徒姓名、稱呼（選填）、指派人、<b>引言（直接打字）</b>。
@@ -515,8 +602,8 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
   過濾在<b>伺服器端</b>做——沒查詢時 HTML 裡根本不含其他人的內容。</p>
 </div>
 
-<p>每一列顯示：信徒姓名、稱呼、狀態、開啟次數、引言、字數、最後存檔時間、
-送出時間、聯絡方式、專屬網址。
+<p>每一列顯示：姓名、稱呼、狀態、開啟次數、引言、字數、最後存檔時間、
+送出時間、聯絡方式（幹部自己填的）、專屬網址。
 動作：看內容、開啟、複製連結、用 LINE 傳、標記完成、停用（停用後可重新啟用）。</p>
 
 <div class="win">
@@ -581,7 +668,7 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
   這幾支是給信徒的手機打的，不是給幹部的。</p>
 </div>
 
-<h3>信徒那一端的邊界</h3>
+<h3>填寫的人那一端的邊界</h3>
 <ul class="plain">
   <li><b>只能讀寫自己那一張</b>　公開路徑上唯一的動作，就是寫入自己代碼對應的那一列</li>
   <li><b>代碼猜不到</b>　12 碼、約 8×10<sup>17</sup> 種組合，而且不可流水號</li>
@@ -593,8 +680,9 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
   <div class="h">不做「我同意公開」的勾選框</div>
   <p>教會的流程是<b>事後徵詢</b>——真的要用在見證或刊物時，才跟本人聯絡。
   放一個勾選框反而會誤導，讓人以為勾了就等於授權出版。</p>
-  <p>填寫頁上只放一段說明（設定檔可改），加一個選填的聯絡方式。
+  <p>填寫頁上只放一段說明，而且放兩次——信底下一次、送出之後再一次。
   真正的同意發生在電話或面對面，系統不假裝能代替那件事。</p>
+  <p>連聯絡方式的欄位都拿掉了：要聯絡的時候，幹部本來就會自己打電話。</p>
 </div>
 
 
@@ -603,8 +691,8 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 標著 <span class="who you">你</span> 的是我沒辦法代做的。</p>
 
 <div class="verdict">
-  <p><b>第 1 到 10 步都做完了，2026-09-06 上線。</b>
-  只剩最後一步：你自己用手機從 LINE 走一遍。</p>
+  <p><b>第 1 到 11 步都做完了，2026-09-06 上線。</b>
+  剩下的兩步都是你的：用手機從 LINE 走一遍，然後刪掉測試資料。</p>
 </div>
 
 <ol class="steps" id="steps">
@@ -614,7 +702,7 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
     給<b>編輯者</b>。取消勾選「通知使用者」——服務帳戶沒有信箱，寄了會退信</div></div></li>
 
   <li data-k="2"><input type="checkbox" tabindex="-1"><div class="bd">
-    <div class="st">共用雲端硬碟開資料夾「心得回饋-附件」<span class="who you">你</span></div>
+    <div class="st">共用雲端硬碟開資料夾（現在叫「06.心得回饋」）<span class="who you">你</span></div>
     <div class="sd">同一個服務帳戶加成<b>內容管理員</b>——要能寫入，不是檢視者</div></div></li>
 
   <li data-k="3"><input type="checkbox" tabindex="-1"><div class="bd">
@@ -655,15 +743,20 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
     <div class="sd">填寫頁的推薦區、維護介面的待處理清單、一鍵建單回填</div></div></li>
 
   <li data-k="11"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">文案與版面</div>
+    <div class="sd">改名「感動回饋」、那封信、說明搬到前面、可以用 Word、
+    非必填標示、藍色配色。全部進設定檔分頁，之後改字不用改程式</div></div></li>
+
+  <li data-k="12"><input type="checkbox" tabindex="-1"><div class="bd">
     <div class="st">端到端測試<span class="who you">你</span></div>
     <div class="sd">用另一支手機，從 LINE 點開填一份完整的：長心得、傳一支影片、推薦一個人。
     重點看三件事：<b>LINE 內建瀏覽器裡選得到檔案嗎</b>、
     <b>大影片的進度條會不會卡住</b>、<b>寫到一半切走再回來字還在不在</b></div></div></li>
 
-  <li data-k="12"><input type="checkbox" tabindex="-1"><div class="bd">
+  <li data-k="13"><input type="checkbox" tabindex="-1"><div class="bd">
     <div class="st">刪掉測試資料<span class="who you">你</span></div>
-    <div class="sd">試算表裡有「測試－請刪除」和「測試被推薦人」兩列，
-    雲端資料夾裡有一個測試文字檔</div></div></li>
+    <div class="sd">回饋單分頁兩列（測試－請刪除、測試被推薦人）、推薦分頁一列、
+    雲端資料夾一個測試文字檔。現在不刪，之後混在真的資料裡就分不出來了</div></div></li>
 </ol>
 <button class="reset" id="reset" type="button">清除打勾</button>
 
@@ -677,8 +770,22 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
   <li><b>心得要不要能匯出</b>　真的要編成刊物時，一篇一篇複製很累。等有這個需求再說</li>
   <li><b>維護介面要不要能改引言</b>　現在打錯字只能開試算表改。看幹部實際會不會踩到</li>
   <li><b>同一個人多張回饋單</b>　現在每次都是新的一張、新的一個代碼。
-      如果同一位信徒被問了五件事，他手上就有五個連結，會不會亂還不知道</li>
+      如果同一位弟兄被問了五件事，他手上就有五個連結，會不會亂還不知道</li>
+  <li><b>網域前綴</b>　現在是 <code>invite.liming-tjc.org/f/⋯</code>。
+      收到的人看見「邀請」開頭的網域來寫回饋，稍微有點怪。
+      要換的話開一個 <code>write.</code> 指到同一個 Worker 就行，
+      十分鐘的事，但要先決定用哪個字</li>
 </ul>
+
+<div class="warn">
+  <div class="h">發布前一定要先用手機從 LINE 點一次</div>
+  <p>伺服器這一端能測的都測了，但 <b>LINE 的內建瀏覽器碰不到</b>。
+  它跟一般瀏覽器不完全一樣，邀請卡那邊就咬過一次——分享選單、下載都被擋。</p>
+  <p>要看三件事：<b>選不選得到檔案</b>（iPhone 的「檔案」和「照片」兩個入口）、
+  <b>大影片的進度條會不會卡住</b>、<b>寫到一半切走再回來字還在不在</b>。</p>
+  <p>如果 LINE 那邊有問題，最可能出在上傳，
+  <b>文字的部分不受影響</b>——真的卡住就先請大家用打字的。</p>
+</div>
 
 <h3>做的時候撞到、值得記著的兩件事</h3>
 
@@ -701,7 +808,7 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 </div>
 
 <div class="foot">
-  心得回饋規格 Rev 2 · 2026-09-06　|　搭配<a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 Rev 5</a> 使用
+  感動回饋規格 Rev 3 · 2026-09-06　|　搭配<a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 Rev 5</a> 使用
 </div>
 
 </div>
@@ -709,10 +816,10 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 <script>
 (function(){
   'use strict';
-  // Rev 2：第 1–10 步已經做完，預設就打好勾。
+  // Rev 3：第 1–11 步已經做完，預設就打好勾。
   // 鍵名跟著換版本，不然看過 Rev 1 的人會停在自己當初的進度
-  var KEY = 'feedback-spec-steps-v2';
-  var 預設 = {1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,10:1};
+  var KEY = 'feedback-spec-steps-v3';
+  var 預設 = {1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,10:1,11:1};
   var list = document.getElementById('steps');
   var reset = document.getElementById('reset');
 
