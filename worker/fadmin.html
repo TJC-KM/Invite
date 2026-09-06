@@ -69,6 +69,22 @@ button:disabled{opacity:.5;cursor:default;}
       background:var(--blue-soft);border-radius:9px;padding:13px 14px;margin-bottom:10px;}
 .body.open{display:block;}
 .meta{font-size:.7rem;color:var(--mute);margin-bottom:10px;}
+
+/* ── 附件。幹部現在鼓勵大家打在 Word 裡，
+      看不到檔案等於這一頁少了一半 ── */
+.files{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.file{
+  display:flex;align-items:center;gap:9px;text-decoration:none;
+  border:1px solid var(--line);border-radius:9px;padding:8px 11px;
+  color:var(--ink);font-size:.82rem;
+}
+.file:hover{border-color:var(--blue);}
+.file .kind{
+  flex:none;font-size:.66rem;font-weight:500;color:var(--blue);
+  background:var(--blue-soft);border-radius:5px;padding:2px 7px;min-width:3.4em;
+  text-align:center;
+}
+.file .fname{word-break:break-all;}
 .url{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--mute);
      word-break:break-all;margin-bottom:9px;}
 .acts{display:flex;flex-wrap:wrap;gap:7px;}

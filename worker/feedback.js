@@ -108,6 +108,24 @@ export async function 找回饋(env, code) {
 }
 
 /* ── 填寫頁 ─────────────────────────────────────── */
+
+// 幹部掃過去的時候，「Word」比一長串檔名有用得多
+function 檔案種類(mime) {
+  const m = String(mime || "");
+  // 幹部有可能自己把 Google 文件丟進資料夾，再把 ID 貼到試算表上
+  if (m === "application/vnd.google-apps.document") return "文件";
+  if (m === "application/vnd.google-apps.spreadsheet") return "試算表";
+  if (m === "application/vnd.google-apps.presentation") return "簡報";
+  if (m.includes("wordprocessing") || m.includes("msword")) return "Word";
+  if (m.includes("presentation")) return "簡報";
+  if (m.includes("spreadsheet")) return "試算表";
+  if (m === "application/pdf") return "PDF";
+  if (m.startsWith("image/")) return "照片";
+  if (m.startsWith("video/")) return "影片";
+  if (m.startsWith("audio/")) return "錄音";
+  if (m.startsWith("text/")) return "文字檔";
+  return "檔案";
+}
 // 已經傳上去的檔案，回頭要顯示名字。通常只有零到三個，
 // 一個一個問就好——Drive 沒有「一次問這幾個 ID」的用法
 async function 檔案清單(env, 值) {
@@ -120,9 +138,9 @@ async function 檔案清單(env, 值) {
         `https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,mimeType&supportsAllDrives=true`,
         { headers: { authorization: `Bearer ${token}` } }
       ).then((x) => x.json());
-      return { id, 名稱: r.name || id };
+      return { id, 名稱: r.name || id, 類型: r.mimeType || "" };
     } catch (e) {
-      return { id, 名稱: id };   // 問不到就顯示 ID，總比整頁壞掉好
+      return { id, 名稱: id, 類型: "" };   // 問不到就顯示 ID，總比整頁壞掉好
     }
   }));
 }
@@ -431,7 +449,21 @@ async function 維護頁(url, env) {
   const 待處理 = 推薦列.filter((r) => (r.處理狀態 || "待處理") === "待處理" && r.被推薦人);
   const 攤開 = url.searchParams.get("rec") === "1";
 
-  const rows = 列.filter((r) => r.代碼).map((r) => 一列(r, 站台, cfg, 剛建)).join("");
+  // 只查「這次真的要顯示」的那幾列。沒有查詢就是零列，
+  // 不會因為打開維護頁就去問一整個資料夾
+  const 要顯示 = 列.filter((r) => r.代碼);
+  const 附件們 = await Promise.all(要顯示.map((r) => 檔案清單(env, r.檔案)));
+
+  // 誰推薦了幾個人，順手算一算——推薦分頁上面已經讀進來了，不用多問一次
+  const 推薦數 = 推薦列.reduce((m, x) => {
+    const k = String(x.來自代碼 || "").toLowerCase();
+    if (k && x.被推薦人) m.set(k, (m.get(k) || 0) + 1);
+    return m;
+  }, new Map());
+
+  const rows = 要顯示
+    .map((r, i) => 一列(r, 站台, cfg, 剛建, 附件們[i], 推薦數.get(r.代碼.toLowerCase()) || 0))
+    .join("");
 
   const 結果 = 列.length
     ? rows
@@ -463,7 +495,7 @@ async function 維護頁(url, env) {
   });
 }
 
-function 一列(r, 站台, cfg, 剛建) {
+function 一列(r, 站台, cfg, 剛建, 附件 = [], 推薦 = 0) {
   const 網址 = `${站台}/f/${r.代碼}`;
   const 叫他 = String(r.稱呼 || "").trim();
   const 狀態 = r.狀態 || "草稿";
@@ -489,6 +521,7 @@ function 一列(r, 站台, cfg, 剛建) {
       ${叫他 ? `<span class="pill">叫他「${esc(叫他)}」</span>` : ""}
       <span class="pill ${類}">${esc(狀態)}</span>
       ${次數 ? `<span class="pill">開啟 ${次數} 次</span>` : ""}
+      ${推薦 ? `<span class="pill">推薦了 ${推薦} 人</span>` : ""}
     </div>
 
     <div class="ask">${esc(r.引言 || "")}</div>
@@ -500,6 +533,13 @@ function 一列(r, 站台, cfg, 剛建) {
     }</div>
 
     ${有內容 ? `<div class="body" id="body-${esc(r.代碼)}">${esc(有內容)}</div>` : ""}
+
+    ${附件.length ? `<div class="files">${附件.map((f) => `
+      <a class="file" href="https://drive.google.com/file/d/${esc(f.id)}/view"
+         target="_blank" rel="noopener">
+        <span class="kind">${esc(檔案種類(f.類型))}</span>
+        <span class="fname">${esc(f.名稱)}</span>
+      </a>`).join("")}</div>` : ""}
 
     <div class="url">${esc(網址)}</div>
 
