@@ -11,7 +11,7 @@ import FEEDBACK_HTML from "./feedback.html";
 import FADMIN_HTML from "./fadmin.html";
 import FREAD_HTML from "./fread.html";
 import { readSheet, updateCell, appendRow, getAccessToken } from "./google.js";
-import { fill, esc, json, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入, 解碼 } from "./lib.js";
+import { fill, esc, json, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入, 解碼, 連結化 } from "./lib.js";
 
 const 分頁 = { 回饋: "回饋單", 推薦: "推薦", 設定: "設定檔", 主題: "主題" };
 const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
@@ -203,8 +203,8 @@ function 畫填寫頁({ env, r, cfg, code, 檔案, 主題 = "" }) {
     churchSite: esc(env.CHURCH_SITE || "https://li-ming-tjc.org"),
     greet: esc(稱呼 ? `${稱呼}平安` : "平安"),
     letterTitle: esc(文案(cfg, "說明標題", {})),
-    letter: esc(文案(cfg, "邀請說明", { 稱呼: 稱呼 })),
-    prompt: esc(r.引言 || "說說看你最近的感動"),
+    letter: 連結化(文案(cfg, "邀請說明", { 稱呼: 稱呼 })),
+    prompt: 連結化(r.引言 || "說說看你最近的感動"),
     date: esc(r.填寫日期 || 台北日期()),
     content: esc(r.心得內容 || ""),
     hint: esc(文案(cfg, "心得提示", {})),
@@ -656,7 +656,7 @@ function 一列(r, 站台, cfg, 剛建, 附件 = [], 推薦 = 0) {
       ${r.主題 ? `<span class="pill">${esc(r.主題)}</span>` : ""}
     </div>
 
-    <div class="ask">${esc(r.引言 || "")}</div>
+    <div class="ask">${連結化(r.引言 || "")}</div>
 
     <div class="meta">${esc(字數)}${
       r.最後修改 ? `　·　最後存檔 ${esc(r.最後修改)}` : ""
@@ -755,7 +755,7 @@ async function 閱讀頁(url, env) {
 
   return new Response(fill(FREAD_HTML, {
     title: esc(`${代碼}　感動回饋`),
-    ask: esc((t && t.引言) || 代碼),
+    ask: 連結化((t && t.引言) || 代碼),
     summary: esc(
       `${代碼}　·　${列.length} 個人開了　·　${有寫的.length} 個人寫了東西` +
       (字數 ? `　·　共 ${字數} 字` : "")

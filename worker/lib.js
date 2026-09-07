@@ -71,3 +71,24 @@ export function 解碼(s) {
   try { return decodeURIComponent(s); }
   catch (e) { return String(s ?? ""); }
 }
+
+/* ── 文字裡的網址變成連結 ────────────────────────
+   幹部在引言或說明裡貼了網址，讀的人應該點得到。
+   試算表那一格還是純文字——不多開欄位，也不用學語法
+
+   順序不能反：一定先 esc 再找網址。
+   反過來的話，esc 會把剛做好的 <a> 標籤也一起跳脫掉，
+   畫面上就會看到一堆 &lt;a href=...
+   ──────────────────────────────────────────────── */
+
+// 只認 http/https。javascript: 那類永遠不該從試算表變成可以點的東西
+const 網址樣式 = /https?:\/\/[^\s<>"'）】」』，。、；：！？]+/g;
+
+export function 連結化(文字) {
+  return esc(文字).replace(網址樣式, (u) => {
+    // 結尾的標點通常是句子的一部分，不是網址的一部分
+    const 尾 = (u.match(/[.,;:!?]+$/) || [""])[0];
+    const 純 = 尾 ? u.slice(0, u.length - 尾.length) : u;
+    return `<a href="${純}" target="_blank" rel="noopener noreferrer">${純}</a>${尾}`;
+  });
+}

@@ -97,6 +97,11 @@ body{
           color:var(--blue);font-weight:600;text-transform:uppercase;}
 .ask .txt{font-family:'Noto Serif TC',serif;font-size:1.12rem;line-height:1.85;
           margin-top:10px;white-space:pre-wrap;}
+/* 網址用無襯線、小一級——它是附帶的資料，不該跟問題本身搶重量 */
+.ask .txt a,.letter .body a{
+  color:var(--blue);word-break:break-all;
+  font-family:'Noto Sans TC',sans-serif;font-size:.84rem;font-weight:400;
+}
 
 /* ── 表單 ── */
 .form{padding:24px 24px 20px;display:flex;flex-direction:column;gap:22px;}
