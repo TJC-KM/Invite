@@ -859,7 +859,7 @@ async function 建立主題(body, env, url) {
   if (!代碼) 代碼 = `${台北日期().slice(2).replace(/-/g, "")}-${引言.slice(0, 8)}`;
 
   const 已有 = await 找主題(env, 代碼);
-  if (已有) return json({ ok: false, error: `「${代碼}」已經有了，換一個代碼` }, 409);
+  if (已有) return json({ ok: false, error: `已經有一個叫「${代碼}」的了，換個名稱` }, 409);
 
   await appendRow(env, 分頁.主題, {
     主題代碼: 代碼,

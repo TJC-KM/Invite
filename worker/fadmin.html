@@ -183,14 +183,16 @@ body.topic .pane[data-p="topic"]{display:block;}
 
     <div class="two">
       <div class="f">
-        <label for="tCode">代碼 <span class="hint">選填，網址會用到</span></label>
-        <input type="text" id="tCode" placeholder="例：2609-福音茶會" autocomplete="off">
+        <label for="tCode">名稱 <span class="hint">這場活動或這件事叫什麼</span></label>
+        <input type="text" id="tCode" placeholder="例：宗教教育月　徐執事分享" autocomplete="off">
       </div>
       <div class="f">
         <label for="tBy">建立人</label>
         <input type="text" id="tBy" list="byList" autocomplete="off" value="{{lastBy}}">
       </div>
     </div>
+
+    <div class="say" style="margin:-6px 0 12px">名稱會出現在網址上，開好之後就別再改——改了舊連結會失效。留白的話系統自己取一個。</div>
 
     <button type="button" class="main" id="makeTopic">開主題並產生連結</button>
     <div class="say" id="tSay"></div>
