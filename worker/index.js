@@ -9,7 +9,7 @@
 
 import { 卡片, eventPage, adminPage, api, rsvp, imageProxy, thumbProxy } from "./invite.js";
 import { 回饋路由 } from "./feedback.js";
-import { notFound } from "./lib.js";
+import { notFound, 解碼 } from "./lib.js";
 
 const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
 
@@ -39,7 +39,7 @@ export default {
 
     // 公開活動頁。沒有任何個人資訊，可以貼到粉專、社群、群組
     if (path.startsWith("e/")) {
-      return eventPage(decodeURIComponent(path.slice(2)), env);
+      return eventPage(解碼(path.slice(2)), env);
     }
 
     // 「我要參加」是公開的，不帶金鑰——但只認得完整正確的代碼

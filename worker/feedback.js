@@ -9,10 +9,11 @@
 
 import FEEDBACK_HTML from "./feedback.html";
 import FADMIN_HTML from "./fadmin.html";
+import FREAD_HTML from "./fread.html";
 import { readSheet, updateCell, appendRow, getAccessToken } from "./google.js";
-import { fill, esc, json, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入 } from "./lib.js";
+import { fill, esc, json, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入, 解碼 } from "./lib.js";
 
-const 分頁 = { 回饋: "回饋單", 推薦: "推薦", 設定: "設定檔" };
+const 分頁 = { 回饋: "回饋單", 推薦: "推薦", 設定: "設定檔", 主題: "主題" };
 const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
 
 // 填寫頁不快取。使用者按了「先儲存」，回頭重整卻看到舊內容，
@@ -67,6 +68,7 @@ const 預設文案 = {
   送出後訊息: "謝謝你願意寫下來　🙏",
   單檔上限MB: "500",
   LINE訊息: "{對象全稱}平安，想邀請你寫一段感動：\n{網址}",
+  主題訊息: "平安，想請大家寫一段感動：\n{引言}\n\n{網址}",
 };
 
 export function 文案(來源, 代號, 變數) {
@@ -152,12 +154,49 @@ async function 填寫頁(code, request, env, ctx) {
   if (!r || r.狀態 === "已停用") return null;
 
   const 檔案 = await 檔案清單(env, r.檔案);
+  const html = 畫填寫頁({ env, r, cfg, code, 檔案 });
 
+  if (!isPreviewBot(request.headers.get("user-agent"))) {
+    ctx.waitUntil(記開啟(env, r));
+  }
+
+  return new Response(html, {
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+  });
+}
+
+/* ── 主題頁 ──────────────────────────────────────
+   一個引言、很多人回。貼到群組裡的那種連結。
+   這一頁不屬於任何人——直到他留名，那一刻才生出屬於他的一列
+   ──────────────────────────────────────────────── */
+
+async function 主題頁(主題代碼, request, env, ctx) {
+  const [t, cfg] = await Promise.all([找主題(env, 主題代碼), 設定(env)]);
+  if (!t || 停用了(t.啟用)) return null;
+
+  // r 是一列「還不存在的回饋單」。畫面需要的欄位先給預設值
+  const r = { 引言: t.引言, 信徒姓名: "", 稱呼: "", 心得內容: "", 填寫日期: "", 最後修改: "" };
+  return new Response(畫填寫頁({ env, r, cfg, code: "", 檔案: [], 主題: t.主題代碼 }), {
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+  });
+}
+
+const 停用了 = (v) => String(v ?? "").trim() === "否";
+
+function 畫填寫頁({ env, r, cfg, code, 檔案, 主題 = "" }) {
   const 稱呼 = String(r.稱呼 || "").trim() || String(r.信徒姓名 || "").trim();
   const 已送 = r.狀態 === "已填寫" || r.狀態 === "已完成";
 
-  const html = fill(FEEDBACK_HTML, {
+  return fill(FEEDBACK_HTML, {
     code: esc(code),
+    topic: esc(主題),
+    nameField: 主題 ? `
+    <div class="f">
+      <label for="who">你是誰</label>
+      <input type="text" id="who" placeholder="姓名，或是想被怎麼稱呼" autocomplete="name">
+      <div class="tip">要留一個名字，我們才知道這是誰寫的。將來若想用你這一篇，才找得到人問你。</div>
+    </div>
+` : "",
     pageTitle: esc(文案(cfg, "頁首標題", {})),
     churchEn: esc(env.CHURCH_NAME_EN || "TRUE JESUS CHURCH"),
     churchZh: esc(env.CHURCH_NAME || "真耶穌教會　黎明教會"),
@@ -186,14 +225,13 @@ async function 填寫頁(code, request, env, ctx) {
     sentClass: 已送 ? "sent" : "",
     savedNote: 已送 ? "" : esc(r.最後修改 ? `上次存檔　${r.最後修改}` : ""),
   });
+}
 
-  if (!isPreviewBot(request.headers.get("user-agent"))) {
-    ctx.waitUntil(記開啟(env, r));
-  }
-
-  return new Response(html, {
-    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
-  });
+// 主題一律讀即時。幹部剛開好就會馬上把連結貼出去，不能等快取
+async function 找主題(env, 代碼) {
+  const 列 = await 讀回饋(env, 分頁.主題).catch(() => []);
+  const k = String(代碼 || "").trim();
+  return 列.find((x) => String(x.主題代碼 || "").trim() === k) || null;
 }
 
 async function 記開啟(env, r) {
@@ -310,6 +348,58 @@ async function 存推薦(env, code, 清單) {
       建立時間: 台北時間(),
     }, 表(env));
     舊.push(x.被推薦人);
+  }
+}
+
+/* ── 留名建列 ────────────────────────────────────
+   主題頁上按下第一個動作（存檔或上傳）時才會走到這裡。
+   在那之前，這個人在系統裡完全不存在——
+   點進來看看就離開的人，不該在試算表上留下一列空白
+   ──────────────────────────────────────────────── */
+
+async function 加入(request, env) {
+  if (request.method !== "POST") return json({ ok: false, error: "只收 POST" }, 405);
+
+  let body;
+  try { body = await request.json(); }
+  catch (e) { return json({ ok: false, error: "看不懂的內容" }, 400); }
+
+  const 姓名 = String(body.姓名 || "").trim().slice(0, 40);
+  if (!姓名) return json({ ok: false, error: "要先讓我們知道你是誰" }, 400);
+
+  try {
+    const t = await 找主題(env, body.主題);
+    if (!t) return json({ ok: false, error: "找不到這個主題" }, 404);
+    if (停用了(t.啟用)) return json({ ok: false, error: "這個主題已經結束收件了" }, 403);
+
+    const 已用 = new Set((await 讀回饋(env, 分頁.回饋))
+      .map((r) => String(r.代碼 || "").toLowerCase()));
+    let 代碼 = 產生代碼();
+    for (let i = 0; i < 5 && 已用.has(代碼); i++) 代碼 = 產生代碼();
+    if (已用.has(代碼)) return json({ ok: false, error: "代碼一直撞號，再試一次" }, 500);
+
+    await appendRow(env, 分頁.回饋, {
+      代碼,
+      信徒姓名: 姓名,
+      稱呼: "",
+      // 引言複製一份過來，不是每次去主題查。
+      // 幹部之後改了主題的引言，已經寫過的人看到的還是他當初被問的那一句
+      引言: t.引言 || "",
+      指派人: t.建立人 || "",
+      主題: t.主題代碼,
+      狀態: "草稿",
+      填寫日期: "",
+      心得內容: "",
+      檔案: "",
+      聯絡方式: "",
+      提交時間: "",
+      最後修改: 台北時間(),
+      開啟次數: 1,
+    }, 表(env));
+
+    return json({ ok: true, 代碼 });
+  } catch (e) {
+    return json({ ok: false, error: e.message }, 500);
   }
 }
 
@@ -434,18 +524,28 @@ async function 維護頁(url, env) {
 
   const by = String(url.searchParams.get("by") || "").trim();
   const q = String(url.searchParams.get("q") || "").trim();
+  const topic = String(url.searchParams.get("topic") || "").trim();
   const 剛建 = String(url.searchParams.get("new") || "").trim().toLowerCase();
 
   // 沒指定就什麼都不列。這一頁上的每一列都是某個人的名字
   let 列 = [];
-  if (by) 列 = 全部.filter((r) => String(r.指派人 || "").trim() === by);
+  if (topic) 列 = 全部.filter((r) => String(r.主題 || "").trim() === topic);
+  else if (by) 列 = 全部.filter((r) => String(r.指派人 || "").trim() === by);
   else if (q) 列 = 全部.filter((r) => String(r.信徒姓名 || "").includes(q) ||
                                      String(r.稱呼 || "").includes(q));
 
-  const [cfg, 推薦列] = await Promise.all([
+  const [cfg, 推薦列, 主題列] = await Promise.all([
     設定(env, { 即時: true }),
     讀回饋(env, 分頁.推薦).catch(() => []),
+    讀回饋(env, 分頁.主題).catch(() => []),
   ]);
+
+  // 每個主題收到幾份，chip 上直接看得到
+  const 主題數 = 全部.reduce((m, r) => {
+    const k = String(r.主題 || "").trim();
+    if (k) m.set(k, (m.get(k) || 0) + 1);
+    return m;
+  }, new Map());
 
   const 待處理 = 推薦列.filter((r) => (r.處理狀態 || "待處理") === "待處理" && r.被推薦人);
   const 攤開 = url.searchParams.get("rec") === "1";
@@ -469,7 +569,7 @@ async function 維護頁(url, env) {
   const 結果 = 列.length
     ? rows
     : `<div class="box"><div class="empty">${
-        by || q ? "這裡還沒有回饋單" : "先選一個指派人，或打姓名來查"
+        by || q || topic ? "這裡還沒有回饋單" : "先選一個指派人或主題，或打姓名來查"
       }</div></div>`;
 
   return new Response(fill(FADMIN_HTML, {
@@ -490,6 +590,36 @@ async function 維護頁(url, env) {
       `<a class="chip${n === by ? " on" : ""}" href="/f/admin?by=${encodeURIComponent(n)}">${esc(n)}</a>`
     ).join("") || `<span class="empty">還沒有任何回饋單</span>`,
     q: esc(q),
+    topicChips: 主題列.length
+      ? 主題列.map((t) => {
+          const k = String(t.主題代碼 || "").trim();
+          if (!k) return "";
+          const n = 主題數.get(k) || 0;
+          return `<a class="chip${k === topic ? " on" : ""}" href="/f/admin?topic=${
+            encodeURIComponent(k)}">${esc(k)}${n ? `　${n}` : ""}${
+            停用了(t.啟用) ? "　（已結束）" : ""}</a>`;
+        }).join("")
+      : `<span class="empty">還沒有主題</span>`,
+    topicBar: topic
+      ? `<div class="box"><h2>${esc(topic)}${
+             停用了((主題列.find((x) => String(x.主題代碼 || "").trim() === topic) || {}).啟用)
+               ? `　<span class="pill dead">已結束收件</span>` : ""
+           }</h2>
+           <div class="url">${esc(`${站台}/f/t/${topic}`)}</div>
+           <div class="acts">
+             <a class="btn" href="/f/read?topic=${encodeURIComponent(topic)}">一次讀完</a>
+             <button type="button" data-copy="${esc(`${站台}/f/t/${encodeURIComponent(topic)}`)}">複製連結</button>
+             <a class="btn" href="https://line.me/R/share?text=${
+               encodeURIComponent(文案(cfg, "主題訊息", {
+                 引言: (主題列.find((x) => String(x.主題代碼 || "").trim() === topic) || {}).引言 || "",
+                 網址: `${站台}/f/t/${encodeURIComponent(topic)}`,
+               }))
+             }" target="_blank" rel="noopener">用 LINE 傳</a>
+             ${停用了((主題列.find((x) => String(x.主題代碼 || "").trim() === topic) || {}).啟用)
+               ? `<button type="button" data-topic="${esc(topic)}" data-on="是">重新開放</button>`
+               : `<button type="button" data-topic="${esc(topic)}" data-on="否">結束收件</button>`}
+           </div></div>`
+      : "",
     rows: 結果,
   }), {
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
@@ -523,6 +653,7 @@ function 一列(r, 站台, cfg, 剛建, 附件 = [], 推薦 = 0) {
       <span class="pill ${類}">${esc(狀態)}</span>
       ${次數 ? `<span class="pill">開啟 ${次數} 次</span>` : ""}
       ${推薦 ? `<span class="pill">推薦了 ${推薦} 人</span>` : ""}
+      ${r.主題 ? `<span class="pill">${esc(r.主題)}</span>` : ""}
     </div>
 
     <div class="ask">${esc(r.引言 || "")}</div>
@@ -576,6 +707,65 @@ function 推薦一列(r) {
   </div>`;
 }
 
+/* ── 閱讀頁 ──────────────────────────────────────
+   一個主題底下所有回覆，從頭讀到尾。
+   維護頁是「處理」用的，一列一列；這一頁是「讀」用的，
+   長執要坐下來一次看完十幾份，那是完全不同的動作
+   ──────────────────────────────────────────────── */
+
+async function 閱讀頁(url, env) {
+  const 代碼 = String(url.searchParams.get("topic") || "").trim();
+  if (!代碼) return null;
+
+  const [t, 全部] = await Promise.all([
+    找主題(env, 代碼),
+    讀回饋(env, 分頁.回饋),
+  ]);
+
+  const 列 = 全部
+    .filter((r) => String(r.主題 || "").trim() === 代碼)
+    .sort((a, b) => String(a.提交時間 || a.最後修改 || "").localeCompare(
+                    String(b.提交時間 || b.最後修改 || "")));
+
+  const 附件們 = await Promise.all(列.map((r) => 檔案清單(env, r.檔案)));
+
+  const 有寫的 = 列.filter((r) => String(r.心得內容 || "").trim() || String(r.檔案 || "").trim());
+  const 字數 = 列.reduce((n, r) => n + String(r.心得內容 || "").trim().length, 0);
+
+  const items = 列.length
+    ? 列.map((r, i) => {
+        const 內容 = String(r.心得內容 || "").trim();
+        const 檔案 = 附件們[i];
+        return `
+  <div class="one">
+    <div class="who">${esc(String(r.稱呼 || "").trim() || r.信徒姓名)}</div>
+    <div class="when">${esc(r.提交時間 ? `送出 ${r.提交時間}` : (r.最後修改 ? `尚未送出　最後存檔 ${r.最後修改}` : "尚未送出"))}${
+      r.填寫日期 ? `　·　談的是 ${esc(r.填寫日期)}` : ""
+    }</div>
+    <div class="text${內容 ? "" : " none"}">${esc(內容 || "（還沒寫文字）")}</div>
+    ${檔案.length ? `<div class="files">${檔案.map((f) => `
+      <a class="file" href="https://drive.google.com/file/d/${esc(f.id)}/view"
+         target="_blank" rel="noopener">
+        <span class="kind">${esc(檔案種類(f.類型))}</span>
+        <span class="fname">${esc(f.名稱)}</span>
+      </a>`).join("")}</div>` : ""}
+  </div>`;
+      }).join("")
+    : `<div class="empty">這個主題還沒有人回覆</div>`;
+
+  return new Response(fill(FREAD_HTML, {
+    title: esc(`${代碼}　感動回饋`),
+    ask: esc((t && t.引言) || 代碼),
+    summary: esc(
+      `${代碼}　·　${列.length} 個人開了　·　${有寫的.length} 個人寫了東西` +
+      (字數 ? `　·　共 ${字數} 字` : "")
+    ),
+    items,
+  }), {
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+  });
+}
+
 /* ── 維護介面的 API ─────────────────────────────── */
 
 async function 維護API(動作, request, url, env) {
@@ -586,6 +776,9 @@ async function 維護API(動作, request, url, env) {
     if (動作 === "new") return await 建立回饋單(body, env, url);
     if (動作 === "status") return await 改狀態(body, env);
     if (動作 === "skip") return await 跳過推薦(body, env);
+    if (動作 === "setup") return await 補結構(env);
+    if (動作 === "topic") return await 建立主題(body, env, url);
+    if (動作 === "topic-on") return await 開關主題(body, env);
     return json({ ok: false, error: "不認得的動作" }, 404);
   } catch (e) {
     return json({ ok: false, error: e.message }, 500);
@@ -641,6 +834,111 @@ async function 建立回饋單(body, env, url) {
   return json({ ok: true, 代碼, 網址: `${站台}/f/${代碼}` });
 }
 
+/* ── 補結構 ────────────────────────────────────────
+   跟邀請卡的 setup 同一個用意：試算表少了分頁或欄位，
+   叫這一支補起來，不用手動開。做幾次都一樣，不會重複加
+   ──────────────────────────────────────────────── */
+
+async function 建立主題(body, env, url) {
+  const 引言 = String(body.引言 || "").trim();
+  if (!引言) return json({ ok: false, error: "要填引言" }, 400);
+
+  // 代碼是人看得懂的字，跟邀請卡的活動代號同一套想法——
+  // 在試算表上一眼認得出這是哪一場，不是一串亂碼
+  let 代碼 = String(body.主題代碼 || "").trim().replace(/[\\/:*?"<>|#]/g, "").slice(0, 40);
+  if (!代碼) 代碼 = `${台北日期().slice(2).replace(/-/g, "")}-${引言.slice(0, 8)}`;
+
+  const 已有 = await 找主題(env, 代碼);
+  if (已有) return json({ ok: false, error: `「${代碼}」已經有了，換一個代碼` }, 409);
+
+  await appendRow(env, 分頁.主題, {
+    主題代碼: 代碼,
+    引言,
+    建立人: String(body.建立人 || "").trim(),
+    啟用: "是",
+    建立時間: 台北時間(),
+  }, 表(env));
+
+  const 站台 = env.SITE_ORIGIN || url.origin;
+  return json({ ok: true, 主題代碼: 代碼, 網址: `${站台}/f/t/${encodeURIComponent(代碼)}` });
+}
+
+// 聚會結束了就把主題關掉。已經寫的人不受影響，只是不再收新的
+async function 開關主題(body, env) {
+  const 代碼 = String(body.主題代碼 || "").trim();
+  const 開 = String(body.啟用 || "").trim() === "是" ? "是" : "否";
+
+  const t = await 找主題(env, 代碼);
+  if (!t) return json({ ok: false, error: "找不到這個主題" }, 404);
+
+  const 標題 = await 讀標題(env, 分頁.主題);
+  const i = 標題.indexOf("啟用");
+  if (i < 0) return json({ ok: false, error: "主題分頁沒有「啟用」這一欄" }, 500);
+
+  await updateCell(env, 分頁.主題, `${欄名(i)}${t._row}`, 開, 表(env));
+  return json({ ok: true, 啟用: 開 });
+}
+
+async function 補結構(env) {
+  const token = await getAccessToken(env);
+  const 表ID = env.FEEDBACK_SHEET_ID;
+  const 做了 = [];
+
+  // 有哪些分頁
+  const 資訊 = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${表ID}?fields=sheets.properties.title`,
+    { headers: { authorization: `Bearer ${token}` } }
+  ).then((r) => r.json());
+  const 現有 = new Set((資訊.sheets || []).map((x) => x.properties.title));
+
+  if (!現有.has(分頁.主題)) {
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${表ID}:batchUpdate`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ requests: [{ addSheet: { properties: { title: 分頁.主題 } } }] }),
+    }).then((r) => r.json());
+    做了.push(`建了分頁「${分頁.主題}」`);
+  }
+
+  // 主題分頁的標題列
+  const 主題標題 = ["主題代碼", "引言", "建立人", "啟用", "建立時間"];
+  const 現標題 = await 讀標題(env, 分頁.主題);
+  if (!現標題.length) {
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${表ID}/values/` +
+      `${encodeURIComponent(`${分頁.主題}!A1`)}?valueInputOption=RAW`,
+      {
+        method: "PUT",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify({ values: [主題標題] }),
+      }
+    );
+    做了.push("寫了主題分頁的標題列");
+  }
+
+  // 回饋單多一欄「主題」。同一場聚會的回覆靠它認親
+  const 回饋標題 = await 讀標題(env, 分頁.回饋);
+  if (!回饋標題.includes("主題")) {
+    const 位置 = 回饋標題.length;
+    await updateCell(env, 分頁.回饋, `${欄名(位置)}1`, "主題", 表(env));
+    做了.push(`回饋單加了「主題」欄（${欄名(位置)}）`);
+    標題快取 = null;   // 欄位變了，記在模組裡的位置就過期了
+  }
+
+  if (env.CACHE) await env.CACHE.delete("fcfg:v1");
+  return json({ ok: true, 做了: 做了.length ? 做了 : ["都已經有了，沒事可做"] });
+}
+
+async function 讀標題(env, tab) {
+  const token = await getAccessToken(env);
+  const data = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${env.FEEDBACK_SHEET_ID}` +
+    `/values/${encodeURIComponent(`${tab}!A1:Z1`)}`,
+    { headers: { authorization: `Bearer ${token}` } }
+  ).then((r) => r.json());
+  return ((data.values && data.values[0]) || []).map((h) => String(h).trim()).filter(Boolean);
+}
+
 async function 跳過推薦(body, env) {
   const 列號 = parseInt(body.列, 10);
   if (!(列號 > 1)) return json({ ok: false, error: "列號不正確" }, 400);
@@ -691,10 +989,17 @@ async function 改狀態(body, env) {
 
 export async function 回饋路由(路徑, request, url, env, ctx) {
   if (路徑 === "api/save") return 存檔(request, env);
+  if (路徑 === "api/join") return 加入(request, env);
   if (路徑 === "api/upload-url") return 要上傳網址(request, env, url);
   if (路徑 === "api/attach") return 記檔案(request, env);
 
+  // 主題的公開連結。代碼是人看得懂的字，可能有中文
+  if (路徑.startsWith("t/")) {
+    return 主題頁(解碼(路徑.slice(2)), request, env, ctx);
+  }
+
   if (路徑 === "admin") return 維護頁(url, env);
+  if (路徑 === "read") return 閱讀頁(url, env);
   if (路徑.startsWith("admin/api/")) return 維護API(路徑.slice(10), request, url, env);
 
   const code = 路徑.toLowerCase();

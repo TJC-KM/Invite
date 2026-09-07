@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{title}}</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{
+  --paper:#f4f7fb;--surface:#fff;--line:#dde4ef;--blue:#3d5a8a;--blue-soft:#e9effa;
+  --mute:#666f84;--ink:#242a38;--shadow:rgba(30,45,80,.09);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#111520;--surface:#1a1f2d;--line:#2b3243;--blue:#8fb0e0;--blue-soft:#1c2331;
+    --mute:#8c94a8;--ink:#e6e9f1;--shadow:rgba(0,0,0,.4);
+  }
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);
+     font-family:'Noto Sans TC',system-ui,sans-serif;font-weight:300;line-height:1.8;}
+.wrap{max-width:720px;margin:0 auto;padding:34px 20px 80px;}
+
+.head{margin-bottom:30px;}
+.back{font-size:.8rem;color:var(--blue);text-decoration:none;}
+.ask{font-family:'Noto Serif TC',serif;font-size:1.4rem;font-weight:600;
+     line-height:1.55;margin:14px 0 10px;white-space:pre-wrap;}
+.meta{font-size:.8rem;color:var(--mute);}
+
+.one{background:var(--surface);border:1px solid var(--line);border-radius:13px;
+     padding:20px 22px;margin-bottom:14px;box-shadow:0 1px 3px var(--shadow);}
+.who{font-family:'Noto Serif TC',serif;font-size:1.05rem;font-weight:600;}
+.when{font-size:.72rem;color:var(--mute);margin:2px 0 14px;}
+.text{white-space:pre-wrap;font-family:'Noto Serif TC',serif;
+      font-size:1rem;line-height:2.05;}
+.text.none{font-family:inherit;font-size:.85rem;color:var(--mute);font-style:normal;}
+
+.files{display:flex;flex-direction:column;gap:6px;margin-top:14px;}
+.file{display:flex;align-items:center;gap:9px;text-decoration:none;
+      border:1px solid var(--line);border-radius:9px;padding:8px 11px;
+      color:var(--ink);font-size:.82rem;}
+.file:hover{border-color:var(--blue);}
+.kind{flex:none;font-size:.66rem;font-weight:500;color:var(--blue);
+      background:var(--blue-soft);border-radius:5px;padding:2px 7px;
+      min-width:3.4em;text-align:center;}
+.fname{word-break:break-all;}
+
+.empty{color:var(--mute);font-size:.9rem;padding:30px 0;text-align:center;}
+.foot{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);
+      font-size:.75rem;color:var(--mute);line-height:1.9;}
+
+@media print{
+  body{background:#fff;}
+  .back,.foot{display:none;}
+  .one{border:0;box-shadow:none;padding:0 0 22px;break-inside:avoid;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <a class="back" href="/f/admin">← 回維護頁</a>
+    <div class="ask">{{ask}}</div>
+    <div class="meta">{{summary}}</div>
+  </div>
+
+  {{items}}
+
+  <div class="foot">
+    這一頁是弟兄姊妹自己寫的東西。要用在刊物或見證分享之前，
+    記得先跟本人聯絡、取得同意。
+  </div>
+</div>
+</body>
+</html>

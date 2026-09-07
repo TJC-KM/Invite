@@ -64,3 +64,10 @@ export function 代入(樣板, 變數) {
 export function 台北日期() {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
 }
+
+// decodeURIComponent 遇到壞掉的百分號編碼會丟 URIError，
+// 在路由裡沒接住就是一頁 1101。網址是外面的人給的，本來就會有壞的
+export function 解碼(s) {
+  try { return decodeURIComponent(s); }
+  catch (e) { return String(s ?? ""); }
+}

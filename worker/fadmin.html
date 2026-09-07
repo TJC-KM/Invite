@@ -129,8 +129,32 @@ button:disabled{opacity:.5;cursor:default;}
   </div>
 
   <div class="box">
+    <h2>開一個主題　<span class="hint" style="font-weight:300">一個問題，很多人回</span></h2>
+
+    <div class="f">
+      <label for="tAsk">引言 <span class="hint">貼到群組裡，大家看到的就是這一句</span></label>
+      <textarea id="tAsk" placeholder="例：今天這場聚會，你帶走了什麼？"></textarea>
+    </div>
+
+    <div class="two">
+      <div class="f">
+        <label for="tCode">代碼 <span class="hint">選填，網址會用到</span></label>
+        <input type="text" id="tCode" placeholder="例：2609-福音茶會" autocomplete="off">
+      </div>
+      <div class="f">
+        <label for="tBy">建立人</label>
+        <input type="text" id="tBy" list="byList" autocomplete="off" value="{{lastBy}}">
+      </div>
+    </div>
+
+    <button type="button" class="main" id="makeTopic">開主題並產生連結</button>
+    <div class="say" id="tSay"></div>
+  </div>
+
+  <div class="box">
     <h2>查詢</h2>
     <div class="chips">{{byChips}}</div>
+    <div class="chips">{{topicChips}}</div>
     <form method="get" action="/f/admin">
       <div class="two">
         <div class="f" style="margin:0">
@@ -140,6 +164,8 @@ button:disabled{opacity:.5;cursor:default;}
       </div>
     </form>
   </div>
+
+  {{topicBar}}
 
   {{recBox}}
 
@@ -177,6 +203,35 @@ button:disabled{opacity:.5;cursor:default;}
     }).catch(function(){
       $("make").disabled = false;
       say("網路不太順，再試一次");
+    });
+  });
+
+  var tSay = function(t, ok){
+    document.getElementById("tSay").textContent = t;
+    document.getElementById("tSay").className = ok ? "say ok" : "say";
+  };
+
+  $("makeTopic").addEventListener("click", function(){
+    var 資料 = {
+      引言: $("tAsk").value.trim(),
+      主題代碼: $("tCode").value.trim(),
+      建立人: $("tBy").value.trim()
+    };
+    if (!資料.引言) { tSay("要填引言，大家才知道要寫什麼"); $("tAsk").focus(); return; }
+
+    $("makeTopic").disabled = true;
+    tSay("開立中…");
+    fetch("/f/admin/api/topic", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(資料)
+    }).then(function(r){ return r.json(); }).then(function(d){
+      $("makeTopic").disabled = false;
+      if (!d || !d.ok) { tSay((d && d.error) || "開不起來"); return; }
+      location.href = "/f/admin?topic=" + encodeURIComponent(d.主題代碼);
+    }).catch(function(){
+      $("makeTopic").disabled = false;
+      tSay("網路不太順，再試一次");
     });
   });
 
@@ -224,6 +279,22 @@ button:disabled{opacity:.5;cursor:default;}
       }).then(function(r){ return r.json(); }).then(function(d){
         if (d && d.ok) location.reload();
         else { skip.disabled = false; alert((d && d.error) || "改不動"); }
+      });
+      return;
+    }
+
+    var tp = e.target.closest("[data-topic]");
+    if (tp) {
+      var 開 = tp.getAttribute("data-on");
+      if (開 === "否" && !confirm("結束收件之後，這個連結就不能再新增回覆了。已經寫的不受影響。")) return;
+      tp.disabled = true;
+      fetch("/f/admin/api/topic-on", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ 主題代碼: tp.getAttribute("data-topic"), 啟用: 開 })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if (d && d.ok) location.reload();
+        else { tp.disabled = false; alert((d && d.error) || "改不動"); }
       });
       return;
     }

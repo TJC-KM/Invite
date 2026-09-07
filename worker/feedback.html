@@ -198,6 +198,7 @@ body.sent .done{display:block;}
   </div>
 
   <div class="form">
+{{nameField}}
     <div class="f">
       <label for="date">這件事情發生的日子<span class="opt">非必填</span></label>
       <input type="date" id="date" value="{{date}}">
@@ -251,8 +252,12 @@ body.sent .done{display:block;}
 
 <script>
 (function(){
-  var CODE = "{{code}}";
-  var KEY  = "feedback:" + CODE;
+  // 兩種進來的方式：
+  //   個人連結 /f/<代碼>   CODE 有值，那一列早就建好了
+  //   主題連結 /f/t/<主題> CODE 是空的，等他留名的那一刻才建列
+  var CODE  = "{{code}}";
+  var TOPIC = "{{topic}}";
+  var KEY   = "feedback:" + (CODE || "t:" + TOPIC);
   var $ = function(id){ return document.getElementById(id); };
   var state = $("state"), draft = $("draft"), send = $("send");
   var 存好提醒 = "{{savedReminder}}";
@@ -264,6 +269,43 @@ body.sent .done{display:block;}
   function 說(字, ok){
     state.textContent = 字;
     state.className = ok ? "state ok" : "state";
+  }
+
+  // 同一支手機再點一次群組連結，不要又建一列新的
+  if (!CODE && TOPIC) {
+    var 舊代碼 = null;
+    try { 舊代碼 = localStorage.getItem("topic:" + TOPIC); } catch (e) {}
+    if (舊代碼) { location.replace("/f/" + 舊代碼); return; }
+  }
+
+  /* ── 確保這個人已經有一列 ──────────────────────
+     主題連結進來的人，一開始是沒有代碼的。
+     第一次要寫東西（存檔或上傳）的那一刻才建，
+     建完把網址換成他的個人連結，之後就跟一般人一樣了
+     ──────────────────────────────────────────── */
+
+  function 確保代碼(){
+    if (CODE) return Promise.resolve(CODE);
+    var 姓名 = $("who") ? $("who").value.trim() : "";
+    if (!姓名) {
+      if ($("who")) $("who").focus();
+      return Promise.reject("要先讓我們知道你是誰");
+    }
+    return fetch("/f/api/join", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ 主題: TOPIC, 姓名: 姓名 })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (!d || !d.ok) throw (d && d.error) || "建立失敗";
+      CODE = d.代碼;
+      try {
+        localStorage.setItem("topic:" + TOPIC, CODE);
+        localStorage.removeItem(KEY);
+      } catch (e) {}
+      KEY = "feedback:" + CODE;
+      history.replaceState(null, "", "/f/" + CODE);
+      return CODE;
+    });
   }
 
   // 本機暫存：網路斷了、手機被切走、不小心關掉，回來字都還在。
@@ -316,10 +358,12 @@ body.sent .done{display:block;}
     狀.textContent = "準備中…";
     list.appendChild(box);
 
-    fetch("/f/api/upload-url", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ 代碼: CODE, 檔名: f.name, 型態: f.type, 大小: f.size })
+    確保代碼().then(function(code){
+      return fetch("/f/api/upload-url", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ 代碼: code, 檔名: f.name, 型態: f.type, 大小: f.size })
+      });
     }).then(function(r){ return r.json(); }).then(function(d){
       if (!d || !d.ok) { 壞掉(d && d.error); return; }
 
@@ -345,7 +389,7 @@ body.sent .done{display:block;}
       };
       xhr.onerror = function(){ 壞掉("網路中斷了，這個檔案要重傳"); };
       xhr.send(f);
-    }).catch(function(){ 壞掉("連不上，等一下再試"); });
+    }).catch(function(e){ 壞掉(typeof e === "string" ? e : "連不上，等一下再試"); });
 
     function 壞掉(訊){
       狀.className = "s bad";
@@ -388,18 +432,23 @@ body.sent .done{display:block;}
 
   function 送出去(模式, 安靜){
     if (模式 === "draft" && !髒) return;
+    // 主題進來的人還沒留名，就先別自動存——不要為了存草稿逼他填名字
+    if (!CODE && 安靜 && !($("who") && $("who").value.trim())) return;
+
     var 資料 = 現值();
-    資料.代碼 = CODE;
     資料.模式 = 模式;
     if (!安靜) 資料.推薦 = 推薦名單();
     if (!安靜) { draft.disabled = true; send.disabled = true; }
     if (模式 === "submit") 說("送出中…");
     else if (!安靜) 說("儲存中…");
 
-    return fetch("/f/api/save", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(資料)
+    return 確保代碼().then(function(code){
+      資料.代碼 = code;
+      return fetch("/f/api/save", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(資料)
+      });
     }).then(function(r){ return r.json(); }).then(function(d){
       draft.disabled = false; send.disabled = false;
       if (!d || !d.ok) { 說((d && d.error) || "存不起來，等一下再試一次"); return; }
@@ -407,14 +456,15 @@ body.sent .done{display:block;}
       try { localStorage.removeItem(KEY); } catch (e) {}
       if (模式 === "submit") { document.body.className = "sent"; window.scrollTo(0, 0); }
       else 說("已經幫你存起來了　" + d.時間 + "　" + 存好提醒, true);
-    }).catch(function(){
+    }).catch(function(e){
       draft.disabled = false; send.disabled = false;
-      說("網路好像不太順，你寫的字還在，等一下再按一次");
+      說(typeof e === "string" ? e : "網路好像不太順，你寫的字還在，等一下再按一次");
     });
   }
 
   draft.addEventListener("click", function(){ 髒 = true; 送出去("draft", false); });
   send.addEventListener("click", function(){
+    if ($("who") && !$("who").value.trim()) { 說("要先讓我們知道你是誰"); $("who").focus(); return; }
     if (!$("content").value.trim() && !list.querySelector(".item.ok")) {
       說("還沒寫東西，也還沒傳檔案喔");
       $("content").focus();
@@ -429,7 +479,7 @@ body.sent .done{display:block;}
 
   // 關掉分頁前最後補一次。用 keepalive，不然請求會被瀏覽器砍掉
   window.addEventListener("pagehide", function(){
-    if (!髒) return;
+    if (!髒 || !CODE) return;
     var 資料 = 現值(); 資料.代碼 = CODE; 資料.模式 = "draft";
     try {
       fetch("/f/api/save", {
