@@ -525,6 +525,10 @@ async function 維護頁(url, env) {
   const by = String(url.searchParams.get("by") || "").trim();
   const q = String(url.searchParams.get("q") || "").trim();
   const topic = String(url.searchParams.get("topic") || "").trim();
+
+  // 網址上帶了什麼，就決定打開時停在哪一個頁籤
+  const 頁籤 = topic || url.searchParams.get("tab") === "topic" ? "topic" : "solo";
+  const 主題的 = 頁籤 === "topic";
   const 剛建 = String(url.searchParams.get("new") || "").trim().toLowerCase();
 
   // 沒指定就什麼都不列。這一頁上的每一列都是某個人的名字
@@ -569,10 +573,17 @@ async function 維護頁(url, env) {
   const 結果 = 列.length
     ? rows
     : `<div class="box"><div class="empty">${
-        by || q || topic ? "這裡還沒有回饋單" : "先選一個指派人或主題，或打姓名來查"
+        by || q || topic
+          ? "這裡還沒有回饋單"
+          : (主題的 ? "選一個主題，看大家寫了什麼" : "先選一個指派人，或打姓名來查")
       }</div></div>`;
 
   return new Response(fill(FADMIN_HTML, {
+    tab: 頁籤,
+    soloCount: String(全部.filter((r) => !String(r.主題 || "").trim()).length || ""),
+    topicCount: String(主題列.filter((t) => String(t.主題代碼 || "").trim()).length || ""),
+    soloRows: 主題的 ? "" : 結果,
+    topicRows: 主題的 ? 結果 : "",
     recBox: 待處理.length
       ? (攤開
           ? `<div class="box"><h2>信徒推薦的人（${待處理.length}）</h2>${
@@ -620,7 +631,6 @@ async function 維護頁(url, env) {
                : `<button type="button" data-topic="${esc(topic)}" data-on="否">結束收件</button>`}
            </div></div>`
       : "",
-    rows: 結果,
   }), {
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
   });

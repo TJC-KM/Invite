@@ -646,8 +646,25 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 
 <h2 id="s6"><span class="n">06</span>維護介面</h2>
 
-<p><code>/f/admin</code>　由上而下：建立回饋單、查詢、待處理的推薦、查詢結果。
+<p><code>/f/admin</code>　最上面兩個頁籤：<b>一對一</b>和<b>主題</b>。
 手機上是單欄，跟邀請卡同一個形狀，但配色是藍的。</p>
+
+<div class="tw"><table>
+  <thead><tr><th>頁籤</th><th>裡面有什麼</th></tr></thead>
+  <tbody>
+    <tr><td>一對一</td><td>建立回饋單、指派人 chip、打姓名查、待處理的推薦、查詢結果</td></tr>
+    <tr><td>主題</td><td>開主題、已經開過的主題、選中那個主題的連結和動作、回覆結果</td></tr>
+  </tbody>
+</table></div>
+
+<div class="win">
+  <div class="h">為什麼要分頁籤</div>
+  <p>兩種用法差很多：一對一是指名給某個人，主題是貼群組讓大家回。
+  擠在同一頁的話，做任何一件事都要先跳過一半不相干的東西。</p>
+  <p>切頁籤<b>不重新載入</b>，但查詢結果本來就跟著網址走——
+  所以伺服器先看網址決定初始停在哪一頁（有 <code>topic</code> 就是主題頁），
+  使用者自己點的則記在瀏覽器裡，下次沒帶查詢條件時回到他上次待的那一頁。</p>
+</div>
 
 <h3>建立回饋單</h3>
 <p>信徒姓名、稱呼（選填）、指派人、<b>引言（直接打字）</b>。

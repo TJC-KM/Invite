@@ -46,6 +46,22 @@ button:disabled{opacity:.5;cursor:default;}
 .say{font-size:.78rem;color:var(--mute);margin-top:10px;min-height:1.2em;}
 .say.ok{color:var(--ok);}
 
+/* ── 頁籤 ──
+   兩種用法差很多：一對一是指名給某個人，主題是貼群組讓大家回。
+   擠在同一頁的話，每次都要跳過一半不相干的東西 */
+.tabs{display:flex;gap:6px;margin-bottom:18px;
+      border-bottom:1px solid var(--line);}
+.tab{
+  background:none;border:0;border-bottom:2px solid transparent;
+  border-radius:0;padding:9px 14px;font-size:.92rem;color:var(--mute);
+  margin-bottom:-1px;
+}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:500;}
+.tab .n{font-size:.72rem;opacity:.75;margin-left:5px;}
+.pane{display:none;}
+body.solo .pane[data-p="solo"],
+body.topic .pane[data-p="topic"]{display:block;}
+
 /* ── 查詢 ── */
 .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;}
 .chip{font-size:.8rem;padding:6px 12px;border:1px solid var(--line);border-radius:999px;
@@ -94,11 +110,18 @@ button:disabled{opacity:.5;cursor:default;}
 .new{border-color:var(--blue);}
 </style>
 </head>
-<body>
+<body class="{{tab}}">
 <div class="wrap">
 
   <h1>感動回饋　維護</h1>
   <div class="lead">建立回饋單、看弟兄姊妹寫回來的內容。這一頁裡有名字和他們寫的東西，別在公開場合開著。</div>
+
+  <div class="tabs">
+    <button type="button" class="tab" data-p="solo">一對一<span class="n">{{soloCount}}</span></button>
+    <button type="button" class="tab" data-p="topic">主題<span class="n">{{topicCount}}</span></button>
+  </div>
+
+<div class="pane" data-p="solo">
 
   <div class="box">
     <h2>建立一份回饋單</h2>
@@ -130,6 +153,27 @@ button:disabled{opacity:.5;cursor:default;}
   </div>
 
   <div class="box">
+    <h2>查詢</h2>
+    <div class="chips">{{byChips}}</div>
+    <form method="get" action="/f/admin">
+      <div class="two">
+        <div class="f" style="margin:0">
+          <input type="text" name="q" value="{{q}}" placeholder="或直接打姓名" autocomplete="off">
+        </div>
+        <button type="submit">查</button>
+      </div>
+    </form>
+  </div>
+
+  {{recBox}}
+
+  {{soloRows}}
+
+</div>
+
+<div class="pane" data-p="topic">
+
+  <div class="box">
     <h2>開一個主題　<span class="hint" style="font-weight:300">一個問題，很多人回</span></h2>
 
     <div class="f">
@@ -153,24 +197,13 @@ button:disabled{opacity:.5;cursor:default;}
   </div>
 
   <div class="box">
-    <h2>查詢</h2>
-    <div class="chips">{{byChips}}</div>
+    <h2>已經開過的主題</h2>
     <div class="chips">{{topicChips}}</div>
-    <form method="get" action="/f/admin">
-      <div class="two">
-        <div class="f" style="margin:0">
-          <input type="text" name="q" value="{{q}}" placeholder="或直接打姓名" autocomplete="off">
-        </div>
-        <button type="submit">查</button>
-      </div>
-    </form>
   </div>
 
   {{topicBar}}
 
-  {{recBox}}
-
-  {{rows}}
+  {{topicRows}}
 
 </div>
 
@@ -206,6 +239,28 @@ button:disabled{opacity:.5;cursor:default;}
       say("網路不太順，再試一次");
     });
   });
+
+  /* 切頁籤不重新載入。查詢結果本來就跟著網址走，
+     所以伺服器已經決定好初始是哪一頁，這裡只管使用者自己點的 */
+  var 頁籤 = document.querySelectorAll(".tab");
+  function 換(p, 記){
+    document.body.className = p;
+    [].forEach.call(頁籤, function(b){ b.classList.toggle("on", b.getAttribute("data-p") === p); });
+    if (記) { try { localStorage.setItem("fadmin-tab", p); } catch (e) {} }
+  }
+  [].forEach.call(頁籤, function(b){
+    b.addEventListener("click", function(){ 換(b.getAttribute("data-p"), true); });
+  });
+
+  // 網址上沒帶查詢條件時，回到他上次待的那一頁
+  if (!location.search) {
+    var 記住的 = null;
+    try { 記住的 = localStorage.getItem("fadmin-tab"); } catch (e) {}
+    if (記住的 === "topic" || 記住的 === "solo") 換(記住的, false);
+    else 換(document.body.className || "solo", false);
+  } else {
+    換(document.body.className || "solo", false);
+  }
 
   var tSay = function(t, ok){
     document.getElementById("tSay").textContent = t;
