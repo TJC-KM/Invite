@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>感動回饋系統規格</title>
+<title>說說主的恩典　系統規格</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 
 <style>
@@ -171,7 +171,7 @@ ul.plain li::before{
 <div class="wrap">
 
 <div class="eyebrow">Build Spec · Rev 4 · 2026-09-07</div>
-<h1>感動回饋系統規格</h1>
+<h1>說說主的恩典　系統規格</h1>
 <p class="lede">
   弟兄姊妹寫下事件裡的感動，教會保存下來。
   跟邀請卡同一個 Worker、同一把服務帳戶金鑰，但另一份試算表。
@@ -304,13 +304,22 @@ ul.plain li::before{
 </div>
 
 <div class="win">
-  <div class="h">對外叫「感動回饋」，程式裡還是叫 feedback</div>
-  <p>頁面上的名字改了，但檔名、變數、試算表欄位、雲端資料夾都<b>不跟著改</b>。</p>
-  <p>對外的用詞會再變——教會平常講的是感動、是回饋，哪一個順口要用了才知道。
-  程式裡的名字跟著改一次，就要動十幾個檔案、還要改雲端硬碟，
+  <div class="h">對外叫「說說主的恩典」，程式裡還是叫 feedback</div>
+  <p>頁面上的名字改了兩次（心得回饋 → 感動回饋 → 說說主的恩典），
+  但檔名、變數、試算表欄位、雲端資料夾都<b>沒有跟著改</b>——這正是當初決定分開的理由。</p>
+  <p>程式裡的名字跟著改一次，就要動十幾個檔案、還要改雲端硬碟，
   而且改完舊的連結和舊的紀錄就對不上了。</p>
-  <p><b>名字是給人看的，識別碼是給機器用的，兩者不必一致。</b>
-  頁面上的字全部走設定檔，本來就改得動。</p>
+  <p><b>名字是給人看的，識別碼是給機器用的，兩者不必一致。</b></p>
+</div>
+
+<div class="warn">
+  <div class="h">為什麼不叫「回饋」了</div>
+  <p>實際發出去之後收到的反應：<b>會讓人以為是針對某一場聚會、某一篇道理要寫的東西</b>。</p>
+  <p>問題出在「回饋」兩個字，不在感動或感恩。「回饋」預設有個對象——
+  回饋什麼？人腦會自動去找最近的那件事，而最近的就是剛剛那場聚會。</p>
+  <p>換成一句邀請就沒有這個問題。四個字的名稱也試過，
+  但四字詞是成語節奏，聽起來像匾額；口語句子才散得開。</p>
+  <p>「恩典」也比「感動」好：感動黏在當下的某件事，恩典橫跨一輩子。</p>
 </div>
 
 <h3>程式檔案</h3>
@@ -424,7 +433,7 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 <div class="tw"><table>
   <thead><tr><th>代號</th><th>出現在哪</th></tr></thead>
   <tbody>
-    <tr><td>頁首標題</td><td>最上面那行大字。目前是「感動回饋」</td></tr>
+    <tr><td>頁首標題</td><td>最上面那行大字。目前是「說說主的恩典」</td></tr>
     <tr><td>說明標題</td><td>那封信的標題。目前是「為什麼邀請你寫下來」</td></tr>
     <tr><td>邀請說明</td><td><b>那封信的正文</b>。空一行就是換一段</td></tr>
     <tr><td>保存說明</td><td>信底下那塊淺藍色的；送出之後的畫面會再出現一次</td></tr>
@@ -454,7 +463,7 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 <p>點開 <code>/f/&lt;代碼&gt;</code> 看到的東西，由上而下：</p>
 
 <ul class="plain">
-  <li><b>教會抬頭</b>　＋「感動回饋」＋「○○○平安」</li>
+  <li><b>教會抬頭</b>　＋「說說主的恩典」＋「○○○平安」</li>
   <li><b>那封信</b>　<b>為什麼邀請你寫下來</b>——五段，見下</li>
   <li><b>保存說明</b>　淺藍色那塊。教會會怎麼對待你寫的東西</li>
   <li><b>引言</b>　幹部打的那段話，就是這張單在問什麼</li>
@@ -997,7 +1006,7 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 </div>
 
 <div class="foot">
-  感動回饋規格 Rev 4 · 2026-09-07　|　搭配<a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 Rev 5</a> 使用
+  說說主的恩典　規格 Rev 4 · 2026-09-07　|　搭配<a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 Rev 5</a> 使用
 </div>
 
 </div>
