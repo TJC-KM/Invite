@@ -170,7 +170,7 @@ ul.plain li::before{
 
 <div class="wrap">
 
-<div class="eyebrow">Build Spec · Rev 3 · 2026-09-06</div>
+<div class="eyebrow">Build Spec · Rev 4 · 2026-09-07</div>
 <h1>感動回饋系統規格</h1>
 <p class="lede">
   弟兄姊妹寫下事件裡的感動，教會保存下來。
@@ -179,6 +179,21 @@ ul.plain li::before{
 </p>
 
 <div class="verdict">
+  <p><b>Rev 4：多了「主題」——一個引言，很多人回。</b></p>
+  <p>本來每一份回饋單都是幹部指名給某一個人的。現在多一種：
+  開一個公開連結貼到群組，<b>誰來寫，誰才有那一列</b>。
+  用在「今天這場聚會，大家的心得」這種場合。</p>
+  <p>關鍵是<b>沒有另開一套</b>——見第 8 節。同一個維護頁、同一個填寫頁、
+  同一張回饋單分頁。另外，引言裡貼的網址現在會變成可以點的連結。</p>
+</div>
+
+<div class="win">
+  <div class="h">Rev 3 的重點（仍然有效）</div>
+  <p>名字叫「感動回饋」、說明是一封五段的信並且擺在表單前面、
+  明講可以用 Word 打完再上傳、藍色配色。</p>
+</div>
+
+<div class="verdict" style="opacity:.75">
   <p><b>Rev 3：文案和版面大改，功能沒動。</b></p>
   <p>系統本身在 Rev 2 就做完了。這一版改的是<b>怎麼開口請人寫</b>——
   名字從「心得回饋」改成「感動回饋」、
@@ -204,9 +219,10 @@ ul.plain li::before{
     <li><a href="#s5">上傳</a></li>
     <li><a href="#s6">維護介面</a></li>
     <li><a href="#s7">推薦的閉環</a></li>
-    <li><a href="#s8">隱私與同意</a></li>
-    <li><a href="#s9">建置步驟</a></li>
-    <li><a href="#s10">尚未決定</a></li>
+    <li><a href="#s8">主題：多人回一個引言</a></li>
+    <li><a href="#s9">隱私與同意</a></li>
+    <li><a href="#s10">建置步驟</a></li>
+    <li><a href="#s11">尚未決定</a></li>
   </ol>
 </nav>
 
@@ -265,10 +281,16 @@ ul.plain li::before{
     <tr><td><code>/f/api/save</code></td><td>存草稿／送出心得／收推薦</td><td>要正確代碼</td></tr>
     <tr><td><code>/f/api/upload-url</code></td><td>跟 Drive 要一個上傳網址</td><td>要正確代碼</td></tr>
     <tr><td><code>/f/api/attach</code></td><td>瀏覽器傳完後回報檔案 ID</td><td>要正確代碼</td></tr>
-    <tr><td><code>/f/admin</code></td><td>維護介面</td><td>任何人　見第 8 節</td></tr>
+    <tr><td><code>/f/t/&lt;主題代碼&gt;</code></td><td>主題的公開填寫頁</td><td>任何人　見第 8 節</td></tr>
+    <tr><td><code>/f/api/join</code></td><td>留名，替他建一列</td><td>要有效的主題</td></tr>
+    <tr><td><code>/f/read?topic=</code></td><td>一次讀完同主題全部</td><td>任何人</td></tr>
+    <tr><td><code>/f/admin</code></td><td>維護介面</td><td>任何人　見第 9 節</td></tr>
     <tr><td><code>/f/admin/api/new</code></td><td>建立回饋單</td><td>任何人</td></tr>
     <tr><td><code>/f/admin/api/status</code></td><td>改狀態</td><td>任何人</td></tr>
     <tr><td><code>/f/admin/api/skip</code></td><td>略過一筆推薦</td><td>任何人</td></tr>
+    <tr><td><code>/f/admin/api/topic</code></td><td>開一個主題</td><td>任何人</td></tr>
+    <tr><td><code>/f/admin/api/topic-on</code></td><td>結束收件／重新開放</td><td>任何人</td></tr>
+    <tr><td><code>/f/admin/api/setup</code></td><td>補分頁和欄位，做幾次都一樣</td><td>任何人</td></tr>
   </tbody>
 </table></div>
 
@@ -331,7 +353,7 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 
 <h2 id="s3"><span class="n">03</span>資料表與設定</h2>
 
-<p>三個分頁。第一列是標題列，程式用標題文字對應欄位——跟邀請卡同一套規則，
+<p>四個分頁。第一列是標題列，程式用標題文字對應欄位——跟邀請卡同一套規則，
 所以標題不要改，欄位順序可以隨意調。</p>
 
 <h4>分頁 1：回饋單</h4>
@@ -341,7 +363,7 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
     <tr><td>代碼</td><td>系統</td><td>隨機 12 碼，就是網址最後那串</td></tr>
     <tr><td>信徒姓名 <span class="req">*</span></td><td>幹部</td><td>名單上認人用</td></tr>
     <tr><td>稱呼</td><td>幹部</td><td>選填。填了頁面上就這樣叫他</td></tr>
-    <tr><td>引言 <span class="req">*</span></td><td>幹部</td><td><b>純文字，直接打</b>。「你被選任為幹部時，心裡在想什麼？」</td></tr>
+    <tr><td>引言 <span class="req">*</span></td><td>幹部</td><td><b>純文字，直接打</b>。貼進去的網址會自動變成可以點的連結</td></tr>
     <tr><td>指派人</td><td>幹部</td><td>誰發的這張單，查詢時用它分組</td></tr>
     <tr><td>狀態</td><td>幹部</td><td>草稿／已發送／已填寫／已完成／已停用</td></tr>
     <tr><td>填寫日期</td><td>信徒</td><td>預設今天，可以改——寫的可能是上個月的事</td></tr>
@@ -351,8 +373,21 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
     <tr><td>提交時間</td><td>系統</td><td>第一次送出的時間</td></tr>
     <tr><td>最後修改</td><td>系統</td><td>每次儲存都更新</td></tr>
     <tr><td>開啟次數</td><td>系統</td><td>知道他點開了沒，方便關懷提醒</td></tr>
+    <tr><td>主題</td><td>系統</td><td>從主題連結來的才有。一對一建的留白。見第 8 節</td></tr>
   </tbody>
 </table></div>
+
+<div class="win">
+  <div class="h">網址自動變連結，但試算表那格還是純文字</div>
+  <p>幹部在引言裡貼了雲端資料夾的網址，讀的人應該點得到。
+  所以顯示的時候把 <code>http(s)://</code> 開頭的字串認出來包成連結——
+  <b>不多開欄位，也不用學任何語法</b>。</p>
+  <p>順序不能反：一定先跳脫 HTML 再找網址。反過來的話，
+  跳脫會把剛做好的 <code>&lt;a&gt;</code> 標籤也一起吃掉，
+  畫面上就變成一堆 <code>&amp;lt;a href=</code>。</p>
+  <p>只認 http 和 https——<code>javascript:</code> 那類永遠不該從試算表
+  變成可以點的東西。句末的標點也不會被吃進網址裡。</p>
+</div>
 
 <div class="win">
   <div class="h">引言不用題目庫</div>
@@ -401,7 +436,8 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
     <tr><td>送出按鈕　暫存按鈕</td><td>兩顆按鈕上的字</td></tr>
     <tr><td>送出後訊息</td><td>送出之後的大字</td></tr>
     <tr><td>單檔上限MB</td><td>超過就擋下來並說明原因</td></tr>
-    <tr><td>LINE訊息</td><td>維護介面「用 LINE 傳」帶的訊息</td></tr>
+    <tr><td>LINE訊息</td><td>一對一那種，維護介面「用 LINE 傳」帶的訊息</td></tr>
+    <tr><td>主題訊息</td><td>主題那種。可以用 {引言} 和 {網址}</td></tr>
   </tbody>
 </table></div>
 
@@ -687,7 +723,92 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 不會變成一堆沒人接手的線索。</p>
 
 
-<h2 id="s8"><span class="n">08</span>隱私與同意</h2>
+<h2 id="s8"><span class="n">08</span>主題：多人回一個引言</h2>
+
+<div class="verdict">
+  <p><b>一份回覆不管怎麼來的，都還是回饋單裡的一列。</b></p>
+  <p>「多人回同一個引言」不是另一種資料，只是<b>另一種產生那一列的方式</b>。
+  想通這件事，草稿四層、上傳、推薦、狀態、附件就全部照用，一行都不用改。</p>
+</div>
+
+<p>用在「今天這場聚會，大家的心得」這種場合。
+一對一是幹部先建好一列、把專屬連結傳給某個人；
+主題是幹部開一個公開連結貼到群組，<b>誰來寫，誰才有那一列</b>。</p>
+
+<h3>兩種流程</h3>
+<div class="tw"><table>
+  <thead><tr><th></th><th>一對一</th><th>主題</th></tr></thead>
+  <tbody>
+    <tr><td>幹部做什麼</td><td>建一列，填名字和引言</td><td>開一個主題，只填引言</td></tr>
+    <tr><td>連結</td><td><code>/f/&lt;12碼&gt;</code>　給一個人</td><td><code>/f/t/&lt;主題代碼&gt;</code>　貼群組</td></tr>
+    <tr><td>那一列什麼時候生出來</td><td>幹部按建立的時候</td><td><b>他留名、開始寫的時候</b></td></tr>
+    <tr><td>指派人</td><td>幹部自己填</td><td>自動帶主題的建立人</td></tr>
+    <tr><td>之後</td><td colspan="2">完全一樣。草稿、上傳、推薦、看內容、標記完成都共用</td></tr>
+  </tbody>
+</table></div>
+
+<h3>主題分頁</h3>
+<div class="tw"><table>
+  <thead><tr><th>欄位</th><th>說明</th></tr></thead>
+  <tbody>
+    <tr><td>主題代碼</td><td><b>人看得懂的字</b>，像 <code>2609-福音茶會</code>。就是網址最後那一段</td></tr>
+    <tr><td>引言</td><td>貼到群組裡大家看到的那一句。可以很長，也可以貼網址</td></tr>
+    <tr><td>建立人</td><td>誰開的。回覆生出來的那一列，指派人就填他</td></tr>
+    <tr><td>啟用</td><td>「否」＝結束收件。維護頁有按鈕，不用開試算表</td></tr>
+    <tr><td>建立時間</td><td>系統</td></tr>
+  </tbody>
+</table></div>
+
+<p class="sub">回饋單分頁跟著多一欄<b>主題</b>，填主題代碼。幹部一對一建的那種，這一欄留白。
+分頁和欄位都不用手動開——<code>/f/admin/api/setup</code> 會補，做幾次都一樣。</p>
+
+<div class="win">
+  <div class="h">不另開一張「群組回覆」分頁</div>
+  <p>那會變成兩套長得一樣的東西，之後每改一個功能都要改兩次，
+  而且「這個人的心得」要看兩個地方才找得齊。</p>
+</div>
+
+<h3>留名的時機刻意押後</h3>
+<div class="warn">
+  <div class="h">點進來看看就離開的人，不該在試算表上留下一列空白</div>
+  <p>主題頁一開始不屬於任何人。他<b>第一次要寫東西</b>（按存檔或選檔案）
+  的那一刻才建列，建完把網址換成他的個人連結
+  （<code>history.replaceState</code>），之後就跟一對一的人完全一樣。</p>
+  <p>同一支手機再點一次群組連結，<code>localStorage</code> 認得，
+  直接跳到他自己那一頁，不會重複建一列。</p>
+  <p>換一支手機就會多一列——不擋。幹部看到兩個一樣的名字自己合，
+  比做一套帳號系統划算太多。</p>
+</div>
+
+<div class="win">
+  <div class="h">引言是複製進那一列，不是每次去主題查</div>
+  <p>幹部之後改了主題的引言，<b>已經寫過的人看到的還是他當初被問的那一句</b>。
+  他是回答那一句才寫的，不該被事後換掉。</p>
+</div>
+
+<h3>閱讀頁　<code>/f/read?topic=</code></h3>
+<p>這是主題唯一真正需要的新畫面。維護頁是<b>處理</b>用的，一列一列、
+內容預設收起來；閱讀頁是<b>讀</b>用的——長執坐下來一次看完十幾份，
+按時間排、每份標名字、全文攤開。這也是將來「編刊物要匯出」的雛形。</p>
+<p class="sub">最上面一行：幾個人開了、幾個人寫了東西、總共幾個字。
+底下固定一句提醒：要用之前先跟本人聯絡。列印時會自動去掉按鈕和底色。</p>
+
+<h3>連結會被轉傳，這是設計的一部分</h3>
+<p>貼在群組裡的東西一定會外流，所以主題連結<b>假設任何人都可能點進來</b>。
+壞處只是可能收到不相干的回覆，幹部按「結束收件」就好；
+好處是不必猜誰會來，也不用維護名單。</p>
+<p class="sub">結束收件之後：主題頁 404、不再收新的回覆，
+但<b>已經寫的人照樣進得去、閱讀頁照樣看得到</b>。隨時可以重新開放。</p>
+
+<div class="warn">
+  <div class="h">一定要留名，不做匿名</div>
+  <p>整套同意流程建立在「知道是誰寫的、之後找得到他」上。
+  匿名的回覆沒辦法徵求同意，等於只能自己看、永遠不能用。</p>
+  <p>但名字可以只是「想被怎麼稱呼」，不強迫本名。</p>
+</div>
+
+
+<h2 id="s9"><span class="n">09</span>隱私與同意</h2>
 
 <div class="warn">
   <div class="h">現況：維護介面沒有身分驗證</div>
@@ -718,12 +839,12 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 </div>
 
 
-<h2 id="s9"><span class="n">09</span>建置步驟</h2>
+<h2 id="s10"><span class="n">10</span>建置步驟</h2>
 <p class="sub">可以打勾，進度存在這台裝置的瀏覽器裡。
 標著 <span class="who you">你</span> 的是我沒辦法代做的。</p>
 
 <div class="verdict">
-  <p><b>第 1 到 11 步都做完了，2026-09-06 上線。</b>
+  <p><b>第 1 到 12 步都做完了。</b>
   剩下的兩步都是你的：用手機從 LINE 走一遍，然後刪掉測試資料。</p>
 </div>
 
@@ -780,20 +901,26 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
     非必填標示、藍色配色。全部進設定檔分頁，之後改字不用改程式</div></div></li>
 
   <li data-k="12"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">主題：多人回一個引言</div>
+    <div class="sd">主題分頁、回饋單加「主題」欄、公開填寫頁、留名建列、
+    閱讀頁、維護頁的主題區與結束收件。<code>setup</code> 會自動補結構</div></div></li>
+
+  <li data-k="13"><input type="checkbox" tabindex="-1"><div class="bd">
     <div class="st">端到端測試<span class="who you">你</span></div>
     <div class="sd">用另一支手機，從 LINE 點開填一份完整的：長心得、傳一支影片、推薦一個人。
     重點看三件事：<b>LINE 內建瀏覽器裡選得到檔案嗎</b>、
     <b>大影片的進度條會不會卡住</b>、<b>寫到一半切走再回來字還在不在</b></div></div></li>
 
-  <li data-k="13"><input type="checkbox" tabindex="-1"><div class="bd">
+  <li data-k="14"><input type="checkbox" tabindex="-1"><div class="bd">
     <div class="st">刪掉測試資料<span class="who you">你</span></div>
-    <div class="sd">回饋單分頁兩列（測試－請刪除、測試被推薦人）、推薦分頁一列、
-    雲端資料夾一個測試文字檔。現在不刪，之後混在真的資料裡就分不出來了</div></div></li>
+    <div class="sd">回饋單分頁四列（測試－請刪除、測試被推薦人、王小明、李美惠）、
+    推薦分頁一列、主題分頁的「測試-聚會心得」、雲端資料夾一個測試文字檔。
+    現在不刪，之後混在真的資料裡就分不出來了</div></div></li>
 </ol>
 <button class="reset" id="reset" type="button">清除打勾</button>
 
 
-<h2 id="s10"><span class="n">10</span>尚未決定</h2>
+<h2 id="s11"><span class="n">11</span>尚未決定</h2>
 
 <ul class="plain">
   <li><b>影片要留多久</b>　系統只負責收，不會自己刪。空間的清理由幹部手動處理——但「多久算舊」還沒有規矩</li>
@@ -803,6 +930,11 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
   <li><b>維護介面要不要能改引言</b>　現在打錯字只能開試算表改。看幹部實際會不會踩到</li>
   <li><b>同一個人多張回饋單</b>　現在每次都是新的一張、新的一個代碼。
       如果同一位弟兄被問了五件事，他手上就有五個連結，會不會亂還不知道</li>
+  <li><b>主題的待處理推薦看不出是誰的</b>　推薦分頁沒有指派人欄位，
+      待處理清單是全部人的，不會跟著選的指派人過濾。人少還好，
+      之後幹部多、各管各的，這裡可能要再想</li>
+  <li><b>同一個人在同一個主題回兩次</b>　換一支手機就會多一列。
+      不擋，幹部自己合。要擋就得做帳號，不划算</li>
   <li><b>網域前綴</b>　現在是 <code>invite.liming-tjc.org/f/⋯</code>。
       收到的人看見「邀請」開頭的網域來寫回饋，稍微有點怪。
       要換的話開一個 <code>write.</code> 指到同一個 Worker 就行，
@@ -840,7 +972,7 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 </div>
 
 <div class="foot">
-  感動回饋規格 Rev 3 · 2026-09-06　|　搭配<a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 Rev 5</a> 使用
+  感動回饋規格 Rev 4 · 2026-09-07　|　搭配<a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 Rev 5</a> 使用
 </div>
 
 </div>
@@ -848,10 +980,10 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 <script>
 (function(){
   'use strict';
-  // Rev 3：第 1–11 步已經做完，預設就打好勾。
+  // Rev 4：第 1–12 步已經做完，預設就打好勾。
   // 鍵名跟著換版本，不然看過 Rev 1 的人會停在自己當初的進度
-  var KEY = 'feedback-spec-steps-v3';
-  var 預設 = {1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,10:1,11:1};
+  var KEY = 'feedback-spec-steps-v4';
+  var 預設 = {1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,10:1,11:1,12:1};
   var list = document.getElementById('steps');
   var reset = document.getElementById('reset');
 
