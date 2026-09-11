@@ -77,6 +77,14 @@ body{
 .title{font-family:'Noto Serif TC',serif;font-size:1.55rem;font-weight:600;line-height:1.4;}
 .greet{font-size:.92rem;color:var(--cover-meta);margin-top:6px;}
 
+/* 題詞。標題底下、問候上面，小一號，不跟標題搶 */
+.verse{
+  font-family:'Noto Serif TC',serif;font-size:.86rem;line-height:1.9;
+  color:var(--cover-meta);margin:12px 0 16px;
+  padding-left:12px;border-left:2px solid var(--cover-en);
+}
+.verse .ref{display:block;font-size:.72rem;opacity:.85;margin-top:2px;}
+
 /* ── 邀請的話。先講清楚為什麼，人才寫得下去 ── */
 .letter{padding:26px 24px 28px;border-bottom:1px solid var(--line);}
 .letter h2{font-family:'Noto Serif TC',serif;font-size:1.06rem;font-weight:600;margin:0 0 14px;}
@@ -188,6 +196,7 @@ body.sent .done{display:block;}
       <div class="zh">{{churchZh}}</div>
     </div>
     <div class="title">{{pageTitle}}</div>
+    {{verse}}
     <div class="greet">{{greet}}</div>
   </div>
 
