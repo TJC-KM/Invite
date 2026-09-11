@@ -167,8 +167,13 @@ async function 填寫頁(code, request, env, ctx) {
     return new Response(null, { headers: { "cache-control": "no-store" } });
   }
 
-  const 檔案 = await 檔案清單(env, r.檔案);
-  const html = 畫填寫頁({ env, r, cfg, code, 檔案 });
+  const 主題 = String(r.主題 || "").trim();
+  const [檔案, t] = await Promise.all([
+    檔案清單(env, r.檔案),
+    主題 ? 找主題(env, 主題) : null,
+  ]);
+  const 另寫 = t && !停用了(t.啟用) ? t.主題代碼 : "";
+  const html = 畫填寫頁({ env, r, cfg, code, 檔案, 另寫 });
 
   if (!isPreviewBot(request.headers.get("user-agent"))) {
     ctx.waitUntil(記開啟(env, r));
@@ -190,7 +195,7 @@ async function 主題頁(主題代碼, request, env, ctx) {
 
   // r 是一列「還不存在的回饋單」。畫面需要的欄位先給預設值
   const r = { 引言: t.引言, 信徒姓名: "", 稱呼: "", 心得內容: "", 填寫日期: "", 最後修改: "" };
-  return new Response(畫填寫頁({ env, r, cfg, code: "", 檔案: [], 主題: t.主題代碼 }), {
+  return new Response(畫填寫頁({ env, r, cfg, code: "", 檔案: [], 主題: t.主題代碼, 另寫: t.主題代碼 }), {
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
   });
 }
@@ -206,7 +211,7 @@ function 畫經文(值) {
     出處 ? `<span class="ref">${esc(出處)}</span>` : ""}</div>`;
 }
 
-function 畫填寫頁({ env, r, cfg, code, 檔案, 主題 = "" }) {
+function 畫填寫頁({ env, r, cfg, code, 檔案, 主題 = "", 另寫 = "" }) {
   const 稱呼 = String(r.稱呼 || "").trim() || String(r.信徒姓名 || "").trim();
   const 已送 = r.狀態 === "已填寫" || r.狀態 === "已完成";
 
@@ -246,6 +251,10 @@ function 畫填寫頁({ env, r, cfg, code, 檔案, 主題 = "" }) {
         <div class="s">已上傳　·　<a href="https://drive.google.com/file/d/${
           esc(f.id)}/view" target="_blank" rel="noopener">看檔案</a></div>
       </div>`).join(""),
+    // 名字放在 data 屬性裡，不直接塞進 script——屬性會解開 &quot; 這種跳脫，script 裡不會
+    anotherBtn: 另寫
+      ? `<button type="button" id="another" data-topic="${esc(另寫)}" data-name="${esc(r.信徒姓名 || "")}">再寫一篇</button>`
+      : "",
     sentClass: 已送 ? "sent" : "",
     savedNote: 已送 ? "" : esc(r.最後修改 ? `上次存檔　${r.最後修改}` : ""),
   });
@@ -791,7 +800,8 @@ async function 閱讀頁(url, env) {
     title: esc(`${代碼}　說說主的恩典`),
     ask: 連結化((t && t.引言) || 代碼),
     summary: esc(
-      `${代碼}　·　${列.length} 個人開了　·　${有寫的.length} 個人寫了東西` +
+      `${代碼}　·　${new Set(列.map((r) => String(r.信徒姓名 || "").trim())).size} 個人　·　${列.length} 篇` +
+      (有寫的.length < 列.length ? `（${有寫的.length} 篇寫了東西）` : "") +
       (字數 ? `　·　共 ${字數} 字` : "")
     ),
     items,

@@ -190,7 +190,7 @@ button:disabled{opacity:.5;cursor:default;}
   .state{padding:0 44px 14px;}
   .act{padding:16px 44px 20px;}
   .foot{padding:22px 44px 28px;}
-  .done{padding:52px 44px 24px;}
+  body .done{padding:52px 44px 24px;}   /* 要比後面的 .done 基本規則重，不然會被蓋回去 */
   .title{font-size:1.75rem;}
   textarea{min-height:360px;}
   #content{font-size:1.05rem;}
@@ -202,7 +202,8 @@ button:disabled{opacity:.5;cursor:default;}
 .done .big{font-family:'Noto Serif TC',serif;font-size:1.3rem;line-height:1.8;text-align:center;}
 .done .sub{font-size:.82rem;color:var(--mute);margin-top:14px;text-align:center;}
 .done .keep{margin-top:26px;}
-.done button{margin:22px auto 0;display:block;}
+.done .again-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px;}
+.done .again-row button{margin:0;}
 body.sent .form,body.sent .act,body.sent .ask,body.sent .letter{display:none;}
 body.sent .done{display:block;}
 </style>
@@ -278,7 +279,10 @@ body.sent .done{display:block;}
     <div class="big">{{doneMsg}}</div>
     <div class="sub">還想補充的話，隨時回到這個連結就可以。</div>
     <div class="keep">{{keepNote}}</div>
-    <button type="button" id="again">我要再修改</button>
+    <div class="again-row">
+      <button type="button" id="again">我要再修改</button>
+      {{anotherBtn}}
+    </div>
   </div>
 
   <div class="foot">{{churchZh}}　<a href="{{churchSite}}">教會官網</a></div>
@@ -317,6 +321,13 @@ body.sent .done{display:block;}
         else { try { localStorage.removeItem("topic:" + TOPIC); } catch (e) {} }
       }).catch(function(){ location.replace("/f/" + 舊代碼); });   // 網路不通就照舊跳
     }
+  }
+
+  if (!CODE && TOPIC && $("who")) {
+    try {
+      var 預填 = sessionStorage.getItem("prefill:" + TOPIC);
+      if (預填) { $("who").value = 預填; sessionStorage.removeItem("prefill:" + TOPIC); }
+    } catch (e) {}
   }
 
   /* ── 確保這個人已經有一列 ──────────────────────
@@ -538,6 +549,22 @@ body.sent .done{display:block;}
   $("again").addEventListener("click", function(){
     document.body.className = "";
     $("content").focus();
+  });
+
+  /* ── 再寫一篇 ────────────────────────────────
+     只有從主題來的才有這顆（伺服器決定要不要畫）。
+     做法很單純：忘掉這支手機記住的那一篇，帶著名字回主題頁，
+     下一次存檔就會生出新的一列。舊的那篇還在，只是不再是「預設回去的那篇」
+     ──────────────────────────────────────────── */
+  var 另寫 = $("another");
+  if (另寫) 另寫.addEventListener("click", function(){
+    var t = 另寫.getAttribute("data-topic");
+    var 名 = ($("who") && $("who").value.trim()) || 另寫.getAttribute("data-name") || "";
+    try {
+      localStorage.removeItem("topic:" + t);
+      if (名) sessionStorage.setItem("prefill:" + t, 名);
+    } catch (e) {}
+    location.href = "/f/t/" + encodeURIComponent(t);
   });
 
   // 關掉分頁前最後補一次。用 keepalive，不然請求會被瀏覽器砍掉
