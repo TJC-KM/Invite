@@ -161,6 +161,12 @@ async function 填寫頁(code, request, env, ctx) {
   const [r, cfg] = await Promise.all([找回饋(env, code), 設定(env)]);
   if (!r || r.狀態 === "已停用") return null;
 
+  // 主題頁會用 HEAD 問「這一列還在不在」，那不是人真的打開了，不算次數。
+  // 也不必去問 Drive 附件叫什麼名字——HEAD 根本不看內容
+  if (request.method === "HEAD") {
+    return new Response(null, { headers: { "cache-control": "no-store" } });
+  }
+
   const 檔案 = await 檔案清單(env, r.檔案);
   const html = 畫填寫頁({ env, r, cfg, code, 檔案 });
 

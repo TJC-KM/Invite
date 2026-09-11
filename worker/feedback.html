@@ -305,11 +305,18 @@ body.sent .done{display:block;}
     state.className = ok ? "state ok" : "state";
   }
 
-  // 同一支手機再點一次群組連結，不要又建一列新的
+  // 同一支手機再點一次群組連結，不要又建一列新的。
+  // 但先問一聲那一列還在不在——幹部可能把重複的刪掉了，
+  // 盲目跳過去只會看到「連結已失效」。不在了就忘掉它，當第一次來
   if (!CODE && TOPIC) {
     var 舊代碼 = null;
     try { 舊代碼 = localStorage.getItem("topic:" + TOPIC); } catch (e) {}
-    if (舊代碼) { location.replace("/f/" + 舊代碼); return; }
+    if (舊代碼) {
+      fetch("/f/" + 舊代碼, { method: "HEAD" }).then(function(r){
+        if (r.ok) location.replace("/f/" + 舊代碼);
+        else { try { localStorage.removeItem("topic:" + TOPIC); } catch (e) {} }
+      }).catch(function(){ location.replace("/f/" + 舊代碼); });   // 網路不通就照舊跳
+    }
   }
 
   /* ── 確保這個人已經有一列 ──────────────────────
@@ -318,14 +325,21 @@ body.sent .done{display:block;}
      建完把網址換成他的個人連結，之後就跟一般人一樣了
      ──────────────────────────────────────────── */
 
+  // 建列的請求在飛的時候，其他人等同一個，不要再發第二個。
+  // 曾經發生過：打完字停三秒，自動存草稿去建了一列；
+  // 那個請求還沒回來，他就按了送出——送出也看到「還沒有代碼」，
+  // 於是又建一列。同一秒生出兩筆，一筆草稿一筆已填寫
+  var 建列中 = null;
+
   function 確保代碼(){
     if (CODE) return Promise.resolve(CODE);
+    if (建列中) return 建列中;
     var 姓名 = $("who") ? $("who").value.trim() : "";
     if (!姓名) {
       if ($("who")) $("who").focus();
       return Promise.reject("要先讓我們知道你是誰");
     }
-    return fetch("/f/api/join", {
+    建列中 = fetch("/f/api/join", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ 主題: TOPIC, 姓名: 姓名 })
@@ -340,6 +354,9 @@ body.sent .done{display:block;}
       history.replaceState(null, "", "/f/" + CODE);
       return CODE;
     });
+    // 失敗了要能重試；成功之後 CODE 已經有值，下次根本不會走到這裡
+    建列中.catch(function(){ 建列中 = null; });
+    return 建列中;
   }
 
   // 本機暫存：網路斷了、手機被切走、不小心關掉，回來字都還在。
@@ -464,11 +481,22 @@ body.sent .done{display:block;}
     }).filter(function(x){ return x.被推薦人; });
   }
 
+  // 所有存檔排成一列，一個做完才做下一個。
+  // 不排隊的話，自動存草稿和送出同時打到伺服器，兩邊都讀到「草稿」，
+  // 草稿那個晚一步寫回去，就把剛送出的「已填寫」蓋回「草稿」
+  var 排隊 = Promise.resolve();
+
   function 送出去(模式, 安靜){
     if (模式 === "draft" && !髒) return;
     // 主題進來的人還沒留名，就先別自動存——不要為了存草稿逼他填名字
     if (!CODE && 安靜 && !($("who") && $("who").value.trim())) return;
+    排隊 = 排隊.then(function(){ return 真的送出去(模式, 安靜); });
+    return 排隊;
+  }
 
+  function 真的送出去(模式, 安靜){
+    // 排到的時候可能已經有人存過了（例如送出剛完成），沒有新東西就不必再存
+    if (模式 === "draft" && !髒) return;
     var 資料 = 現值();
     資料.模式 = 模式;
     if (!安靜) 資料.推薦 = 推薦名單();
@@ -504,6 +532,7 @@ body.sent .done{display:block;}
       $("content").focus();
       return;
     }
+    clearTimeout(計時);   // 要送出了，排好的自動存草稿就不用了
     送出去("submit", false);
   });
   $("again").addEventListener("click", function(){
