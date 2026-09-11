@@ -11,10 +11,9 @@ import FEEDBACK_HTML from "./feedback.html";
 import FADMIN_HTML from "./fadmin.html";
 import FREAD_HTML from "./fread.html";
 import { readSheet, updateCell, appendRow, getAccessToken } from "./google.js";
-import { fill, esc, json, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入, 解碼, 連結化 } from "./lib.js";
+import { fill, esc, json, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入, 解碼, 連結化, CODE_RE } from "./lib.js";
 
 const 分頁 = { 回饋: "回饋單", 推薦: "推薦", 設定: "設定檔", 主題: "主題" };
-const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
 
 // 填寫頁不快取。使用者按了「先儲存」，回頭重整卻看到舊內容，
 // 那一秒他會以為東西不見了——這種驚嚇比多讀一次試算表貴得多

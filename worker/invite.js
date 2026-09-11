@@ -7,7 +7,7 @@ import CARD_HTML from "./card.html";
 import ADMIN_HTML from "./admin.html";
 import EVENT_HTML from "./event.html";
 import { readSheet, updateCell, appendRow, listFolder, fetchFile, thumbnailUrl } from "./google.js";
-import { fill, esc, json, notFound, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入 } from "./lib.js";
+import { fill, esc, json, notFound, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入, CODE_RE } from "./lib.js";
 
 /* ── 對外的入口 ─────────────────────────────────
    index.js 只認得路徑，剩下的都在這個檔案裡

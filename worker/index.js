@@ -9,9 +9,7 @@
 
 import { 卡片, eventPage, adminPage, api, rsvp, imageProxy, thumbProxy } from "./invite.js";
 import { 回饋路由 } from "./feedback.js";
-import { notFound, 解碼 } from "./lib.js";
-
-const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
+import { notFound, 解碼, CODE_RE } from "./lib.js";
 
 export default {
   async fetch(request, env, ctx) {

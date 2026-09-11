@@ -5,6 +5,11 @@
 
 import NOTFOUND_HTML from "./notfound.html";
 
+// 12 碼，字集拿掉 0 1 i l o（念出來或手打才不會混）。
+// 兩套系統的代碼是同一套規則，只宣告一次——
+// 拆檔的時候它留在 index.js，結果 invite.js 裡用到它的兩個函式整整壞了五天
+export const CODE_RE = /^[23456789abcdefghjkmnpqrstuvwxyz]{12}$/;
+
 export function fill(tpl, data) {
   return tpl.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in data ? String(data[k]) : ""));
 }
