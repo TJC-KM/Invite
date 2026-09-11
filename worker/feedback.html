@@ -177,6 +177,26 @@ button:disabled{opacity:.5;cursor:default;}
       font-size:.7rem;color:var(--mute);}
 .foot a{color:var(--blue);}
 
+/* ── 電腦上寬一點 ──
+   大部分人用手機，所以預設就是手機的樣子。但會寫長文的人往往是坐在電腦前，
+   那時候 430px 的框太擠了。不拉到全寬：中文一行超過四十字左右，
+   眼睛就得來回找下一行。680px 大約一行 38 字 */
+@media (min-width:760px){
+  .page{max-width:680px;}
+  .cover{padding:34px 44px 34px;}
+  .letter{padding:32px 44px 34px;}
+  .ask{padding:26px 44px 28px;}
+  .form{padding:30px 44px 24px;}
+  .state{padding:0 44px 14px;}
+  .act{padding:16px 44px 20px;}
+  .foot{padding:22px 44px 28px;}
+  .done{padding:52px 44px 24px;}
+  .title{font-size:1.75rem;}
+  textarea{min-height:360px;}
+  #content{font-size:1.05rem;}
+  .act button:not(.main){min-width:120px;}
+}
+
 /* ── 送出後 ── */
 .done{display:none;padding:44px 24px 20px;}
 .done .big{font-family:'Noto Serif TC',serif;font-size:1.3rem;line-height:1.8;text-align:center;}
