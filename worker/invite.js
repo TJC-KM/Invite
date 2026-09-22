@@ -60,6 +60,8 @@ async function loadInvite(code, env) {
   if (!r) return null;
 
   const invite = 組合(r, 設定);
+  // 記下這份快取「本來」什麼時候到期。計數時要沿用這個時間，不能重新計時
+  invite._到期 = Math.floor(Date.now() / 1000) + CACHE_TTL;
   if (env.CACHE) {
     await env.CACHE.put(key, JSON.stringify(invite), { expirationTtl: CACHE_TTL });
   }
@@ -253,10 +255,21 @@ async function countOpen(code, invite, env) {
     if (c1) await updateCell(env, 分頁.邀請, `${c1}${invite._row}`, 次數);
     if (c2) await updateCell(env, 分頁.邀請, `${c2}${invite._row}`, 現在);
 
-    // 快取裡的次數也跟上，免得五分鐘內每次開都寫同一個數字
+    // 快取裡的次數也跟上，免得兩分鐘內每次開都寫同一個數字。
+    //
+    // 但一定要沿用原本的到期時間，不能用 expirationTtl 重新計時——
+    // 否則一張正在被反覆打開的卡片，每次開都把舊資料續命兩分鐘，
+    // 試算表改了永遠不會生效。這個 bug 真的發生過，而且很難聯想：
+    // 「我明明改了，重整了十次，卡片就是不動」——重整越勤，越不會更新
     if (env.CACHE) {
-      await env.CACHE.put(`inv:${code}`, JSON.stringify({ ...invite, 開啟次數: 次數 }),
-        { expirationTtl: CACHE_TTL });
+      const 剩 = (invite._到期 || 0) - Math.floor(Date.now() / 1000);
+      if (剩 >= 60) {
+        // KV 的絕對到期時間最少要 60 秒以後，所以剩太少就不續了
+        await env.CACHE.put(`inv:${code}`, JSON.stringify({ ...invite, 開啟次數: 次數 }),
+          { expiration: invite._到期 });
+      } else {
+        await env.CACHE.delete(`inv:${code}`);
+      }
     }
   } catch (e) {
     // 計數失敗不該影響任何人看卡片
