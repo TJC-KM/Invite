@@ -98,9 +98,19 @@ async function loadConfig(env, { 即時 = false } = {}) {
   };
 
   const [檔案清單, 海報清單] = await Promise.all([
-    附件.some((a) => !是ID(a.檔案)) ? 列資料夾(env.ATTACH_FOLDER) : [],
+    // 影片列的「檔案」是網址，本來就不是 ID，不能拿它來判斷要不要列資料夾
+    附件.some((a) => !是影片(a) && !是ID(a.檔案)) ? 列資料夾(env.ATTACH_FOLDER) : [],
     活動.some((e) => e.海報 && !是ID(e.海報)) ? 列資料夾(env.POSTER_FOLDER) : [],
   ]);
+
+  // 影片沒填名稱就去 YouTube 問一次標題。問到的存三十天——
+  // 標題幾乎不會變，沒必要每次組設定檔都去敲一次
+  await Promise.all(附件
+    .filter((a) => 是影片(a) && !String(a.名稱 || "").trim())
+    .map(async (a) => {
+      const id = 影片ID(逗號(a.檔案)[0]);
+      if (id) a.名稱 = await 影片標題(env, id);
+    }));
 
   const cfg = { 活動, 模板, 附件, 文案, 檔案清單, 海報清單 };
   if (env.CACHE) {
@@ -121,15 +131,21 @@ function 組合(r, cfg) {
   const 附件 = 逗號(r.附件)
     .map((代號) => cfg.附件.find((a) => a.附件代號 === 代號))
     .filter((a) => a && 有效(a.啟用))
-    .map((a) => ({
-      名稱: a.名稱,
-      說明: a.說明,
-      類型: a.類型,
-      檔案: a.檔案
-        ? 逗號(a.檔案).map((v) => 解析檔案(v, cfg.檔案清單)).filter(Boolean)
-        : 依檔名找(cfg.檔案清單, a),
-      原始檔: a.原始檔 || 找PDF(cfg.檔案清單, a),
-    }));
+    .map((a) => 是影片(a)
+      // 影片的「檔案」欄放的是 YouTube 網址，不是雲端硬碟的東西。
+      // 丟去 解析檔案() 只會被當成找不到的檔名，整列變空的
+      ? { 名稱: a.名稱, 說明: a.說明, 類型: a.類型, 檔案: [], 原始檔: "",
+          影片: 逗號(a.檔案).map(影片ID).filter(Boolean) }
+      : {
+          名稱: a.名稱,
+          說明: a.說明,
+          類型: a.類型,
+          檔案: a.檔案
+            ? 逗號(a.檔案).map((v) => 解析檔案(v, cfg.檔案清單)).filter(Boolean)
+            : 依檔名找(cfg.檔案清單, a),
+          原始檔: a.原始檔 || 找PDF(cfg.檔案清單, a),
+          影片: [],
+        });
 
   return {
     代碼: r.代碼,
@@ -147,6 +163,40 @@ function 組合(r, cfg) {
     信件內文,
     文案: cfg.文案 || {},
   };
+}
+
+// 公開的 oEmbed，不用金鑰。抓不到（影片被設私人或下架）就回空字串，
+// 讓畫面退回只顯示縮圖和連結，不要整張卡片跟著壞
+async function 影片標題(env, id) {
+  const key = `yt:${id}`;
+  if (env.CACHE) {
+    const hit = await env.CACHE.get(key);
+    if (hit) return hit;
+  }
+  try {
+    const r = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`
+    );
+    if (!r.ok) return "";
+    const d = await r.json();
+    const t = String(d.title || "").trim();
+    if (t && env.CACHE) await env.CACHE.put(key, t, { expirationTtl: 60 * 60 * 24 * 30 });
+    return t;
+  } catch (e) {
+    return "";
+  }
+}
+
+const 是影片 = (a) => String(a && a.類型 || "").trim().toUpperCase() === "YOUTUBE";
+
+// 貼進來的可能是 youtu.be/xxx、watch?v=xxx、/embed/xxx、/shorts/xxx，
+// 後面常常還跟著 ?si= 之類的追蹤參數。只要那 11 碼
+function 影片ID(值) {
+  const v = String(值 ?? "").trim();
+  if (!v) return "";
+  if (/^[\w-]{11}$/.test(v)) return v;              // 直接貼 ID 也認
+  const m = v.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
+  return m ? m[1] : "";
 }
 
 // 雲端硬碟的檔案 ID 長這樣：25 個字以上的英數與 - _
@@ -225,6 +275,7 @@ const 預設文案 = {
   "回覆確認-多場": "{活動}　已經收到了 🙏",
   地圖按鈕: "查看地圖",
   附件標題: "Testimony",
+  影片標題: "影片",
   稱謂選項: "先生,小姐,弟兄,姊妹,同學,老師,平安",
   稱呼建議: "阿姨,叔叔,伯父,伯母,學長,學姐,女兒,女婿",
   預設地點: "黎明教會",
@@ -283,7 +334,23 @@ function renderCard(inv, env) {
     </div>
   </div>`).join("\n");
 
-  const 附件區 = (inv.附件 || []).map((a) => {
+  // 影片集中成一個區塊；見證附件維持原本的一份一區
+  const 影片們 = (inv.附件 || []).filter(是影片);
+  const 影片區 = 影片們.length ? `
+  <div class="sec">
+    <div class="sec-h">${esc(文案(詞, "影片標題", {}))}</div>
+    <div class="vids">${影片們.map((a) => (a.影片 || []).map((id) => `
+      <div class="vid" data-yt="${esc(id)}">
+        <div class="vbox">
+          <img src="https://i.ytimg.com/vi/${esc(id)}/hqdefault.jpg" alt="" loading="lazy">
+          <span class="vplay" role="button" aria-label="播放 ${esc(a.名稱 || "影片")}"></span>
+        </div>
+        ${a.名稱 || a.說明 ? `<div class="vname">${esc(a.名稱 || "")}${
+          a.說明 ? `<span class="vs">${esc(a.說明)}</span>` : ""}</div>` : ""}
+      </div>`).join("")).join("")}</div>
+  </div>` : "";
+
+  const 附件區 = (inv.附件 || []).filter((a) => !是影片(a)).map((a) => {
     const 頁 = a.類型 === "圖片集" && Array.isArray(a.檔案)
       ? `<div class="pages">${a.檔案
           .map((id, n) => `<img src="/img/${esc(id)}" alt="${esc(a.名稱)} 第 ${n + 1} 頁" loading="lazy">`)
@@ -347,6 +414,7 @@ function renderCard(inv, env) {
     from: 邀請人,
     letter: 信,
     events: 活動區,
+    videos: 影片區,
     attachments: 附件區,
     mapUrl: esc(env.CHURCH_MAP || "#"),
   });
@@ -643,7 +711,19 @@ export async function adminPage(url, env) {
       .join(""),
 
     // 54 篇見證照主題分組，不然選單會是一條看不完的長清單
-    attachOptions: 分組附件(啟用中(cfg.附件), 編輯中 ? 逗號(編輯中.附件) : []),
+    attachOptions: 分組附件(
+      啟用中(cfg.附件).filter((a) => !是影片(a)),
+      編輯中 ? 逗號(編輯中.附件) : []
+    ),
+
+    // 影片比照「邀請參加」那排：可複選。
+    // 存的時候跟下拉選的見證合併寫進同一個「附件」欄
+    videoChecks: 啟用中(cfg.附件).filter(是影片).map((a) => `
+      <label class="check">
+        <input type="checkbox" name="影片" value="${esc(a.附件代號)}"${
+          編輯中 && 逗號(編輯中.附件).includes(a.附件代號) ? " checked" : ""}>
+        <span>${esc(a.名稱 || a.附件代號)}</span>
+      </label>`).join(""),
 
     // 稱謂與稱呼的建議清單來自設定檔，維護的人自己加減；兩欄都仍可自由輸入
     honOptions: 逗號(文案(cfg.文案, "稱謂選項", {}))

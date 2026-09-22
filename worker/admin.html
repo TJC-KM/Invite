@@ -241,6 +241,11 @@ button[disabled]{opacity:.5;cursor:default;}
               模板選「不套用」時，這段就是整封信的內容</div>
           </div>
 
+          <div class="fld" id="vidFld">
+            <label>影片<span class="opt">（可複選）</span></label>
+            <div class="checks">{{videoChecks}}</div>
+          </div>
+
           <div class="fld">
             <label for="att">附件 <span class="opt">選填</span></label>
             <select id="att" name="附件">
@@ -469,6 +474,12 @@ button[disabled]{opacity:.5;cursor:default;}
     });
     data["活動"] = [].slice.call(f.querySelectorAll('input[name="活動"]:checked'))
       .map(function(i){ return i.value; }).join(",");
+
+    // 見證（下拉，單選）和影片（勾選，複選）寫進同一欄。
+    // 試算表那一欄本來就吃逗號清單，只是以前只讓你挑一個
+    var 影片 = [].slice.call(f.querySelectorAll('input[name="影片"]:checked'))
+      .map(function(i){ return i.value; });
+    data["附件"] = [data["附件"]].concat(影片).filter(Boolean).join(",");
 
     // 二選一：沒選到的那一欄一律清空，資料才不會自相矛盾
     if (用稱呼()) { data["稱謂"] = ""; } else { data["稱呼"] = ""; }
