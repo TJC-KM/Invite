@@ -197,7 +197,7 @@ ul.plain li::before{
 
 <div class="wrap">
 
-<div class="eyebrow">Build Spec · Rev 5 · 已上線</div>
+<div class="eyebrow">Build Spec · Rev 6 · 已上線</div>
 <h1>邀請卡系統規格</h1>
 <p class="lede">
   個人化邀請卡的資料結構、命名規則與建置步驟。
@@ -205,10 +205,21 @@ ul.plain li::before{
   <a href="https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89">先看可行性原型 →</a>
 </p>
 
+<div class="verdict">
+  <p><b>Rev 6：多了影片區，程式拆過檔，修掉三個真的壞過的東西。</b></p>
+  <p><b>影片</b>　卡片上可以放多部 YouTube，資料走現有的附件分頁，見第 3、5 節。</p>
+  <p><b>拆檔</b>　加了第二套系統（心得回饋）之後，一千一百行的
+  <code>index.js</code> 拆成路由、邀請卡、共用工具三層，見第 2 節。</p>
+  <p><b>修掉的三個</b>　維護介面的「匯入」按鈕從來沒接上過；
+  拆檔時把「修改邀請」和「我要參加」弄壞了五天；
+  網址裡的百分號編碼壞掉會讓整頁變成 Cloudflare 1101。三個都寫在第 2 節。</p>
+</div>
+
 <div class="win">
   <div class="h">這份規格已經對照實作回填過</div>
   <p>系統在 2026-08-28 上線：<a href="https://invite.liming-tjc.org">invite.liming-tjc.org</a>。
-  程式在 <a href="https://github.com/TJC-KM/Invite">TJC-KM/Invite</a>。
+  程式在 <a href="https://github.com/TJC-KM/Invite">TJC-KM/Invite</a>，
+  跟姊妹系統<a href="https://claude.ai/code/artifact/2d871db7-7a0b-453e-af21-fcae58a51e8e">「說說主的恩典」</a>共用同一個 Worker。
   以下內容描述的是<b>實際做出來的東西</b>，不是原本的構想——
   幾個地方跟原規劃不同，都在該節裡註明了原因。</p>
 </div>
@@ -255,6 +266,50 @@ Workers 幾乎沒有冷啟動，而且跑在離使用者最近的節點上。</p
   <div class="h">換掉 GAS 順便解決了一個原本的妥協</div>
   <p>靜態網站沒辦法針對每張卡產生不同的 LINE 預覽。Worker 是在伺服器端組出 HTML 的，
   所以可以<b>每張卡有自己的標題和預覽圖</b>——而且網址也能做成乾淨的形式。詳見<a href="#s6">第 6 節</a>。</p>
+</div>
+
+<h3>程式檔案</h3>
+<p>加第二套系統（心得回饋）之前先把 <code>index.js</code> 拆開了。當時一千一百行，
+兩套擠在裡面會變成沒人敢動的檔案。<b>先拆再加，不然之後拆不動。</b></p>
+
+<div class="tw"><table>
+  <thead><tr><th>檔案</th><th>裝什麼</th></tr></thead>
+  <tbody>
+    <tr><td><code>index.js</code></td><td>只有路由。看路徑決定交給誰，六十幾行</td></tr>
+    <tr><td><code>invite.js</code></td><td>邀請卡全部：卡片、公開活動頁、維護介面、我要參加、圖片代理</td></tr>
+    <tr><td><code>feedback.js</code></td><td>另一套系統，<code>/f/</code> 底下的全部</td></tr>
+    <tr><td><code>lib.js</code></td><td>兩邊共用：跳脫、填樣板、日期、代碼、JSON 回應</td></tr>
+    <tr><td><code>google.js</code></td><td>簽 JWT、換權杖、讀寫試算表與雲端硬碟</td></tr>
+  </tbody>
+</table></div>
+
+<h3>拆檔時弄壞的，以及順手撿到的</h3>
+
+<div class="warn">
+  <div class="h">「修改邀請」和「我要參加」壞了五天</div>
+  <p>檢查代碼格式的 <code>CODE_RE</code> 留在 <code>index.js</code>（路由要用），
+  但 <code>invite.js</code> 裡還有兩個函式也用到它——修改邀請、我要參加。
+  它們搬到另一個模組之後就看不到那個常數，一執行就是 ReferenceError。</p>
+  <p><b>「我要參加」壞得很安靜</b>：try/catch 接住之後只回一個空的失敗，畫面上沒有錯誤訊息。
+  每一張已發出的卡片上那顆按鈕，整整五天都是按了沒反應。</p>
+  <p>為什麼當時沒抓到：<code>node --check</code> 只查語法，「用到但沒宣告」要到執行那一刻才會炸；
+  而拆完做的回歸測試<b>只打了 GET</b>（卡片、admin、公開頁、圖片），沒有打任何一支會寫東西的 POST。</p>
+  <p>教訓寫在這裡：<b>之後不管改哪一邊，兩套系統會寫入的按鈕都要一起打一遍</b>——
+  修改邀請、我要參加、改狀態、存草稿、送出、留名建列。</p>
+</div>
+
+<div class="warn">
+  <div class="h">維護介面的「匯入」按鈕從來沒接上過</div>
+  <p>按鈕打的是 <code>/admin/api/import</code>，但 API 的分派表裡從來沒有這個動作——
+  <code>匯入活動()</code> 一直是死程式，按下去只會拿到一頁 404 的 HTML。</p>
+  <p>會拖這麼久沒被發現，是因為<b>失敗的樣子跟沒反應很像</b>。拆檔時翻到才補上一行分派。</p>
+</div>
+
+<div class="warn">
+  <div class="h">網址編碼壞掉會讓整頁變成 1101</div>
+  <p><code>/e/%</code> 這種壞掉的百分號編碼，<code>decodeURIComponent</code> 會丟
+  <code>URIError</code>，路由沒接住就是一整頁 Cloudflare 1101。
+  <b>網址是外面的人給的，本來就會有壞的。</b>現在走 <code>lib.js</code> 裡不會炸的解碼，一律回 404。</p>
 </div>
 
 <h3>組成</h3>
@@ -447,13 +502,55 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
   <tbody>
     <tr><td>附件代號</td><td><code>見證-蘇真玉</code></td></tr>
     <tr><td>名稱</td><td>蘇真玉姊妹見證</td></tr>
-    <tr><td>類型</td><td>圖片集／PDF／外部連結</td></tr>
-    <tr><td>檔案</td><td>雲端硬碟檔案 ID。<b>圖片集是多個 ID，逗號分隔，順序就是頁序</b></td></tr>
+    <tr><td>類型</td><td>圖片集／PDF／<b>YouTube</b></td></tr>
+    <tr><td>檔案</td><td>雲端硬碟檔案 ID。<b>圖片集是多個 ID，逗號分隔，順序就是頁序</b>。
+        類型是 YouTube 的話，這裡放影片網址</td></tr>
     <tr><td>原始檔</td><td>選填。PDF 的檔案 ID，卡片上放一顆「下載完整 PDF」</td></tr>
     <tr><td>說明</td><td>6 頁</td></tr>
     <tr><td>啟用</td><td>是／否</td></tr>
   </tbody>
 </table></div>
+
+<h4>影片</h4>
+<p>卡片上可以放多部 YouTube。<b>不另開分頁</b>——附件分頁本來就有「類型」欄，影片只是第三種。
+一部影片一列：</p>
+
+<div class="tw"><table>
+  <thead><tr><th>附件代號</th><th>名稱</th><th>類型</th><th>檔案</th><th>啟用</th></tr></thead>
+  <tbody>
+    <tr><td><code>影片-簡介</code></td><td>（留白）</td><td>YouTube</td><td><code>https://youtu.be/Ubf_2m4dXYM</code></td><td>是</td></tr>
+    <tr><td><code>影片-20週年</code></td><td>（留白）</td><td>YouTube</td><td><code>https://youtu.be/KlFULGEPsx0</code></td><td>是</td></tr>
+  </tbody>
+</table></div>
+
+<div class="win">
+  <div class="h">沿用附件分頁，等於白撿了「每張卡挑哪幾部」</div>
+  <p>哪張邀請卡要放哪些附件，本來就有一整套挑選機制（維護介面的勾選、
+  邀請名單那一欄的逗號清單）。影片掛進同一個結構，這些全部免費沿用。
+  另開一張「影片」分頁的話，得再做一次一模一樣的東西。</p>
+</div>
+
+<div class="win">
+  <div class="h">名稱留白就自動抓 YouTube 的標題</div>
+  <p>走 YouTube 的公開 oEmbed，不用金鑰。抓到的存三十天——標題幾乎不會變。</p>
+  <p><b>自己填了名稱就以填的為準</b>，機器抓的只是預設值。
+  抓不到（影片被設成私人或下架）就回空字串，畫面退回只有縮圖，不會整張卡片跟著壞。</p>
+</div>
+
+<h4>影片怎麼播</h4>
+<p>預設只放一張縮圖（約 15 KB）和一個播放鍵，<b>點了才載入播放器</b>、就地播放。
+一進卡片就嵌三個 YouTube 播放器的話，手機上會明顯變慢。</p>
+<p>播放器走 <code>youtube-nocookie</code>：沒點之前，YouTube 不會知道有人開過這張卡片。</p>
+<p class="sub">版面上影片集中成一個區塊，排在見證之前。區塊標題走設定檔（預設「影片」）。
+縮圖是 4:3、上下有黑邊，用 <code>object-fit:cover</code> 裁掉。</p>
+
+<div class="warn">
+  <div class="h">影片的「檔案」欄不能拿去雲端硬碟解析</div>
+  <p>那一欄的值平常會被當成檔案 ID／分享連結／檔名前綴去比對，
+  YouTube 網址三種都不是，會被解析成空的、整列消失。所以類型是 YouTube 的要跳過那段。</p>
+  <p>同理，判斷「要不要去列整個附件資料夾」時也得把影片排除，
+  否則每次組設定檔都多一次沒必要的 Drive 查詢。</p>
+</div>
 
 <h4>多頁掃描件怎麼呈現</h4>
 <p>〈蘇真玉見證〉是 6 頁掃描圖、沒有文字層，手機上沒辦法像文章一樣重排。第一版當圖片看：</p>
@@ -476,6 +573,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
     <tr><td>回覆確認-多場</td><td>{活動}　已經收到了</td></tr>
     <tr><td>地圖按鈕</td><td>查看地圖</td></tr>
     <tr><td>附件標題</td><td>Testimony（見證那一區的英文小標）</td></tr>
+    <tr><td>影片標題</td><td>影片（影片那一區的小標）</td></tr>
     <tr><td>預設地點</td><td>黎明教會（匯入活動時填進地點欄）</td></tr>
     <tr><td>稱謂選項</td><td>先生,小姐,弟兄,姊妹,同學,老師,平安（維護介面的建議清單）</td></tr>
     <tr><td>稱呼建議</td><td>阿姨,叔叔,伯父,伯母,學長,學姐,女兒,女婿</td></tr>
@@ -576,6 +674,24 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
   活動、信件模板、附件三張表目前<b>直接在試算表維護</b>，沒有做成頁籤——
   它們一季才動一次，做四套一樣的列表介面不划算。活動有例外，見下面的匯入功能。
 </p>
+
+<h3>影片可複選，見證仍然單選</h3>
+
+<pre>邀請參加   [x] 福音茶會   [ ] 秋季靈恩會
+影片       [x] 真耶穌教會簡介影片   [x] 20週年紀念影片
+附件       ▾ 張祈真　求學之路</pre>
+
+<p>影片比照「邀請參加」那排做成勾選，附件下拉維持單選（繼續用來挑一篇貼近對方處境的見證）。
+送出時兩邊<b>合併寫進同一個「附件」欄</b>。</p>
+
+<div class="win">
+  <div class="h">試算表沒有加任何欄位</div>
+  <p>邀請名單的「附件」欄本來就吃逗號清單，只是以前維護介面只讓你挑一個。
+  要複選，改的是介面，不是資料。</p>
+</div>
+
+<p class="sub">影片不出現在附件下拉裡——它們已經在上面那排勾選了，
+兩個地方都列一次只會讓人以為要選兩次。</p>
 
 <h3>新增邀請</h3>
 <div class="form">
@@ -875,9 +991,18 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
   <p><b>維護介面不設身分驗證。</b>見第 7 節，代價寫在那裡。</p>
 </div>
 
+<div class="win">
+  <div class="h">2026-09-22 追加定案</div>
+  <p><b>卡片上可以放影片。</b>多部 YouTube，資料走附件分頁，縮圖點了才載入播放器。見第 3、5 節。</p>
+  <p><b>程式拆檔。</b>加第二套系統之前先拆，見第 2 節。同一節也記下拆檔時弄壞的兩個功能，
+  以及那個從來沒接上過的匯入按鈕。</p>
+</div>
+
 <h3>還沒決定</h3>
 
 <ul class="plain">
+  <li><b>LINE 內建瀏覽器能不能就地播放影片</b>　大部分人是從 LINE 點進來的，
+      而那個環境碰不到，只能用手機實測。播不動的話，退路是在 LINE 裡改成點了開 YouTube App</li>
   <li><b>邀請人要不要建一張表</b>　現在是自由輸入。建表可以避免「陳志成／陳誌成」這種不一致，但多一層維護</li>
   <li><b>要不要把 li-ming-tjc.org 從 Wix 轉出來</b>　轉出後兩個網域都在 Cloudflare，要主打哪個都行。轉移約 5～7 天</li>
   <li><b>要不要用 AI 讀海報</b>　時間、地點、標語都印在海報上。Workers AI 現在有中文母語的多模態模型（GLM、Qwen），
@@ -886,7 +1011,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 </ul>
 
 <div class="foot">
-  規格 Rev 5 · 2026-08-28（依實際完成的系統回填）　|　原型：<a href="https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89">黎明邀請卡</a>
+  規格 Rev 6 · 2026-09-22（依實際完成的系統回填）　|　原型：<a href="https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89">黎明邀請卡</a>
 </div>
 
 </div>
