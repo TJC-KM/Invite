@@ -197,7 +197,7 @@ ul.plain li::before{
 
 <div class="wrap">
 
-<div class="eyebrow">Build Spec · Rev 6 · 已上線</div>
+<div class="eyebrow">Build Spec · Rev 7 · 已上線</div>
 <h1>邀請卡系統規格</h1>
 <p class="lede">
   個人化邀請卡的資料結構、命名規則與建置步驟。
@@ -206,8 +206,11 @@ ul.plain li::before{
 </p>
 
 <div class="verdict">
+  <p><b>Rev 7：多了平板與電腦的版型，手機一行沒改。</b>
+  900px 以上分兩欄——左邊封面和信，右邊影片、見證、活動、報名，見第 5 節。
+  平板刻意維持單欄，理由也在那一節。</p>
   <p><b>Rev 6：多了影片區，程式拆過檔，修掉三個真的壞過的東西。</b></p>
-  <p><b>影片</b>　卡片上可以放多部 YouTube，資料走現有的附件分頁，見第 3、5 節。</p>
+  <p><b>影片</b>　卡片上可以放多部 YouTube，資料走現有的附件分頁，見第 3、6 節。</p>
   <p><b>拆檔</b>　加了第二套系統（心得回饋）之後，一千一百行的
   <code>index.js</code> 拆成路由、邀請卡、共用工具三層，見第 2 節。</p>
   <p><b>修掉的三個</b>　維護介面的「匯入」按鈕從來沒接上過；
@@ -230,12 +233,13 @@ ul.plain li::before{
     <li><a href="#s2">系統架構</a></li>
     <li><a href="#s3">資料表與設定</a></li>
     <li><a href="#s4">模板變數</a></li>
-    <li><a href="#s5">維護介面</a></li>
-    <li><a href="#s6">網址與 LINE 預覽</a></li>
-    <li><a href="#s7">權限設計</a></li>
-    <li><a href="#s8">命名規則</a></li>
-    <li><a href="#s9">建置步驟</a></li>
-    <li><a href="#s10">已定案與尚未決定</a></li>
+    <li><a href="#s5">版面</a></li>
+    <li><a href="#s6">維護介面</a></li>
+    <li><a href="#s7">網址與 LINE 預覽</a></li>
+    <li><a href="#s8">權限設計</a></li>
+    <li><a href="#s9">命名規則</a></li>
+    <li><a href="#s10">建置步驟</a></li>
+    <li><a href="#s11">已定案與尚未決定</a></li>
   </ol>
 </nav>
 
@@ -265,7 +269,7 @@ Workers 幾乎沒有冷啟動，而且跑在離使用者最近的節點上。</p
 <div class="win">
   <div class="h">換掉 GAS 順便解決了一個原本的妥協</div>
   <p>靜態網站沒辦法針對每張卡產生不同的 LINE 預覽。Worker 是在伺服器端組出 HTML 的，
-  所以可以<b>每張卡有自己的標題和預覽圖</b>——而且網址也能做成乾淨的形式。詳見<a href="#s6">第 6 節</a>。</p>
+  所以可以<b>每張卡有自己的標題和預覽圖</b>——而且網址也能做成乾淨的形式。詳見<a href="#s7">第 7 節</a>。</p>
 </div>
 
 <h3>程式檔案</h3>
@@ -670,7 +674,83 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 </ul>
 
 
-<h2 id="s5"><span class="n">05</span>維護介面</h2>
+<h2 id="s5"><span class="n">05</span>版面</h2>
+
+<p>第一版只做手機。理由很單純：卡片是<b>從 LINE 點開</b>的，整頁就是一張 430px 的卡，
+桌機上置中收窄就算了。上線之後才發現另一件事——會把整張卡看完、點開見證、
+把影片看掉的人，不少是坐在電腦前。那時候中間一條 430px 的直條，左右各空一大片。</p>
+
+<div class="verdict">
+  <p><b>2026-09-24 補上平板與電腦的多欄版型。手機的規則一行都沒改。</b>
+  這次的 diff 是 <b>160 行新增、0 行刪改</b>——舊樣式一個字都沒被碰到，
+  所以手機端沒有任何回歸的可能。</p>
+</div>
+
+<h3>斷點</h3>
+
+<div class="tw"><table>
+  <thead><tr><th>視窗寬度</th><th>邀請卡</th><th>公開活動頁</th></tr></thead>
+  <tbody>
+    <tr><td>&lt; 700</td><td>單欄 430px（原樣，沒動）</td><td>單欄 440px（原樣，沒動）</td></tr>
+    <tr><td>700 – 899</td><td>單欄放大到 560px</td><td>單欄放大到 560px</td></tr>
+    <tr><td>≥ 900</td><td>兩欄，420 ／ 其餘</td><td>兩欄（820 起），海報 360 ／ 其餘</td></tr>
+    <tr><td>≥ 1280</td><td>兩欄，480 ／ 其餘；影片自己再分兩欄</td><td>海報放大到 430px</td></tr>
+  </tbody>
+</table></div>
+
+<div class="win">
+  <div class="h">平板刻意不分欄</div>
+  <p>iPad 直立大約 768～834。在那個寬度硬分兩欄，左欄只剩 340px 上下，
+  <b>比手機的 382px 還窄</b>——為了「看起來像桌機」反而把信擠得更難讀。
+  分欄要有 900px 才划算，不到就單純把單欄放大。</p>
+</div>
+
+<h3>邀請卡分成哪兩欄</h3>
+
+<div class="tw"><table>
+  <thead><tr><th>左欄（讀的）</th><th>右欄（看的、按的）</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>封面（For ○○○）<br>邀請的話（那封信）</td>
+      <td>影片<br>見證<br>活動資訊<br>我要參加 ／ 查看地圖</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<p>兩欄各自往下長，中間一條分隔線，不去湊齊高度。
+信是這張卡片的主體，所以左欄寬度先保證「不比手機窄」再談右欄要多少：
+1280 以上左欄 480px，信的實際可讀寬度 411px，比手機的 382px 舒服一點。</p>
+
+<div class="win">
+  <div class="h">HTML 的順序就是手機的順序，沒有用 CSS 搬動任何東西</div>
+  <p>兩欄包成 <code>.main &gt; .ca + .cb</code>。<code>.ca</code> 裡剛好是封面和信，
+  <code>.cb</code> 裡剛好是影片、見證、活動、報名——<b>接起來就是原本手機的順序</b>。
+  手機上這兩個容器只是普通的 block，等於不存在。</p>
+  <p>這個分法是挑過的。把「活動資訊」也放進左欄，版面會平衡得多（左欄現在下半段是空的），
+  但那樣一來手機上活動資訊就會跳到影片前面。
+  <b>寬螢幕好不好看，不值得拿已經上線的手機閱讀順序去換。</b></p>
+</div>
+
+<h3>影片在寬螢幕排兩欄</h3>
+<p>1280 以上 <code>.vids</code> 變成兩欄 grid，三部影片就是上面兩部、下面一部。
+「縮圖點了才載入播放器」不變，見第 3 節。</p>
+
+<h3>順手修掉的兩個</h3>
+
+<ul class="plain">
+  <li><b>見證預覽固定 190px 高</b>　<code>.peek</code> 高度寫死，裡面的圖卻是 <code>width:100%</code> 等比放大。
+  欄位一寬，圖長到 960px 高，190px 就只切到掃描件最上面那條白邊，看起來像圖沒載到。
+  改成固定 <code>aspect-ratio:2/1</code>，不管多寬都露出同樣的一段</li>
+  <li><b>沒有海報的活動頁會塌成半寬</b>　grid 沒指定欄位，只剩「資訊」一個子元素時它會落到第一欄，
+  右半空著。指定 <code>grid-column</code> 就解決了。<b>這個只有沒放海報的活動會中</b>，
+  現有的活動都有海報，所以一直沒被發現</li>
+</ul>
+
+<p class="sub">維護介面 <code>/admin</code> 本來就是兩欄（左邊新增、右邊名單），這次沒有動它。
+姊妹系統「說說主的恩典」的四個版面同一天一起做，記在那份規格裡。</p>
+
+
+<h2 id="s6"><span class="n">06</span>維護介面</h2>
 
 <p><code>invite.liming-tjc.org/admin</code>　左邊新增邀請，右邊查名單。</p>
 
@@ -757,7 +837,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 </div>
 
 
-<h2 id="s6"><span class="n">06</span>網址與 LINE 預覽</h2>
+<h2 id="s7"><span class="n">07</span>網址與 LINE 預覽</h2>
 
 <div class="verdict">
   <p><b>乾淨網址，而且每張卡有自己的 LINE 預覽。</b></p>
@@ -822,7 +902,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 <p><code>https://line.me/R/msg/text/?</code> 後面接編碼過的邀請文字＋網址。</p>
 
 
-<h2 id="s7"><span class="n">07</span>權限設計</h2>
+<h2 id="s8"><span class="n">08</span>權限設計</h2>
 
 <div class="warn">
   <div class="h">現況：維護介面沒有身分驗證，任何人都進得去</div>
@@ -862,7 +942,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 </div>
 
 
-<h2 id="s8"><span class="n">08</span>命名規則</h2>
+<h2 id="s9"><span class="n">09</span>命名規則</h2>
 
 <h3>放哪個 GitHub 帳號</h3>
 <div class="verdict">
@@ -936,7 +1016,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 <p>設定值放 <code>wrangler.toml</code> 的 <code>[vars]</code>，命名沿用全大寫底線慣例（見<a href="#s3">第 3 節</a>）。</p>
 
 
-<h2 id="s9"><span class="n">09</span>建置步驟</h2>
+<h2 id="s10"><span class="n">10</span>建置步驟</h2>
 
 <div class="win">
   <div class="h">全部完成，2026-08-28 上線</div>
@@ -969,7 +1049,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 <button class="reset" id="reset" type="button">清除打勾</button>
 
 
-<h2 id="s10"><span class="n">10</span>已定案與尚未決定</h2>
+<h2 id="s11"><span class="n">11</span>已定案與尚未決定</h2>
 
 <h3>2026-08-28 定案</h3>
 
@@ -1004,9 +1084,15 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 
 <div class="win">
   <div class="h">2026-09-22 追加定案</div>
-  <p><b>卡片上可以放影片。</b>多部 YouTube，資料走附件分頁，縮圖點了才載入播放器。見第 3、5 節。</p>
+  <p><b>卡片上可以放影片。</b>多部 YouTube，資料走附件分頁，縮圖點了才載入播放器。見第 3、6 節。</p>
   <p><b>程式拆檔。</b>加第二套系統之前先拆，見第 2 節。同一節也記下拆檔時弄壞的兩個功能，
   以及那個從來沒接上過的匯入按鈕。</p>
+</div>
+
+<div class="win">
+  <div class="h">2026-09-24 追加定案</div>
+  <p><b>平板和電腦有自己的版型。</b>900px 以上分兩欄，平板維持單欄放大，
+  手機的規則一行都沒改。見第 5 節。</p>
 </div>
 
 <h3>還沒決定</h3>
@@ -1022,7 +1108,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 </ul>
 
 <div class="foot">
-  規格 Rev 6 · 2026-09-22（依實際完成的系統回填）　|　原型：<a href="https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89">黎明邀請卡</a>
+  規格 Rev 7 · 2026-09-24（依實際完成的系統回填）　|　原型：<a href="https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89">黎明邀請卡</a>
 </div>
 
 </div>
