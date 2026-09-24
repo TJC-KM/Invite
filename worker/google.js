@@ -66,9 +66,10 @@ export async function getAccessToken(env) {
   const exp = now + (data.expires_in || 3600);
   memoToken = { token, exp };
   if (env.CACHE) {
+    // 存不進快取（例如當天的 KV 寫入額度用完）就算了，權杖本身是好的
     await env.CACHE.put(TOKEN_KEY, JSON.stringify(memoToken), {
       expirationTtl: Math.max(60, (data.expires_in || 3600) - 300),
-    });
+    }).catch(() => {});
   }
   return token;
 }
@@ -134,9 +135,11 @@ function b64url(input) {
 // 讀一張分頁，回傳物件陣列。第一列是標題列，用標題文字當 key，
 // 所以欄位順序可以隨意調、加欄位也不會壞。
 // 每筆多帶一個 _row（試算表列號），寫回去時才不用重新找列。
+//
+// 範圍只寫分頁名，不寫 A1:Z1000——以前寫死的時候，第 1001 列以後會安靜地讀不到
 export async function readSheet(env, tab, { 試算表 } = {}) {
   const token = await getAccessToken(env);
-  const range = encodeURIComponent(`${tab}!A1:Z1000`);
+  const range = encodeURIComponent(`'${tab}'`);
   const url =
     `https://sheets.googleapis.com/v4/spreadsheets/${試算表 || env.SHEET_ID}` +
     `/values/${range}?majorDimension=ROWS`;
@@ -206,7 +209,8 @@ export async function appendRow(env, tab, 資料, { 試算表 } = {}) {
 
   const head = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${表}` +
-      `/values/${encodeURIComponent(`${tab}!A1:Z1`)}`,
+      `/values/${encodeURIComponent(`'${tab}'!1:1`)}`,
+
     { headers: { authorization: `Bearer ${token}` } }
   ).then((r) => r.json());
 

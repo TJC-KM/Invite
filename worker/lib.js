@@ -29,9 +29,13 @@ export function notFound(env) {
   });
 }
 
-// LINE、Facebook 那類預覽爬蟲：照樣給網頁，但不算開啟次數
+// LINE、Facebook 那類預覽爬蟲：照樣給網頁，但不算開啟次數。
+//
+// 不能寫 line：LINE 內建瀏覽器的 UA 也帶 Line/，等於從 LINE 點開的人全部不算。
+// LINE 真正的預覽爬蟲是 facebookexternalhit/1.1;line-poker，前面那個字就擋到了。
+// bot 也要整個字比對，不然 CUBOT 這種手機品牌會被當成爬蟲
 export function isPreviewBot(ua) {
-  return /line|facebookexternalhit|twitterbot|slackbot|whatsapp|discordbot|bot|crawler|spider/i.test(ua || "");
+  return /facebookexternalhit|twitterbot|slackbot|whatsapp|discordbot|\bbot\b|bot\/|crawler|spider/i.test(ua || "");
 }
 
 export function 欄名(i) {
@@ -49,9 +53,21 @@ export function 產生代碼() {
   return [...bytes].map((b) => A[b % A.length]).join("");
 }
 
+// 2026-09-24 14:05:03。一定要補零——
+// 以前是 2026/9/24 這種寫法，字串排序時 10/1 會排在 9/24 前面
 export function 台北時間() {
-  return new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false });
+  return new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" });
 }
+
+// 新舊兩種寫法都轉成補零的樣子，排序用。
+// 試算表裡 2026-09-25 以前的時間還是 2026/9/24 14:05:03 這種
+export function 時間鍵(s) {
+  const m = String(s || "").match(/(\d{4})\D(\d{1,2})\D(\d{1,2})\D+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return String(s || "");
+  const z = (x) => String(x || "0").padStart(2, "0");
+  return `${m[1]}-${z(m[2])}-${z(m[3])} ${z(m[4])}:${m[5]}:${z(m[6])}`;
+}
+
 
 export function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), {

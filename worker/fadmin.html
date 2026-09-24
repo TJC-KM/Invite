@@ -246,7 +246,8 @@ body.topic .pane[data-p="topic"]{display:block;}
       稱呼: $("nick").value.trim(),
       指派人: $("by").value.trim(),
       引言: $("ask").value.trim(),
-      推薦列: $("make").getAttribute("data-rec") || ""
+      推薦列: $("make").getAttribute("data-rec") || "",
+      推薦人: $("make").getAttribute("data-rec-name") || ""
     };
     if (!資料.信徒姓名) { say("要填姓名"); $("name").focus(); return; }
     if (!資料.引言)    { say("要填引言，他才知道要寫什麼"); $("ask").focus(); return; }
@@ -346,6 +347,7 @@ body.topic .pane[data-p="topic"]{display:block;}
       $("nick").value = "";
       $("ask").value = "";
       $("make").setAttribute("data-rec", rec.getAttribute("data-rec"));
+      $("make").setAttribute("data-rec-name", rec.getAttribute("data-name"));
       var why = rec.getAttribute("data-why");
       say(why ? "推薦他的人說：" + why + "　——引言請你自己寫" : "名字帶上去了，寫一段引言");
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -359,7 +361,8 @@ body.topic .pane[data-p="topic"]{display:block;}
       fetch("/f/admin/api/skip", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ 列: skip.getAttribute("data-skip") })
+        body: JSON.stringify({ 列: skip.getAttribute("data-skip"), 名: skip.getAttribute("data-name") })
+
       }).then(function(r){ return r.json(); }).then(function(d){
         if (d && d.ok) location.reload();
         else { skip.disabled = false; alert((d && d.error) || "改不動"); }

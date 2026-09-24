@@ -11,7 +11,7 @@ import FEEDBACK_HTML from "./feedback.html";
 import FADMIN_HTML from "./fadmin.html";
 import FREAD_HTML from "./fread.html";
 import { readSheet, updateCell, appendRow, getAccessToken } from "./google.js";
-import { fill, esc, json, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入, 解碼, 連結化, CODE_RE } from "./lib.js";
+import { fill, esc, json, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 時間鍵, 代入, 解碼, 連結化, CODE_RE } from "./lib.js";
 
 const 分頁 = { 回饋: "回饋單", 推薦: "推薦", 設定: "設定檔", 主題: "主題" };
 
@@ -107,7 +107,7 @@ export async function 設定(env, { 即時 = false } = {}) {
     if (k) cfg[k] = String(r.內容 ?? "");
   }
   if (env.CACHE) {
-    await env.CACHE.put("fcfg:v1", JSON.stringify(cfg), { expirationTtl: 設定快取秒 });
+    await env.CACHE.put("fcfg:v1", JSON.stringify(cfg), { expirationTtl: 設定快取秒 }).catch(() => {});
   }
   return cfg;
 }
@@ -278,23 +278,37 @@ async function 記開啟(env, r) {
   }
 }
 
-// 欄名 → 第幾欄。readSheet 會把標題列吃掉，但寫回去要知道位置，
-// 所以自己問一次 A1:Z1。記在模組變數裡，同一個 isolate 只問一次——
-// 存草稿是每打字三秒就來一趟，這裡不能每次都多一個往返。
-// 代價：有人在試算表裡搬動欄位後，要等 isolate 換掉才會跟上
-let 標題快取 = null;
-async function 標題索引(env) {
-  if (標題快取) return 標題快取;
-  const token = await getAccessToken(env);
-  const url =
-    `https://sheets.googleapis.com/v4/spreadsheets/${env.FEEDBACK_SHEET_ID}` +
-    `/values/${encodeURIComponent(`${分頁.回饋}!A1:Z1`)}`;
-  const data = await fetch(url, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json());
-  const 標題 = (data.values && data.values[0]) || [];
+// 欄名 → 第幾欄。readSheet 會把標題列吃掉，但寫回去要知道位置，所以自己問一次標題列。
+// 存草稿是每打字三秒就來一趟，每次都問太浪費，所以記一分鐘。
+//
+// 以前是記到 Worker 重啟為止（可能好幾個小時）。那段時間裡有人在試算表中間
+// 插一欄或刪一欄，存檔就會照舊位置寫——心得可能寫進隔壁欄、把別的欄蓋掉。
+// 現在最多錯一分鐘，而且改欄位這種事本來就不會在大家正在寫的時候做
+const 標題記多久 = 60 * 1000;
+const 標題快取 = {};
+
+async function 問標題(env, tab) {
+  const 記 = 標題快取[tab];
+  if (記 && Date.now() - 記.時 < 標題記多久) return 記.m;
+  const 標題 = await 讀標題原樣(env, tab);
   const m = {};
   標題.forEach((h, i) => { const k = String(h).trim(); if (k) m[k] = i; });
-  標題快取 = m;
+  標題快取[tab] = { m, 時: Date.now() };
   return m;
+}
+
+const 標題索引 = (env) => 問標題(env, 分頁.回饋);
+const 標題索引推薦 = (env) => 問標題(env, 分頁.推薦);
+
+// 標題列原樣回傳，空白的欄也保留——要拿位置去換算欄名，不能把空欄擠掉
+async function 讀標題原樣(env, tab) {
+  const token = await getAccessToken(env);
+  const data = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${env.FEEDBACK_SHEET_ID}` +
+    `/values/${encodeURIComponent(`'${tab}'!1:1`)}`,
+    { headers: { authorization: `Bearer ${token}` } }
+  ).then((r) => r.json());
+  return (data.values && data.values[0]) || [];
 }
 
 /* ── 存草稿／送出 ────────────────────────────────
@@ -322,13 +336,13 @@ async function 存檔(request, env) {
     const 欄 = await 標題索引(env);
     const 現在 = 台北時間();
 
-    // 只寫「這次真的有送來」的欄位。填寫頁已經沒有聯絡方式了，
-    // 要是還無條件寫空字串，會把幹部手動填在試算表上的電話洗掉
+    // 只寫「這次真的有送來」的欄位，而且只收這兩個——
+    // 其他欄位就算有人自己組請求帶進來，也不會寫
     const 要寫 = {
       最後修改: 現在,
       狀態: 送出 ? "已填寫" : (r.狀態 === "已填寫" || r.狀態 === "已完成" ? r.狀態 : "草稿"),
     };
-    for (const k of ["心得內容", "填寫日期", "聯絡方式"]) {
+    for (const k of ["心得內容", "填寫日期"]) {
       if (body[k] !== undefined) 要寫[k] = String(body[k]);
     }
 
@@ -424,7 +438,6 @@ async function 加入(request, env) {
       填寫日期: "",
       心得內容: "",
       檔案: "",
-      聯絡方式: "",
       提交時間: "",
       最後修改: 台北時間(),
       開啟次數: 1,
@@ -703,9 +716,7 @@ function 一列(r, 站台, cfg, 剛建, 附件 = [], 推薦 = 0) {
 
     <div class="meta">${esc(字數)}${
       r.最後修改 ? `　·　最後存檔 ${esc(r.最後修改)}` : ""
-    }${r.提交時間 ? `　·　送出 ${esc(r.提交時間)}` : ""}${
-      r.聯絡方式 ? `　·　${esc(r.聯絡方式)}` : ""
-    }</div>
+    }${r.提交時間 ? `　·　送出 ${esc(r.提交時間)}` : ""}</div>
 
     ${有內容 ? `<div class="body" id="body-${esc(r.代碼)}">${esc(有內容)}</div>` : ""}
 
@@ -745,7 +756,8 @@ function 推薦一列(r) {
     <div class="acts">
       <button type="button" data-rec="${r._row}" data-name="${esc(r.被推薦人)}"
               data-why="${esc(r.推薦原因 || "")}">建回饋單給他</button>
-      <button type="button" data-skip="${r._row}">略過</button>
+      <button type="button" data-skip="${r._row}" data-name="${esc(r.被推薦人)}">略過</button>
+
     </div>
   </div>`;
 }
@@ -767,8 +779,9 @@ async function 閱讀頁(url, env) {
 
   const 列 = 全部
     .filter((r) => String(r.主題 || "").trim() === 代碼)
-    .sort((a, b) => String(a.提交時間 || a.最後修改 || "").localeCompare(
-                    String(b.提交時間 || b.最後修改 || "")));
+    // 時間要先補零再比。舊資料是 2026/9/24 這種寫法，直接比字串的話 10 月會排到 9 月前面
+    .sort((a, b) => 時間鍵(a.提交時間 || a.最後修改).localeCompare(
+                    時間鍵(b.提交時間 || b.最後修改)));
 
   const 附件們 = await Promise.all(列.map((r) => 檔案清單(env, r.檔案)));
 
@@ -852,21 +865,20 @@ async function 建立回饋單(body, env, url) {
     填寫日期: "",
     心得內容: "",
     檔案: "",
-    聯絡方式: "",
     提交時間: "",
     最後修改: 台北時間(),
     開啟次數: 0,
   }, 表(env));
 
   // 從推薦來的，把那一列標記掉，幹部才不會重複建
-  const 列號 = parseInt(body.推薦列, 10);
-  if (列號 > 1) {
+  if (body.推薦列) {
     try {
+      const 列號 = await 找推薦列(env, body.推薦列, body.推薦人);
       const 欄 = await 標題索引推薦(env);
-      if (欄.處理狀態 != null) {
+      if (列號 && 欄.處理狀態 != null) {
         await updateCell(env, 分頁.推薦, `${欄名(欄.處理狀態)}${列號}`, "已建單", 表(env));
       }
-      if (欄.建單代碼 != null) {
+      if (列號 && 欄.建單代碼 != null) {
         await updateCell(env, 分頁.推薦, `${欄名(欄.建單代碼)}${列號}`, 代碼, 表(env));
       }
     } catch (e) {
@@ -966,7 +978,8 @@ async function 補結構(env) {
     const 位置 = 回饋標題.length;
     await updateCell(env, 分頁.回饋, `${欄名(位置)}1`, "主題", 表(env));
     做了.push(`回饋單加了「主題」欄（${欄名(位置)}）`);
-    標題快取 = null;   // 欄位變了，記在模組裡的位置就過期了
+    delete 標題快取[分頁.回饋];   // 欄位變了，記住的位置就過期了
+
   }
 
   if (env.CACHE) await env.CACHE.delete("fcfg:v1");
@@ -974,40 +987,31 @@ async function 補結構(env) {
 }
 
 async function 讀標題(env, tab) {
-  const token = await getAccessToken(env);
-  const data = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${env.FEEDBACK_SHEET_ID}` +
-    `/values/${encodeURIComponent(`${tab}!A1:Z1`)}`,
-    { headers: { authorization: `Bearer ${token}` } }
-  ).then((r) => r.json());
-  return ((data.values && data.values[0]) || []).map((h) => String(h).trim()).filter(Boolean);
+  return (await 讀標題原樣(env, tab)).map((h) => String(h).trim()).filter(Boolean);
+}
+
+// 推薦是用試算表列號在指的。頁面打開之後，中間有人刪了一列，
+// 列號就會指到下一個人——所以先確認那一列的名字對不對，不對就照名字重找
+async function 找推薦列(env, 列, 名) {
+  const 列號 = parseInt(列, 10);
+  const 名字 = String(名 || "").trim();
+  const 全部 = await 讀回饋(env, 分頁.推薦);
+  const 那列 = 全部.find((r) => r._row === 列號);
+  if (那列 && (!名字 || String(那列.被推薦人 || "").trim() === 名字)) return 列號;
+  const 照名字 = 全部.find((r) => String(r.被推薦人 || "").trim() === 名字 &&
+                               (r.處理狀態 || "待處理") === "待處理");
+  return 照名字 ? 照名字._row : 0;
 }
 
 async function 跳過推薦(body, env) {
-  const 列號 = parseInt(body.列, 10);
-  if (!(列號 > 1)) return json({ ok: false, error: "列號不正確" }, 400);
+  const 列號 = await 找推薦列(env, body.列, body.名);
+  if (!列號) return json({ ok: false, error: "找不到這一筆推薦，可能已經被處理掉了。重新整理看看" }, 404);
   const 欄 = await 標題索引推薦(env);
   if (欄.處理狀態 == null) return json({ ok: false, error: "推薦分頁沒有「處理狀態」這一欄" }, 500);
   await updateCell(env, 分頁.推薦, `${欄名(欄.處理狀態)}${列號}`, "略過", 表(env));
   return json({ ok: true });
 }
 
-// 推薦分頁的標題列。跟回饋單那份一樣的道理，記在模組變數裡
-let 推薦標題快取 = null;
-async function 標題索引推薦(env) {
-  if (推薦標題快取) return 推薦標題快取;
-  const token = await getAccessToken(env);
-  const url =
-    `https://sheets.googleapis.com/v4/spreadsheets/${env.FEEDBACK_SHEET_ID}` +
-    `/values/${encodeURIComponent(`${分頁.推薦}!A1:Z1`)}`;
-  const data = await fetch(url, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json());
-  const m = {};
-  ((data.values && data.values[0]) || []).forEach((h, i) => {
-    const k = String(h).trim(); if (k) m[k] = i;
-  });
-  推薦標題快取 = m;
-  return m;
-}
 
 async function 改狀態(body, env) {
   const code = String(body.代碼 || "").toLowerCase();

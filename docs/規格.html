@@ -371,8 +371,10 @@ Workers 幾乎沒有冷啟動，而且跑在離使用者最近的節點上。</p
   <p>結果是：一張正在被反覆打開的卡片，試算表改了永遠不會生效。
   而且症狀完全反直覺——<b>重整得越勤，越不會更新</b>。
   上面那句「最多 2 分鐘」曾經有一段時間是假的。</p>
-  <p>正確做法是沿用原本的到期時刻（絕對時間），不是重新計時。
-  剩不到 KV 允許的最短 60 秒就直接把那筆刪掉，讓下一次讀取回去問試算表。</p>
+  <p>2026-09-23 先改成沿用原本的到期時刻。隔天又發現計數用的列號也是快取裡的舊資料，
+  乾脆整個拿掉：<b>計數現在完全不碰快取</b>，每次都讀試算表當下的那一列、寫回那一列。
+  卡片上本來就不顯示次數，快取裡的數字舊一點沒有任何影響。</p>
+
 </div>
 
 <div class="win">
@@ -418,8 +420,7 @@ CHURCH_MAP     = <span class="k">"https://maps.app.goo.gl/..."</span>
 
 SHEET_ID       = <span class="k">"&lt;試算表 ID&gt;"</span>
 POSTER_FOLDER  = <span class="k">"&lt;海報資料夾 ID&gt;"</span>
-ATTACH_FOLDER  = <span class="k">"&lt;附件資料夾 ID&gt;"</span>
-OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</span></pre>
+ATTACH_FOLDER  = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 
 <p class="sub">改這些要重新部署，但教會地址電話幾年才變一次，不值得為它做一張後台表。</p>
 
@@ -449,9 +450,10 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
     <tr><td>附件</td><td>人</td><td>附件代號，逗號分隔</td></tr>
     <tr><td>狀態</td><td>人</td><td>草稿／已發送／已停用。停用後開啟顯示「連結已失效」</td></tr>
     <tr><td>建立時間</td><td>系統</td><td></td></tr>
-    <tr><td>建立者</td><td>系統</td><td>登入者 email</td></tr>
-    <tr><td>開啟次數</td><td>系統</td><td>每開啟一次 +1。<b>不記 IP</b></td></tr>
-    <tr><td>最後開啟</td><td>系統</td><td>最近一次開啟的時間</td></tr>
+    <tr><td>建立者</td><td>系統</td><td>固定寫「維護介面」。維護介面不設登入，所以不知道是誰按的</td></tr>
+    <tr><td>開啟次數</td><td>系統</td><td>每開啟一次 +1。<b>不記 IP</b>。從 LINE 點開的也算（2026-09-24 以前不算，見下）</td></tr>
+    <tr><td>最後開啟</td><td>系統</td><td>最近一次開啟的時間。所有時間欄都寫成 <code>2026-09-24 14:05:03</code>，
+        補零才排得對；那天以前寫進去的還是 <code>2026/9/24 14:05:03</code>，程式排序時兩種都認</td></tr>
     <tr><td>回覆</td><td>系統</td><td>對方按了「我要參加」的活動代號，逗號分隔</td></tr>
     <tr><td>回覆時間</td><td>系統</td><td>最近一次回覆的時間</td></tr>
   </tbody>
@@ -469,6 +471,13 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
   <p>把網址貼進 LINE，LINE 會先自己抓一次網頁來做預覽卡片——那不是人在看。
   同一則訊息被轉貼幾次就抓幾次，不擋的話次數會虛胖，這欄就失去意義了。</p>
   <p>渲染時看 <code>User-Agent</code>，是預覽爬蟲（LINE、Facebook 那幾種）就只渲染不計數。
+  <b>判斷式裡不能寫 <code>line</code></b>：LINE 內建瀏覽器的 UA 也帶 <code>Line/</code>，
+  2026-09-24 以前從 LINE 點開的人全部被當成爬蟲、沒算到——試算表上有按了「我要參加」、
+  開啟次數卻是 0 的列，就是這樣來的。LINE 真正的預覽爬蟲是
+  <code>facebookexternalhit/1.1;line-poker</code>，前面那個字就擋到了。</p>
+  <p>另外，次數的列號要用「當下讀到的」，不能用快取裡兩分鐘前的——
+  中間有人刪了一列，次數就會記到下一個人頭上。
+
   計數本身放在回應送出之後做（<code>ctx.waitUntil</code>），不要讓訪客等寫入。</p>
 </div>
 
@@ -607,7 +616,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 
 <h3>雲端硬碟的檔案怎麼進來</h3>
 <p>資料夾設成<b>「知道連結的人可檢視」</b>，維護介面貼分享連結，系統用正規式抽出檔案 ID 存進 <code>file_id</code>。</p>
-<p>設定檔裡的資料夾 ID 用來在維護介面放一顆「開啟雲端資料夾」按鈕，方便上傳。</p>
+<p>設定檔裡的資料夾 ID 是給程式列資料夾內容用的——附件或海報只填了檔名開頭時，照檔名找出檔案 ID。</p>
 
 <div class="win">
   <div class="h">實測結果：列得出來，而且好用</div>
@@ -632,7 +641,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 
 <h3>圖片走 Worker 代理</h3>
 <p>不要讓瀏覽器直接連雲端硬碟——慢，而且 Google 會限流。改成：</p>
-<pre>invite.li-ming-tjc.org/img/&lt;檔案 ID&gt;</pre>
+<pre>invite.liming-tjc.org/img/&lt;檔案 ID&gt;</pre>
 <p class="sub">Worker 抓一次後快取在邊緣節點，之後所有人都吃快取。
 順帶好處是圖片變成同網域，LINE 預覽圖也能直接用這個網址。</p>
 
@@ -804,7 +813,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
     <div class="hint">選填。會放在信件最前面</div>
   </div>
   <div class="fld">
-    <label>附件（可複選）</label>
+    <label>見證（單選）</label>
     <div class="chips"><span class="chip on">蘇真玉姊妹見證</span><span class="chip">給見證者的信</span></div>
   </div>
   <div class="fbtn">產生邀請連結</div>
@@ -841,7 +850,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 
 <div class="verdict">
   <p><b>乾淨網址，而且每張卡有自己的 LINE 預覽。</b></p>
-  <p><code>invite.li-ming-tjc.org/k7m2xq9v4bt3</code></p>
+  <p><code>invite.liming-tjc.org/k7m2xq9v4bt3</code></p>
 </div>
 
 <p>這是換掉 GAS 最大的收穫。原本用 GitHub Pages 靜態託管時，
@@ -852,7 +861,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
 
 <pre>&lt;meta property="og:title"       content=<span class="k">"陳志成 邀請你參加福音茶會"</span>&gt;
 &lt;meta property="og:description" content=<span class="k">"9/13（日）14:00　黎明教會二樓會堂"</span>&gt;
-&lt;meta property="og:image"       content=<span class="k">"https://invite.li-ming-tjc.org/img/&lt;海報 ID&gt;"</span>&gt;</pre>
+&lt;meta property="og:image"       content=<span class="k">"https://invite.liming-tjc.org/img/&lt;海報 ID&gt;"</span>&gt;</pre>
 
 <p>對方在 LINE 收到的不是一條乾巴巴的網址，而是<b>寫著他被誰邀請、海報縮圖在旁邊</b>的卡片。
 對點開機率的影響很大。</p>
@@ -959,7 +968,7 @@ OG_IMAGE       = <span class="k">"&lt;預設 LINE 預覽圖的檔案 ID&gt;"</sp
     <tr><td>KV 命名空間</td><td><code>liming-invite-cache</code></td><td>名字裡寫明是快取，提醒自己這裡的資料隨時可以丟掉重建</td></tr>
     <tr><td>Google 試算表</td><td>邀請卡資料</td><td>資料的家</td></tr>
     <tr><td>服務帳戶</td><td><code>liming-invite@…</code></td><td>只分享這一份試算表給它，不要給整個雲端硬碟</td></tr>
-    <tr><td>子網域</td><td><code>invite.li-ming-tjc.org</code></td><td>這串會出現在陌生人的 LINE 裡，看得懂比短重要</td></tr>
+    <tr><td>子網域</td><td><code>invite.liming-tjc.org</code></td><td>這串會出現在陌生人的 LINE 裡，看得懂比短重要</td></tr>
     <tr><td>雲端資料夾</td><td>邀請卡-海報　邀請卡-附件</td><td>同前綴，在雲端硬碟裡排在一起</td></tr>
   </tbody>
 </table></div>

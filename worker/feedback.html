@@ -479,7 +479,7 @@ body.sent .done{display:block;}
 
         box.className = "item ok";
         狀.textContent = "已上傳";
-        記回去(id);
+        記回去(id, 狀, 1);
       };
       xhr.onerror = function(){ 壞掉("網路中斷了，這個檔案要重傳"); };
       xhr.send(f);
@@ -492,12 +492,21 @@ body.sent .done{display:block;}
     }
   }
 
-  // 傳一個記一個。不等全部傳完才記，中途關掉至少前面幾個還在
-  function 記回去(id){
+  // 傳一個記一個。不等全部傳完才記，中途關掉至少前面幾個還在。
+  //
+  // 這一步失敗的話，檔案在雲端硬碟裡、回饋單上卻沒有它，幹部永遠看不到。
+  // 所以要確認有記上：失敗就隔幾秒再試，試三次都不行才老實講
+  function 記回去(id, 狀, 第幾次){
     fetch("/f/api/attach", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ 代碼: CODE, 檔案: [id] })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (!d || !d.ok) throw 0;
+    }).catch(function(){
+      if (第幾次 < 3) { setTimeout(function(){ 記回去(id, 狀, 第幾次 + 1); }, 2000 * 第幾次); return; }
+      狀.className = "s bad";
+      狀.textContent = "檔案傳上去了，但沒記到這份回饋單上。請重新整理這一頁，再傳一次";
     });
   }
 
@@ -528,11 +537,13 @@ body.sent .done{display:block;}
   // 不排隊的話，自動存草稿和送出同時打到伺服器，兩邊都讀到「草稿」，
   // 草稿那個晚一步寫回去，就把剛送出的「已填寫」蓋回「草稿」
   var 排隊 = Promise.resolve();
+  var 送出中 = false;   // 關分頁那一刻用得到，見最下面
 
   function 送出去(模式, 安靜){
     if (模式 === "draft" && !髒) return;
     // 主題進來的人還沒留名，就先別自動存——不要為了存草稿逼他填名字
     if (!CODE && 安靜 && !($("who") && $("who").value.trim())) return;
+    if (模式 === "submit") 送出中 = true;
     排隊 = 排隊.then(function(){ return 真的送出去(模式, 安靜); });
     return 排隊;
   }
@@ -556,6 +567,7 @@ body.sent .done{display:block;}
       });
     }).then(function(r){ return r.json(); }).then(function(d){
       draft.disabled = false; send.disabled = false;
+      if (模式 === "submit") 送出中 = false;
       if (!d || !d.ok) { 說((d && d.error) || "存不起來，等一下再試一次"); return; }
       髒 = false;
       try { localStorage.removeItem(KEY); } catch (e) {}
@@ -563,6 +575,7 @@ body.sent .done{display:block;}
       else 說("已經幫你存起來了　" + d.時間 + "　" + 存好提醒, true);
     }).catch(function(e){
       draft.disabled = false; send.disabled = false;
+      if (模式 === "submit") 送出中 = false;
       說(typeof e === "string" ? e : "網路好像不太順，你寫的字還在，等一下再按一次");
     });
   }
@@ -599,10 +612,13 @@ body.sent .done{display:block;}
     location.href = "/f/t/" + encodeURIComponent(t);
   });
 
-  // 關掉分頁前最後補一次。用 keepalive，不然請求會被瀏覽器砍掉
+  // 關掉分頁前最後補一次。用 keepalive，不然請求會被瀏覽器砍掉。
+  // 按了送出還沒回來就關掉的話，這裡也要用「送出」——
+  // 用草稿補的話，可能把剛送出的「已填寫」蓋回「草稿」
   window.addEventListener("pagehide", function(){
     if (!髒 || !CODE) return;
-    var 資料 = 現值(); 資料.代碼 = CODE; 資料.模式 = "draft";
+    var 資料 = 現值(); 資料.代碼 = CODE; 資料.模式 = 送出中 ? "submit" : "draft";
+
     try {
       fetch("/f/api/save", {
         method: "POST", keepalive: true,

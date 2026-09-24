@@ -22,7 +22,7 @@ export async function 卡片(code, request, env, ctx) {
 
   // 開啟次數：回應送出之後才寫，訪客不用等（規格第 3 節）
   if (!isPreviewBot(request.headers.get("user-agent"))) {
-    ctx.waitUntil(countOpen(code, invite, env));
+    ctx.waitUntil(countOpen(code, env));
   }
 
   return new Response(html, {
@@ -60,10 +60,9 @@ async function loadInvite(code, env) {
   if (!r) return null;
 
   const invite = 組合(r, 設定);
-  // 記下這份快取「本來」什麼時候到期。計數時要沿用這個時間，不能重新計時
-  invite._到期 = Math.floor(Date.now() / 1000) + CACHE_TTL;
   if (env.CACHE) {
-    await env.CACHE.put(key, JSON.stringify(invite), { expirationTtl: CACHE_TTL });
+    // 存不進快取（KV 當天的寫入額度用完之類）就算了，卡片照樣要開得起來
+    await env.CACHE.put(key, JSON.stringify(invite), { expirationTtl: CACHE_TTL }).catch(() => {});
   }
   return invite;
 }
@@ -116,7 +115,7 @@ async function loadConfig(env, { 即時 = false } = {}) {
 
   const cfg = { 活動, 模板, 附件, 文案, 檔案清單, 海報清單 };
   if (env.CACHE) {
-    await env.CACHE.put("cfg:v1", JSON.stringify(cfg), { expirationTtl: CACHE_TTL });
+    await env.CACHE.put("cfg:v1", JSON.stringify(cfg), { expirationTtl: CACHE_TTL }).catch(() => {});
   }
   return cfg;
 }
@@ -182,7 +181,8 @@ async function 影片標題(env, id) {
     if (!r.ok) return "";
     const d = await r.json();
     const t = String(d.title || "").trim();
-    if (t && env.CACHE) await env.CACHE.put(key, t, { expirationTtl: 60 * 60 * 24 * 30 });
+    if (t && env.CACHE) await env.CACHE.put(key, t, { expirationTtl: 60 * 60 * 24 * 30 }).catch(() => {});
+
     return t;
   } catch (e) {
     return "";
@@ -236,15 +236,17 @@ function 找PDF(清單, a) {
 
 /* ── 開啟次數（規格第 3 節）───────────────────── */
 
-async function countOpen(code, invite, env) {
-  if (!invite._row) return;
+async function countOpen(code, env) {
   try {
-    const 次數 = (Number(invite.開啟次數) || 0) + 1;
-    const 現在 = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false });
+    // 列號和次數都用「現在」讀到的，不用快取裡的。
+    // 快取是兩分鐘前的樣子：這中間有人在試算表刪了一列，
+    // 快取裡的列號就會指到下一個人，次數會記到別人頭上
+    const 邀請列 = await readSheet(env, 分頁.邀請);
+    const r = 邀請列.find((x) => String(x.代碼 || "").toLowerCase() === code);
+    if (!r) return;
 
     // 欄位位置寫死在這裡不安全（欄可能被搬動），所以照標題找欄
-    const 邀請列 = await readSheet(env, 分頁.邀請);
-    const 標題 = Object.keys(邀請列[0] || {}).filter((k) => k !== "_row");
+    const 標題 = Object.keys(r).filter((k) => k !== "_row");
     const 欄 = (名) => {
       const i = 標題.indexOf(名);
       return i < 0 ? null : 欄名(i);
@@ -252,25 +254,8 @@ async function countOpen(code, invite, env) {
 
     const c1 = 欄("開啟次數");
     const c2 = 欄("最後開啟");
-    if (c1) await updateCell(env, 分頁.邀請, `${c1}${invite._row}`, 次數);
-    if (c2) await updateCell(env, 分頁.邀請, `${c2}${invite._row}`, 現在);
-
-    // 快取裡的次數也跟上，免得兩分鐘內每次開都寫同一個數字。
-    //
-    // 但一定要沿用原本的到期時間，不能用 expirationTtl 重新計時——
-    // 否則一張正在被反覆打開的卡片，每次開都把舊資料續命兩分鐘，
-    // 試算表改了永遠不會生效。這個 bug 真的發生過，而且很難聯想：
-    // 「我明明改了，重整了十次，卡片就是不動」——重整越勤，越不會更新
-    if (env.CACHE) {
-      const 剩 = (invite._到期 || 0) - Math.floor(Date.now() / 1000);
-      if (剩 >= 60) {
-        // KV 的絕對到期時間最少要 60 秒以後，所以剩太少就不續了
-        await env.CACHE.put(`inv:${code}`, JSON.stringify({ ...invite, 開啟次數: 次數 }),
-          { expiration: invite._到期 });
-      } else {
-        await env.CACHE.delete(`inv:${code}`);
-      }
-    }
+    if (c1) await updateCell(env, 分頁.邀請, `${c1}${r._row}`, (Number(r.開啟次數) || 0) + 1);
+    if (c2) await updateCell(env, 分頁.邀請, `${c2}${r._row}`, 台北時間());
   } catch (e) {
     // 計數失敗不該影響任何人看卡片
   }
@@ -300,6 +285,20 @@ const 預設文案 = {
 function 文案(來源, 代號, 變數) {
   const 樣板 = (來源 && 來源[代號]) || 預設文案[代號] || "";
   return 代入(樣板, 變數 || {});
+}
+
+// 「用 LINE 傳送」帶的那段話。名單列表和剛新增完都用這一個——
+// 以前新增完那顆按鈕是另外寫死的，不看設定檔、也不管稱呼
+function LINE訊息(詞, r, 活動名, 網址) {
+  const 叫他 = String(r.稱呼 || "").trim();
+  return 文案(詞, "LINE訊息", {
+    對象: 叫他 || r.對象姓名,
+    稱謂: 叫他 ? "" : (r.稱謂 || ""),
+    對象全稱: 叫他 || `${r.對象姓名}${r.稱謂 || ""}`,
+    邀請人: r.邀請人,
+    活動: 活動名,
+    網址,
+  });
 }
 
 /* ────────────────────────────────────────────────
@@ -547,15 +546,7 @@ export async function adminPage(url, env) {
       const inv = 組合(r, cfg);
       const 網址 = `${站台}/${r.代碼}`;
       const 活動名 = inv.活動.map((e) => e.名稱).join("、") || "聚會";
-      const 叫他 = String(r.稱呼 || "").trim();
-      const 訊息 = 文案(cfg.文案, "LINE訊息", {
-        對象: 叫他 || r.對象姓名,
-        稱謂: 叫他 ? "" : (r.稱謂 || ""),
-        對象全稱: 叫他 || `${r.對象姓名}${r.稱謂 || ""}`,
-        邀請人: r.邀請人,
-        活動: 活動名,
-        網址,
-      });
+      const 訊息 = LINE訊息(cfg.文案, r, 活動名, 網址);
 
       const 停用了 = r.狀態 === "已停用";
       const 狀態類 = r.狀態 === "已發送" ? "sent" : 停用了 ? "off" : "";
@@ -570,7 +561,8 @@ export async function adminPage(url, env) {
       ${次數 ? `<span class="pill opened">開啟 ${次數} 次</span>` : ""}
       ${逗號(r.回覆).map((v) => {
         const e = cfg.活動.find((x) => x.活動代號 === v);
-        return `<span class="pill join">參加 ${esc(e ? e.名稱 : v)}</span>`;
+        // 沒勾活動的卡片，回覆欄記的是字面上的「我要參加」
+        return `<span class="pill join">${e ? `參加 ${esc(e.名稱)}` : esc(v === "我要參加" ? v : `參加 ${v}`)}</span>`;
       }).join("")}
     </div>
     <div class="meta">${esc(r.邀請人)} 邀請　·　${esc(活動名)}${
@@ -971,9 +963,12 @@ async function 新增邀請(body, env, url) {
     ok: true,
     代碼,
     網址,
-    訊息:
-      `${姓名}${body.稱謂 || ""}平安，我是${邀請人}。\n` +
-      `誠摯邀請你參加${活動名}，這是給你的邀請卡：\n${網址}`,
+    訊息: LINE訊息(cfg.文案, {
+      對象姓名: 姓名,
+      稱呼: body.稱呼,
+      稱謂: body.稱謂,
+      邀請人,
+    }, 活動名, 網址),
   });
 }
 
@@ -1066,7 +1061,8 @@ export async function rsvp(request, env) {
       if (c2 >= 0) await updateCell(env, 分頁.邀請, `${欄名(c2)}${r._row}`, 台北時間());
     }
 
-    if (env.CACHE) await env.CACHE.put(鎖, "1", { expirationTtl: 60 });
+    if (env.CACHE) await env.CACHE.put(鎖, "1", { expirationTtl: 60 }).catch(() => {});
+
     return json({ ok: true });
   } catch (e) {
     return json({ ok: false }, 500);
