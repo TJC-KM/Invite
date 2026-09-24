@@ -205,7 +205,30 @@ button:disabled{opacity:.5;cursor:default;}
 .done .again-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px;}
 .done .again-row button{margin:0;}
 body.sent .form,body.sent .act,body.sent .ask,body.sent .letter{display:none;}
+body.sent .main{display:none;}   /* 分欄之後剩下的空殼會留一條分隔線，一起收掉 */
 body.sent .done{display:block;}
+/* ── 桌機再寬一點就分兩欄 ──
+   680px 單欄已經夠讀了，但坐在電腦前的人多半是要寫長文的。
+   左邊擺「為什麼找你寫」和引言，右邊擺輸入框——
+   一邊看著題目一邊打字，不用捲上去確認剛剛問的是什麼 */
+@media (min-width:1080px){
+  .page{max-width:1080px;}
+  .main{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);}
+  .ca{border-right:1px solid var(--line);}
+  .cb{min-width:0;}
+  .cover{padding:38px 40px 36px;}
+  .letter{padding:32px 34px 34px;}
+  .ask{padding:26px 34px 28px;border-bottom:0;}
+  .form{padding:30px 34px 20px;}
+  .state{padding:0 34px 14px;}
+  .act{padding:16px 34px 20px;}
+  .foot{padding:22px 40px 28px;}
+  body .done{padding:56px 40px 24px;}
+  textarea{min-height:420px;}
+  .rec .row{flex-direction:row;align-items:flex-start;}
+  .rec .row .rn{flex:0 0 150px;}
+  .rec .row .rw{flex:1;}
+}
 </style>
 </head>
 <body class="{{sentClass}}">
@@ -221,6 +244,9 @@ body.sent .done{display:block;}
     <div class="greet">{{greet}}</div>
   </div>
 
+  <div class="main">
+  <div class="ca">
+
   <div class="letter">
     <h2>{{letterTitle}}</h2>
     <div class="body">{{letter}}</div>
@@ -231,6 +257,9 @@ body.sent .done{display:block;}
     <div class="lab">想請你談談</div>
     <div class="txt">{{prompt}}</div>
   </div>
+
+  </div><!-- /ca -->
+  <div class="cb">
 
   <div class="form">
 {{nameField}}
@@ -274,6 +303,9 @@ body.sent .done{display:block;}
     <button type="button" id="draft">{{saveLabel}}</button>
     <button type="button" class="main" id="send">{{submitLabel}}</button>
   </div>
+
+  </div><!-- /cb -->
+  </div><!-- /main -->
 
   <div class="done">
     <div class="big">{{doneMsg}}</div>

@@ -56,6 +56,17 @@ body{margin:0;background:var(--paper);color:var(--ink);
   .back,.foot{display:none;}
   .one{border:0;box-shadow:none;padding:0 0 22px;break-inside:avoid;}
 }
+/* ── 桌機 ──
+   這一頁常常是一個問題底下十幾篇，捲到一半就忘了當初問的是什麼。
+   螢幕夠寬就把問題釘在左邊，右邊一篇一篇看。
+   只給螢幕用——列印時還是要單欄由上往下 */
+@media screen and (min-width:1000px){
+  .wrap{max-width:1060px;display:flex;gap:44px;align-items:flex-start;padding:40px 24px 80px;}
+  .head{flex:0 0 280px;position:sticky;top:40px;margin-bottom:0;}
+  .ask{font-size:1.3rem;}
+  .list{flex:1;min-width:0;}
+  .one{padding:24px 26px;}
+}
 </style>
 </head>
 <body>
@@ -67,12 +78,16 @@ body{margin:0;background:var(--paper);color:var(--ink);
     <div class="meta">{{summary}}</div>
   </div>
 
+  <div class="list">
+
   {{items}}
 
   <div class="foot">
     這一頁是弟兄姊妹自己寫的東西。要用在刊物或見證分享之前，
     記得先跟本人聯絡、取得同意。
   </div>
+
+  </div><!-- /list -->
 </div>
 </body>
 </html>

@@ -108,6 +108,16 @@ body.topic .pane[data-p="topic"]{display:block;}
 .acts button,.acts .btn{padding:7px 11px;font-size:.8rem;}
 .empty{font-size:.85rem;color:var(--mute);padding:8px 2px;}
 .new{border-color:var(--blue);}
+/* ── 平板與桌機 ──
+   跟邀請卡的 /admin 用同一套 .cols/.panel，兩邊維護介面的操作手感才一致。
+   左邊建立與查詢固定跟著捲，右邊是結果——開一份、看一份，不用來回捲到最上面 */
+@media (min-width:900px){
+  .wrap{max-width:1180px;padding:28px 20px 70px;}
+  .cols{display:grid;grid-template-columns:380px minmax(0,1fr);gap:24px;align-items:start;}
+  .panel{position:sticky;top:20px;}
+  .rows{min-width:0;}
+  .box{padding:20px;}
+}
 </style>
 </head>
 <body class="{{tab}}">
@@ -122,6 +132,8 @@ body.topic .pane[data-p="topic"]{display:block;}
   </div>
 
 <div class="pane" data-p="solo">
+<div class="cols">
+<div class="panel">
 
   <div class="box">
     <h2>建立一份回饋單</h2>
@@ -165,13 +177,20 @@ body.topic .pane[data-p="topic"]{display:block;}
     </form>
   </div>
 
+</div><!-- /panel -->
+<div class="rows">
+
   {{recBox}}
 
   {{soloRows}}
 
+</div><!-- /rows -->
+</div><!-- /cols -->
 </div>
 
 <div class="pane" data-p="topic">
+<div class="cols">
+<div class="panel">
 
   <div class="box">
     <h2>開一個主題　<span class="hint" style="font-weight:300">一個問題，很多人回</span></h2>
@@ -203,11 +222,18 @@ body.topic .pane[data-p="topic"]{display:block;}
     <div class="chips">{{topicChips}}</div>
   </div>
 
+</div><!-- /panel -->
+<div class="rows">
+
   {{topicBar}}
 
   {{topicRows}}
 
+</div><!-- /rows -->
+</div><!-- /cols -->
 </div>
+
+</div><!-- /wrap 這個收尾本來就漏了，分欄之後一定要有，不然 .cols 會跑到 wrap 外面 -->
 
 <script>
 (function(){

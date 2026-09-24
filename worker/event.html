@@ -113,6 +113,37 @@ dd{margin:0;}
 .toast.on{opacity:1;}
 a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-offset:2px;}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+/* ── 平板與桌機 ──
+   海報是直式的，手機上滿版就對了；螢幕一寬，滿版海報會推得日期時間掉到螢幕外。
+   所以寬螢幕時海報退到左邊固定寬度，右邊放時間地點和按鈕，一眼看完不用捲。
+   沒有海報的時候左欄寬度是 auto，會自己收成 0，版面就退回單欄 */
+@media (min-width:700px) and (max-width:819px){
+  .wrap{max-width:560px;padding:28px 18px 50px;}
+  .sec{padding:26px 28px;}
+  h1{font-size:1.4rem;}
+}
+@media (min-width:820px){
+  .wrap{max-width:900px;padding:32px 20px 60px;}
+  .mid{display:grid;grid-template-columns:minmax(0,auto) minmax(320px,1fr);}
+  /* 欄位要指定死。不指定的話，沒有海報的活動只剩一個子元素，
+     它會落到第一欄，右邊那半就空在那裡 */
+  .poster{grid-column:1;width:360px;align-self:start;}
+  .info{grid-column:2;min-width:0;}
+  .mid:has(.poster) .info{border-left:1px solid var(--line);}
+  .info .sec:first-child{border-top:0;}
+  .sec{padding:26px 28px;}
+  h1{font-size:1.45rem;}
+  .cover{padding:28px 28px 30px;}
+  /* 四顆按鈕直排會拖得很長，排成兩排 */
+  .cta{flex-direction:row;flex-wrap:wrap;}
+  .cta .btn{flex:1 1 180px;}
+  .tip{text-align:left;}
+}
+@media (min-width:1100px){
+  .wrap{max-width:1020px;}
+  .poster{width:430px;}
+  .sec{padding:30px 34px;}
+}
 </style>
 </head>
 <body>
@@ -125,7 +156,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-off
       <div class="dawn">誠摯邀請</div>
     </div>
 
+    <div class="mid">
     {{posterImg}}
+    <div class="info">
 
     <div class="sec">
       <div class="sec-h">Event</div>
@@ -148,6 +181,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--violet);outline-off
       </div>
       <p class="tip" id="tip" hidden></p>
     </div>
+
+    </div><!-- /info -->
+    </div><!-- /mid -->
 
     <div class="foot">
       {{churchZh}}<br>{{churchAddress}}　{{churchPhone}}<br>

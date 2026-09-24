@@ -207,10 +207,55 @@ button.btn[disabled]{opacity:.55;cursor:default;}
   border-top:1px solid var(--line);
 }
 a:focus-visible,.attach:focus-visible{outline:2px solid var(--violet);outline-offset:2px;}
+/* ── 平板與桌機 ──
+   上面的規則一行都不動：大部分人還是從 LINE 點開，手機才是主戰場。
+   寬了之後分兩欄——左邊是「誰邀你、他說了什麼」，讀的；
+   右邊是影片、見證、活動資訊和報名鈕，看的和按的。
+   兩欄各自往下長，中間一條線，不去湊齊高度 */
+/* 平板直立大約 768～834，分兩欄的話每欄都會比手機還窄，不如就把單欄放大 */
+@media (min-width:700px) and (max-width:899px){
+  .page{max-width:560px;}
+  .cover{padding:30px 32px 36px;}
+  .sec{padding:28px 32px;}
+  .who{font-size:2.6rem;}
+  .letter{font-size:.92rem;}
+  .foot{padding:18px 32px 28px;}
+  .peek{height:auto;aspect-ratio:2/1;}
+}
+
+@media (min-width:900px){
+  .page{max-width:980px;margin:34px auto;}
+  /* 左欄要比手機的 382px 寬，不能為了擠出右欄就把信壓窄——
+     信是這張卡片的主體，讀起來變差就本末倒置了 */
+  .main{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);}
+  .ca{border-right:1px solid var(--line);}
+  .cb{min-width:0;}
+  .cb > .sec:first-child{border-top:0;}   /* 欄頂不需要分隔線 */
+  .cover{padding:32px 28px 36px;}
+  .who{font-size:2.5rem;}
+  .sec{padding:28px;}
+  /* 七百多 px 寬的滿版按鈕會很怪，改成並排 */
+  .cta{flex-direction:row;flex-wrap:wrap;gap:10px;}
+  .cta > *,.joinbox > *{flex:1 1 210px;}
+  /* 見證預覽的高度改成跟著寬度走。
+     固定 190px 在手機上剛好露出第一段，欄位一寬圖片等比長高，
+     190px 就只剩掃描件最上面那條白邊，看起來像壞掉 */
+  .peek{height:auto;aspect-ratio:2/1;}
+}
+@media (min-width:1280px){
+  .page{max-width:1240px;}
+  .main{grid-template-columns:minmax(0,480px) minmax(0,1fr);}
+  .sec{padding:32px 34px;}
+  .cover{padding:38px 34px 42px;}
+  /* 右欄夠寬了，影片排兩欄：三部就是上面兩部、下面一部 */
+  .vids{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+}
 </style>
 </head>
 <body>
 <div class="page">
+<div class="main">
+<div class="ca">
 
   <div class="cover">
     <div class="church">
@@ -232,6 +277,9 @@ a:focus-visible,.attach:focus-visible{outline:2px solid var(--violet);outline-of
     </div>
   </div>
 
+</div><!-- /ca -->
+<div class="cb">
+
   {{videos}}
 
   {{attachments}}
@@ -244,6 +292,9 @@ a:focus-visible,.attach:focus-visible{outline:2px solid var(--violet);outline-of
       <a class="btn btn-2" href="{{mapUrl}}" target="_blank" rel="noopener">{{mapLabel}}</a>
     </div>
   </div>
+
+</div><!-- /cb -->
+</div><!-- /main -->
 
   <div class="foot">{{churchZh}}　<a href="{{churchSite}}" target="_blank" rel="noopener">教會官網</a></div>
 </div>
