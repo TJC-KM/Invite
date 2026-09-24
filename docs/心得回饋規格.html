@@ -170,7 +170,7 @@ ul.plain li::before{
 
 <div class="wrap">
 
-<div class="eyebrow">Build Spec · Rev 4 · 2026-09-07</div>
+<div class="eyebrow">Build Spec · Rev 5 · 2026-09-24</div>
 <h1>說說主的恩典　系統規格</h1>
 <p class="lede">
   弟兄姊妹寫下事件裡的感動，教會保存下來。
@@ -179,17 +179,24 @@ ul.plain li::before{
 </p>
 
 <div class="verdict">
+  <p><b>Rev 5：四個版面都有了平板與電腦的版型，手機一行沒改。</b></p>
+  <p>填寫頁在 1080 以上分兩欄——<b>左邊讀引言、右邊寫</b>，打字時不用捲回去確認題目。
+  維護頁和閱讀頁也各自分欄，平板則刻意維持單欄。全部在第 5 節。</p>
+</div>
+
+<div class="verdict" style="opacity:.75">
   <p><b>Rev 4：多了「主題」——一個引言，很多人回。</b></p>
   <p>本來每一份回饋單都是幹部指名給某一個人的。現在多一種：
   開一個公開連結貼到群組，<b>誰來寫，誰才有那一列</b>。
   用在「今天這場聚會，大家的心得」這種場合。</p>
-  <p>關鍵是<b>沒有另開一套</b>——見第 8 節。同一個維護頁、同一個填寫頁、
+  <p>關鍵是<b>沒有另開一套</b>——見第 9 節。同一個維護頁、同一個填寫頁、
   同一張回饋單分頁。另外，引言裡貼的網址現在會變成可以點的連結。</p>
 </div>
 
 <div class="win">
   <div class="h">Rev 3 的重點（仍然有效）</div>
-  <p>名字叫「感動回饋」、說明是一封五段的信並且擺在表單前面、
+  <p>改了名字（後來又改過一次，現在叫「說說主的恩典」，見第 2 節）、
+  說明是一封五段的信並且擺在表單前面、
   明講可以用 Word 打完再上傳、藍色配色。</p>
 </div>
 
@@ -216,13 +223,14 @@ ul.plain li::before{
     <li><a href="#s2">系統架構</a></li>
     <li><a href="#s3">資料表與設定</a></li>
     <li><a href="#s4">填寫頁</a></li>
-    <li><a href="#s5">上傳</a></li>
-    <li><a href="#s6">維護介面</a></li>
-    <li><a href="#s7">推薦的閉環</a></li>
-    <li><a href="#s8">主題：多人回一個引言</a></li>
-    <li><a href="#s9">隱私與同意</a></li>
-    <li><a href="#s10">建置步驟</a></li>
-    <li><a href="#s11">尚未決定</a></li>
+    <li><a href="#s5">版面</a></li>
+    <li><a href="#s6">上傳</a></li>
+    <li><a href="#s7">維護介面</a></li>
+    <li><a href="#s8">推薦的閉環</a></li>
+    <li><a href="#s9">主題：多人回一個引言</a></li>
+    <li><a href="#s10">隱私與同意</a></li>
+    <li><a href="#s11">建置步驟</a></li>
+    <li><a href="#s12">尚未決定</a></li>
   </ol>
 </nav>
 
@@ -238,7 +246,7 @@ ul.plain li::before{
 <ul class="plain">
   <li><b>服務帳戶</b>　同一把 <code>GOOGLE_KEY</code>，不用另外申請身分。新的試算表和資料夾分享給它就行</li>
   <li><b>google.js</b>　簽 JWT 換權杖、讀分頁、寫儲存格、新增列、列資料夾、Drive 縮圖，全部照用</li>
-  <li><b>代碼規則</b>　12 碼、字集去掉易混淆字元、不可流水號（邀請卡規格第 8 節）</li>
+  <li><b>代碼規則</b>　12 碼、字集去掉易混淆字元、不可流水號（邀請卡規格第 9 節）</li>
   <li><b>維護介面的形狀</b>　左邊建立、右邊查詢，先查才列</li>
 </ul>
 
@@ -281,10 +289,10 @@ ul.plain li::before{
     <tr><td><code>/f/api/save</code></td><td>存草稿／送出心得／收推薦</td><td>要正確代碼</td></tr>
     <tr><td><code>/f/api/upload-url</code></td><td>跟 Drive 要一個上傳網址</td><td>要正確代碼</td></tr>
     <tr><td><code>/f/api/attach</code></td><td>瀏覽器傳完後回報檔案 ID</td><td>要正確代碼</td></tr>
-    <tr><td><code>/f/t/&lt;主題代碼&gt;</code></td><td>主題的公開填寫頁</td><td>任何人　見第 8 節</td></tr>
+    <tr><td><code>/f/t/&lt;主題代碼&gt;</code></td><td>主題的公開填寫頁</td><td>任何人　見第 9 節</td></tr>
     <tr><td><code>/f/api/join</code></td><td>留名，替他建一列</td><td>要有效的主題</td></tr>
     <tr><td><code>/f/read?topic=</code></td><td>一次讀完同主題全部</td><td>任何人</td></tr>
-    <tr><td><code>/f/admin</code></td><td>維護介面</td><td>任何人　見第 9 節</td></tr>
+    <tr><td><code>/f/admin</code></td><td>維護介面</td><td>任何人　見第 10 節</td></tr>
     <tr><td><code>/f/admin/api/new</code></td><td>建立回饋單</td><td>任何人</td></tr>
     <tr><td><code>/f/admin/api/status</code></td><td>改狀態</td><td>任何人</td></tr>
     <tr><td><code>/f/admin/api/skip</code></td><td>略過一筆推薦</td><td>任何人</td></tr>
@@ -382,7 +390,7 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
     <tr><td>提交時間</td><td>系統</td><td>第一次送出的時間</td></tr>
     <tr><td>最後修改</td><td>系統</td><td>每次儲存都更新</td></tr>
     <tr><td>開啟次數</td><td>系統</td><td>知道他點開了沒，方便關懷提醒</td></tr>
-    <tr><td>主題</td><td>系統</td><td>從主題連結來的才有。一對一建的留白。見第 8 節</td></tr>
+    <tr><td>主題</td><td>系統</td><td>從主題連結來的才有。一對一建的留白。見第 9 節</td></tr>
   </tbody>
 </table></div>
 
@@ -470,7 +478,7 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   <li><b>引言</b>　幹部打的那段話，就是這張單在問什麼</li>
   <li><b>日期</b>　非必填，預設今天</li>
   <li><b>你想說的</b>　<b>一個大框</b>，下面明講可以改用 Word</li>
-  <li><b>文件、照片或影片</b>　非必填，見第 5 節</li>
+  <li><b>文件、照片或影片</b>　非必填，見第 6 節</li>
   <li><b>還有誰？</b>　非必填，姓名＋原因（多行），可以加好幾組</li>
   <li><b>先儲存</b>　和　<b>送出</b></li>
 </ul>
@@ -632,7 +640,99 @@ FEEDBACK_FOLDER    = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 幹部同時開著兩個分頁時才不會按錯。維護介面也一起改藍。</p>
 
 
-<h2 id="s5"><span class="n">05</span>上傳</h2>
+<h2 id="s5"><span class="n">05</span>版面</h2>
+
+<p>這一套從頭就是手機優先——連結是貼在群組裡的，點開的人十個有九個在手機上。
+但<b>真的坐下來寫長文的人，往往是在電腦前</b>。這兩件事不衝突，只是不能只做一種。</p>
+
+<div class="verdict">
+  <p><b>Rev 5：900／1080 以上分兩欄，平板刻意維持單欄。手機的規則一行都沒改。</b>
+  這次四個版面加起來的 diff 是<b>純新增、沒有刪改</b>，舊樣式一個字都沒被碰到。</p>
+  <p class="sub" style="margin-bottom:0">
+  桌機從 430 放寬到 680px 其實 Rev 4 之後就做了（有人反應「用電腦看好窄」），
+  當時沒寫進規格，一併補在這裡。</p>
+</div>
+
+<h3>斷點</h3>
+
+<div class="tw"><table>
+  <thead><tr><th>視窗寬度</th><th>填寫頁／主題頁</th><th><code>/f/admin</code></th><th><code>/f/read</code></th></tr></thead>
+  <tbody>
+    <tr><td>&lt; 760</td><td>單欄 430px（原樣）</td><td>單欄 620px</td><td>單欄 720px</td></tr>
+    <tr><td>760 – 1079</td><td>單欄 680px</td><td>同上</td><td>同上</td></tr>
+    <tr><td>≥ 900</td><td>—</td><td><b>兩欄</b>　380 ／ 其餘</td><td>—</td></tr>
+    <tr><td>≥ 1000</td><td>—</td><td>—</td><td><b>兩欄</b>　280 ／ 其餘</td></tr>
+    <tr><td>≥ 1080</td><td><b>兩欄</b>　總寬 1080</td><td>—</td><td>—</td></tr>
+  </tbody>
+</table></div>
+
+<p class="sub">填寫頁的門檻訂得比另外兩個高，是因為它兩欄都要能讀能寫；
+維護頁和閱讀頁的左欄是輔助用的，窄一點沒關係。</p>
+
+<h3>填寫頁：左邊讀，右邊寫</h3>
+
+<div class="tw"><table>
+  <thead><tr><th>左欄</th><th>右欄</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>為什麼找你寫（那封信）<br>想請你談談（引言）</td>
+      <td>姓名、日期<br>你想說的（大輸入框）<br>加檔案<br>還有誰？<br>存草稿 ／ 送出</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<p>單欄的時候，引言在畫面最上面，開始打字之後就捲不見了——
+想確認「他到底問我什麼」得整個捲回去。分成兩欄，<b>題目一直在旁邊</b>。
+輸入框也從手機的 342px 變成 514px 寬、420px 高，寫長文不再像在便條紙上寫。</p>
+
+<div class="win">
+  <div class="h">HTML 的順序就是手機的順序</div>
+  <p>兩欄包成 <code>.main &gt; .ca + .cb</code>：<code>.ca</code> 裡剛好是信和引言，
+  <code>.cb</code> 裡剛好是整個表單和底下的按鈕列——<b>接起來就是原本手機的順序</b>。
+  手機上這兩個容器只是普通的 block，等於不存在。</p>
+</div>
+
+<div class="warn">
+  <div class="h">送出之後要把 <code>.main</code> 整個收掉</div>
+  <p>送出後是 <code>body.sent</code> 把表單那幾塊隱藏、換成感謝畫面。
+  原本的規則只藏了 <code>.letter</code>、<code>.ask</code>、<code>.form</code>、<code>.act</code>——
+  分欄之後，包著它們的兩個空殼還在，<b>中間那條分隔線會孤零零地留在畫面上</b>。
+  多一條 <code>body.sent .main{display:none}</code>。</p>
+</div>
+
+<h3>維護頁與閱讀頁</h3>
+
+<ul class="plain">
+  <li><b><code>/f/admin</code></b>　左邊「建立回饋單」和「查詢」跟著捲（<code>position:sticky</code>），
+  右邊是結果。<b>直接沿用邀請卡 <code>/admin</code> 的 <code>.cols</code> / <code>.panel</code></b>——
+  同一個人在兩個維護介面之間來回，手感一致比各自最佳化重要</li>
+  <li><b><code>/f/read</code></b>　一個主題底下常常十幾篇，捲到一半就忘了當初問什麼。
+  引言釘在左邊，右邊一篇一篇看。一行收在 40 個中文字上下</li>
+</ul>
+
+<div class="win">
+  <div class="h">閱讀頁的分欄只給螢幕，列印仍然是單欄</div>
+  <p>這一頁本來就有列印樣式（幹部會印出來帶去開會）。
+  分欄規則寫成 <code>@media screen and (min-width:1000px)</code>，
+  列印時不套用，維持由上往下一篇接一篇。</p>
+</div>
+
+<h3>平板刻意不分欄</h3>
+
+<p>iPad 直立大約 768～834。在那個寬度硬分兩欄，每一欄都會<b>比手機還窄</b>——
+填寫頁的輸入框會從 342px 掉到三百出頭，反而更難寫。
+不到門檻就單純把單欄放大，不去追「看起來像桌機」。</p>
+
+<div class="warn">
+  <div class="h">順手修掉：維護頁的 <code>.wrap</code> 從來沒有關過</div>
+  <p><code>fadmin.html</code> 最外層那個 <code>&lt;div class="wrap"&gt;</code> 一直沒有收尾，
+  瀏覽器自己補在 <code>&lt;/body&gt;</code>，所以單欄時完全看不出來。
+  一分欄就會讓兩欄的容器跑到 wrap 外面、吃不到最大寬度和留白。</p>
+  <p>這種錯不會報錯、不會出現在任何檢查裡，<b>只有在版面改動時才會現形</b>。</p>
+</div>
+
+
+<h2 id="s6"><span class="n">06</span>上傳</h2>
 
 <div class="verdict">
   <p><b>檔案不經過 Worker，瀏覽器直接傳給 Google。</b></p>
@@ -696,11 +796,11 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 <p class="sub">上傳完成後，檔案 ID 寫進「檔案」欄，逗號分隔。
 填寫頁重新打開時會把已經傳過的檔案列出來，附一個開 Drive 的連結。</p>
 
-<p class="sub">維護介面也會列出附件，見第 6 節。縮圖預覽還沒做——
+<p class="sub">維護介面也會列出附件，見第 7 節。縮圖預覽還沒做——
 邀請卡那邊的 <code>/thumb/&lt;檔案 ID&gt;</code> 可以直接沿用，等真的有人傳 PDF 再說。</p>
 
 
-<h2 id="s6"><span class="n">06</span>維護介面</h2>
+<h2 id="s7"><span class="n">07</span>維護介面</h2>
 
 <p><code>/f/admin</code>　最上面兩個頁籤：<b>一對一</b>和<b>主題</b>。
 手機上是單欄，跟邀請卡同一個形狀，但配色是藍的。</p>
@@ -758,7 +858,7 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 （邀請卡那邊的 <code>/thumb</code> 可以直接沿用，等真的有人傳 PDF 再說）。</p>
 
 
-<h2 id="s7"><span class="n">07</span>推薦的閉環</h2>
+<h2 id="s8"><span class="n">08</span>推薦的閉環</h2>
 
 <div class="verdict">
   <p><b>信徒推薦別人 → 幹部按一顆按鈕 → 新的回饋單就建好了。</b></p>
@@ -796,7 +896,7 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 不會變成一堆沒人接手的線索。</p>
 
 
-<h2 id="s8"><span class="n">08</span>主題：多人回一個引言</h2>
+<h2 id="s9"><span class="n">09</span>主題：多人回一個引言</h2>
 
 <div class="verdict">
   <p><b>一份回覆不管怎麼來的，都還是回饋單裡的一列。</b></p>
@@ -914,7 +1014,7 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 </div>
 
 
-<h2 id="s9"><span class="n">09</span>隱私與同意</h2>
+<h2 id="s10"><span class="n">10</span>隱私與同意</h2>
 
 <div class="warn">
   <div class="h">現況：維護介面沒有身分驗證</div>
@@ -945,12 +1045,12 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 </div>
 
 
-<h2 id="s10"><span class="n">10</span>建置步驟</h2>
+<h2 id="s11"><span class="n">11</span>建置步驟</h2>
 <p class="sub">可以打勾，進度存在這台裝置的瀏覽器裡。
 標著 <span class="who you">你</span> 的是我沒辦法代做的。</p>
 
 <div class="verdict">
-  <p><b>第 1 到 12 步都做完了。</b>
+  <p><b>第 1 到 13 步都做完了。</b>
   剩下的兩步都是你的：用手機從 LINE 走一遍，然後刪掉測試資料。</p>
 </div>
 
@@ -1012,12 +1112,17 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
     閱讀頁、維護頁的主題區與結束收件。<code>setup</code> 會自動補結構</div></div></li>
 
   <li data-k="13"><input type="checkbox" tabindex="-1"><div class="bd">
+    <div class="st">平板與電腦的版型</div>
+    <div class="sd">填寫頁、主題頁、維護頁、閱讀頁四個一起分欄。
+    手機的規則沒有動到（diff 純新增）。見第 5 節</div></div></li>
+
+  <li data-k="14"><input type="checkbox" tabindex="-1"><div class="bd">
     <div class="st">端到端測試<span class="who you">你</span></div>
     <div class="sd">用另一支手機，從 LINE 點開填一份完整的：長心得、傳一支影片、推薦一個人。
     重點看三件事：<b>LINE 內建瀏覽器裡選得到檔案嗎</b>、
     <b>大影片的進度條會不會卡住</b>、<b>寫到一半切走再回來字還在不在</b></div></div></li>
 
-  <li data-k="14"><input type="checkbox" tabindex="-1"><div class="bd">
+  <li data-k="15"><input type="checkbox" tabindex="-1"><div class="bd">
     <div class="st">刪掉測試資料<span class="who you">你</span></div>
     <div class="sd">回饋單分頁四列（測試－請刪除、測試被推薦人、王小明、李美惠）、
     推薦分頁一列、主題分頁的「測試-聚會心得」、雲端資料夾一個測試文字檔。
@@ -1026,7 +1131,7 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 <button class="reset" id="reset" type="button">清除打勾</button>
 
 
-<h2 id="s11"><span class="n">11</span>尚未決定</h2>
+<h2 id="s12"><span class="n">12</span>尚未決定</h2>
 
 <ul class="plain">
   <li><b>影片要留多久</b>　系統只負責收，不會自己刪。空間的清理由幹部手動處理——但「多久算舊」還沒有規矩</li>
@@ -1079,7 +1184,7 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 </div>
 
 <div class="foot">
-  說說主的恩典　規格 Rev 4 · 2026-09-07　|　搭配<a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 Rev 5</a> 使用
+  說說主的恩典　規格 Rev 5 · 2026-09-24　|　搭配<a href="https://claude.ai/code/artifact/618bb360-d8ee-4ec7-8e52-6af21cf98aff">邀請卡規格 Rev 7</a> 使用
 </div>
 
 </div>
@@ -1087,10 +1192,10 @@ Access-Control-Allow-Origin: https://invite.liming-tjc.org
 <script>
 (function(){
   'use strict';
-  // Rev 4：第 1–12 步已經做完，預設就打好勾。
+  // Rev 5：第 1–13 步已經做完，預設就打好勾。
   // 鍵名跟著換版本，不然看過 Rev 1 的人會停在自己當初的進度
-  var KEY = 'feedback-spec-steps-v4';
-  var 預設 = {1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,10:1,11:1,12:1};
+  var KEY = 'feedback-spec-steps-v5';
+  var 預設 = {1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,10:1,11:1,12:1,13:1};
   var list = document.getElementById('steps');
   var reset = document.getElementById('reset');
 
