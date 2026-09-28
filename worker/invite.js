@@ -536,9 +536,12 @@ export async function adminPage(url, env) {
 
   // 沒指定邀請人就什麼都不列。名單是別人的個資，不該一打開就攤在畫面上
   const 查詢 = String(url.searchParams.get("from") || "").trim();
+  // 新的在最上面：剛新增完跳回這一頁，要一眼看到自己剛建的那一筆。
+  // 用列號排——新增一律接在試算表最底下，列號就是建立的先後
   const 列 = 查詢
-    ? 全部.filter((r) => String(r.邀請人 || "").trim() === 查詢)
+    ? 全部.filter((r) => String(r.邀請人 || "").trim() === 查詢).sort((a, b) => b._row - a._row)
     : [];
+
 
   const rows = 列
     .filter((r) => r.代碼)
