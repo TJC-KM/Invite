@@ -129,31 +129,33 @@ function 組合(r, cfg) {
   const 模板 = cfg.模板.find((t) => t.模板代號 === r.信件模板 && 有效(t.啟用));
   const 信件內文 = 模板 ? String(模板.內文).split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean) : [];
 
+  // 附件欄只認見證。以前影片也是逐張勾、寫在這一欄，現在不讀了——
+  // 舊資料裡的影片代號留著也不會重複出現
   const 附件 = 逗號(r.附件)
     .map((代號) => cfg.附件.find((a) => a.附件代號 === 代號))
-    .filter((a) => a && 有效(a.啟用))
-    .map((a) => 是影片(a)
-      // 影片的「檔案」欄放的是 YouTube 網址，不是雲端硬碟的東西。
-      // 丟去 解析檔案() 只會被當成找不到的檔名，整列變空的
-      ? { 名稱: a.名稱, 說明: a.說明, 類型: a.類型, 檔案: [], 原始檔: "",
-          影片: 逗號(a.檔案).map(影片ID).filter(Boolean) }
-      : {
-          名稱: a.名稱,
-          說明: a.說明,
-          類型: a.類型,
-          檔案: a.檔案
-            ? 逗號(a.檔案).map((v) => 解析檔案(v, cfg.檔案清單)).filter(Boolean)
-            : 依檔名找(cfg.檔案清單, a),
-          原始檔: a.原始檔 || 找PDF(cfg.檔案清單, a),
-          影片: [],
-        });
+    .filter((a) => a && 有效(a.啟用) && !是影片(a))
+    .map((a) => ({
+      名稱: a.名稱,
+      說明: a.說明,
+      類型: a.類型,
+      檔案: a.檔案
+        ? 逗號(a.檔案).map((v) => 解析檔案(v, cfg.檔案清單)).filter(Boolean)
+        : 依檔名找(cfg.檔案清單, a),
+      原始檔: a.原始檔 || 找PDF(cfg.檔案清單, a),
+    }));
+
+  // 影片每一張卡片都一樣：附件分頁裡類型是 YouTube、啟用的，照試算表的順序全放。
+  // 要換影片就去改那幾列的「啟用」，不用動程式
+  const 影片 = cfg.附件
+    .filter((a) => 是影片(a) && 有效(a.啟用))
+    .map((a) => ({ 名稱: a.名稱, 說明: a.說明, 影片: 逗號(a.檔案).map(影片ID).filter(Boolean) }))
+    .filter((a) => a.影片.length);
 
   return {
     代碼: r.代碼,
     _row: r._row,
     對象姓名: r.對象姓名,
     稱呼: r.稱呼,
-    稱謂: r.稱謂,
     邀請人: r.邀請人,
     狀態: r.狀態,
     個人化開場: r.個人化開場,
@@ -161,6 +163,7 @@ function 組合(r, cfg) {
     開啟次數: Number(r.開啟次數) || 0,
     活動,
     附件,
+    影片,
     信件內文,
     文案: cfg.文案 || {},
   };
@@ -274,7 +277,7 @@ const 預設文案 = {
   地圖按鈕: "查看地圖",
   附件標題: "Testimony",
   影片標題: "影片",
-  稱謂選項: "先生,小姐,弟兄,姊妹,同學,老師,平安",
+
   稱呼建議: "阿姨,叔叔,伯父,伯母,學長,學姐,女兒,女婿",
   預設地點: "黎明教會",
   邀請開頭: "{邀請人} 誠摯邀請你",
@@ -287,14 +290,17 @@ function 文案(來源, 代號, 變數) {
   return 代入(樣板, 變數 || {});
 }
 
-// 「用 LINE 傳送」帶的那段話。名單列表和剛新增完都用這一個——
-// 以前新增完那顆按鈕是另外寫死的，不看設定檔、也不管稱呼
+// 「用 LINE 傳送」帶的那段話。名單列表和剛新增完都用這一個。
+// 稱謂已經拿掉了：{對象全稱} 跟 {對象} 一樣，留著是因為設定檔裡的訊息還在用它
+function 叫法(r) {
+  return String(r.稱呼 || "").trim() || String(r.對象姓名 || "").trim();
+}
+
 function LINE訊息(詞, r, 活動名, 網址) {
-  const 叫他 = String(r.稱呼 || "").trim();
   return 文案(詞, "LINE訊息", {
-    對象: 叫他 || r.對象姓名,
-    稱謂: 叫他 ? "" : (r.稱謂 || ""),
-    對象全稱: 叫他 || `${r.對象姓名}${r.稱謂 || ""}`,
+    對象: 叫法(r),
+    稱謂: "",
+    對象全稱: 叫法(r),
     邀請人: r.邀請人,
     活動: 活動名,
     網址,
@@ -309,10 +315,8 @@ function renderCard(inv, env) {
   const 詞 = inv.文案;                  // 設定檔分頁的文案，附件區與按鈕都會用到
 
   // 稱呼是「卡片上怎麼叫他」，對象姓名是「名單上他是誰」——兩件事。
-  // 填了稱呼就整張卡片都用它，也不再接稱謂（「阿姨小姐」很怪）
-  const 有稱呼 = !!String(inv.稱呼 || "").trim();
-  const 全名 = esc(有稱呼 ? inv.稱呼 : inv.對象姓名);
-  const 敬稱 = 有稱呼 ? "" : esc(inv.稱謂 || "");
+  // 填了稱呼就用它，沒填就用姓名。不接稱謂：那個欄位大家一直搞不懂，拿掉了
+  const 全名 = esc(叫法(inv));
   const 邀請人 = esc(inv.邀請人);
   const 活動 = inv.活動 || [];
   const 首場 = 活動[0];
@@ -326,7 +330,7 @@ function renderCard(inv, env) {
     // 先逃脫整段，再把變數換成 <mark>——順序反了就等於開放試算表注入 HTML
     const 內容 = esc(p)
       .replace(/\{對象\}/g, `<mark>${全名}</mark>`)
-      .replace(/\{對象全稱\}/g, `<mark>${全名}${敬稱}</mark>`)
+      .replace(/\{對象全稱\}/g, `<mark>${全名}</mark>`)
       .replace(/\{邀請人\}/g, `<mark>${邀請人}</mark>`);
     return i === 0 ? `<p class="salut">${內容}</p>` : `<p>${內容}</p>`;
   }).join("\n      ");
@@ -347,7 +351,7 @@ function renderCard(inv, env) {
   </div>`).join("\n");
 
   // 影片集中成一個區塊；見證附件維持原本的一份一區
-  const 影片們 = (inv.附件 || []).filter(是影片);
+  const 影片們 = inv.影片 || [];
   const 影片區 = 影片們.length ? `
   <div class="sec">
     <div class="sec-h">${esc(文案(詞, "影片標題", {}))}</div>
@@ -362,7 +366,7 @@ function renderCard(inv, env) {
       </div>`).join("")).join("")}</div>
   </div>` : "";
 
-  const 附件區 = (inv.附件 || []).filter((a) => !是影片(a)).map((a) => {
+  const 附件區 = (inv.附件 || []).map((a) => {
     const 頁 = a.類型 === "圖片集" && Array.isArray(a.檔案)
       ? `<div class="pages">${a.檔案
           .map((id, n) => `<img src="/img/${esc(id)}" alt="${esc(a.名稱)} 第 ${n + 1} 頁" loading="lazy">`)
@@ -422,7 +426,6 @@ function renderCard(inv, env) {
     churchMeta: `${esc(env.CHURCH_ADDRESS || "")}<br>${esc(env.CHURCH_PHONE || "")}`,
     churchPhone: esc(env.CHURCH_PHONE || ""),
     who: 全名,
-    hon: 敬稱,
     from: 邀請人,
     letter: 信,
     events: 活動區,
@@ -558,7 +561,7 @@ export async function adminPage(url, env) {
       return `
   <div class="card${停用了 ? " off" : ""}">
     <div class="top">
-      <span class="who">${esc(r.對象姓名)}${esc(r.稱呼 ? "" : r.稱謂 || "")}</span>
+      <span class="who">${esc(r.對象姓名)}</span>
       ${r.稱呼 ? `<span class="pill">卡片上叫「${esc(r.稱呼)}」</span>` : ""}
       <span class="pill ${狀態類}">${esc(r.狀態 || "草稿")}</span>
       ${次數 ? `<span class="pill opened">開啟 ${次數} 次</span>` : ""}
@@ -689,10 +692,9 @@ export async function adminPage(url, env) {
     cancelRow: 編輯中
       ? `<a class="lnk" href="/admin?from=${encodeURIComponent(編輯中.邀請人 || "")}">取消</a>`
       : "",
-    // 預設是姓名加稱謂；編輯已經有稱呼的那一筆時，勾選要自動打勾
-    modeNick: 編輯中 && String(編輯中.稱呼 || '').trim() ? 'checked' : '',
+
     vName: v("對象姓名"),
-    vHon: v("稱謂"),
+
     vNick: v("稱呼"),
     vFrom: v("邀請人"),
     vOpen: v("個人化開場"),
@@ -724,18 +726,7 @@ export async function adminPage(url, env) {
       編輯中 ? 逗號(編輯中.附件) : []
     ),
 
-    // 影片比照「邀請參加」那排：可複選。
-    // 存的時候跟下拉選的見證合併寫進同一個「附件」欄
-    videoChecks: 啟用中(cfg.附件).filter(是影片).map((a) => `
-      <label class="check">
-        <input type="checkbox" name="影片" value="${esc(a.附件代號)}"${
-          編輯中 && 逗號(編輯中.附件).includes(a.附件代號) ? " checked" : ""}>
-        <span>${esc(a.名稱 || a.附件代號)}</span>
-      </label>`).join(""),
-
-    // 稱謂與稱呼的建議清單來自設定檔，維護的人自己加減；兩欄都仍可自由輸入
-    honOptions: 逗號(文案(cfg.文案, "稱謂選項", {}))
-      .map((v) => `<option value="${esc(v)}"></option>`).join(""),
+    // 稱呼的建議清單來自設定檔，維護的人自己加減；仍可自由輸入
     nickOptions: 逗號(文案(cfg.文案, "稱呼建議", {}))
       .map((v) => `<option value="${esc(v)}"></option>`).join(""),
 
@@ -936,7 +927,6 @@ async function 新增邀請(body, env, url) {
     代碼,
     對象姓名: 姓名,
     稱呼: String(body.稱呼 || "").trim(),
-    稱謂: String(body.稱謂 || "").trim(),
     邀請人,
     活動: String(body.活動 || "").trim(),
     信件模板: String(body.信件模板 || "").trim(),
@@ -969,7 +959,6 @@ async function 新增邀請(body, env, url) {
     訊息: LINE訊息(cfg.文案, {
       對象姓名: 姓名,
       稱呼: body.稱呼,
-      稱謂: body.稱謂,
       邀請人,
     }, 活動名, 網址),
   });
@@ -985,7 +974,8 @@ async function 修改邀請(body, env) {
   if (!r) return json({ ok: false, error: "找不到這筆邀請" }, 404);
 
   const 標題 = Object.keys(列[0]).filter((k) => k !== "_row");
-  const 可改 = ["對象姓名", "稱呼", "稱謂", "邀請人", "活動", "信件模板", "個人化開場", "客製內文", "附件"];
+  const 可改 = ["對象姓名", "稱呼", "邀請人",
+ "活動", "信件模板", "個人化開場", "客製內文", "附件"];
 
   const 改了 = [];
   for (const 名 of 可改) {

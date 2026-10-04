@@ -197,7 +197,7 @@ ul.plain li::before{
 
 <div class="wrap">
 
-<div class="eyebrow">Build Spec · Rev 8 · 已上線</div>
+<div class="eyebrow">Build Spec · Rev 9 · 已上線</div>
 <h1>邀請卡系統規格</h1>
 <p class="lede">
   個人化邀請卡的資料結構、命名規則與建置步驟。
@@ -206,6 +206,9 @@ ul.plain li::before{
 </p>
 
 <div class="verdict">
+  <p><b>Rev 9：維護介面拿掉兩樣大家一直用不順的東西。</b></p>
+  <p><b>稱謂</b>　表單只剩「對象姓名」和「卡片上叫他」，卡片封面不再接先生、小姐。見第 3、6 節。</p>
+  <p><b>影片</b>　不再逐張勾選。附件分頁裡啟用的影片，每一張卡片都放，換影片改「啟用」欄就好。見第 3 節。</p>
   <p><b>Rev 8：整份程式體檢過一遍，修掉會算錯、會寫錯的幾個地方。</b>
   最大的一個：<b>從 LINE 點開的人一直沒被算進開啟次數</b>。
   其他是時間格式、讀表上限、計數寫錯列的風險，清單在第 2 節最後。功能和畫面都沒變。</p>
@@ -467,8 +470,8 @@ ATTACH_FOLDER  = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   <tbody>
     <tr><td>代碼</td><td>系統</td><td>隨機 12 碼，就是網址最後那串</td></tr>
     <tr><td>對象姓名 <span class="req">*</span></td><td>人</td><td>簡嘉雯。名單上的身分，維護的人靠它認人</td></tr>
-    <tr><td>稱呼</td><td>人</td><td>選填。卡片上怎麼叫他——阿姨、小雯、女兒。<b>填了就不接稱謂</b></td></tr>
-    <tr><td>稱謂 <span class="req">*</span></td><td>人</td><td>先生／小姐／弟兄／姊妹／平安</td></tr>
+    <tr><td>稱呼</td><td>人</td><td>選填。維護介面上叫「卡片上叫他」——阿姨、小雯、林大哥。<b>空白就直接用對象姓名</b></td></tr>
+    <tr><td>稱謂</td><td>—</td><td><b>已停用</b>（2026-10-04）。程式不讀也不寫，這一欄可以從試算表刪掉</td></tr>
     <tr><td>邀請人 <span class="req">*</span></td><td>人</td><td>信件署名用</td></tr>
     <tr><td>活動</td><td>人</td><td>活動代號，逗號分隔。<b>一個人可邀多場</b></td></tr>
     <tr><td>信件模板</td><td>人</td><td>模板代號</td></tr>
@@ -575,10 +578,12 @@ ATTACH_FOLDER  = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 </table></div>
 
 <div class="win">
-  <div class="h">沿用附件分頁，等於白撿了「每張卡挑哪幾部」</div>
-  <p>哪張邀請卡要放哪些附件，本來就有一整套挑選機制（維護介面的勾選、
-  邀請名單那一欄的逗號清單）。影片掛進同一個結構，這些全部免費沿用。
-  另開一張「影片」分頁的話，得再做一次一模一樣的東西。</p>
+  <div class="h">每一張卡片放一樣的影片</div>
+  <p>附件分頁裡<b>類型是 YouTube、啟用是「是」</b>的，每一張卡片都放，順序照試算表由上到下。
+  要換影片、加減影片，改那幾列的「啟用」就好，不用改程式、不用重新部署。</p>
+  <p>2026-09-22 剛做的時候是逐張在維護介面勾選、寫進邀請名單的「附件」欄。
+  用了兩週，只有 4 張卡片勾過——大家要的其實是「每張都放那幾部」。
+  2026-10-04 改成現在這樣。那 4 張附件欄裡留著的影片代號程式不再讀，不會重複出現。</p>
 </div>
 
 <div class="win">
@@ -626,14 +631,14 @@ ATTACH_FOLDER  = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
     <tr><td>附件標題</td><td>Testimony（見證那一區的英文小標）</td></tr>
     <tr><td>影片標題</td><td>影片（影片那一區的小標）</td></tr>
     <tr><td>預設地點</td><td>黎明教會（匯入活動時填進地點欄）</td></tr>
-    <tr><td>稱謂選項</td><td>先生,小姐,弟兄,姊妹,同學,老師,平安（維護介面的建議清單）</td></tr>
+
     <tr><td>稱呼建議</td><td>阿姨,叔叔,伯父,伯母,學長,學姐,女兒,女婿</td></tr>
     <tr><td>邀請開頭</td><td>{邀請人} 誠摯邀請你</td></tr>
     <tr><td>署名</td><td>你的朋友　{邀請人}　敬上</td></tr>
     <tr><td>LINE訊息</td><td>維護介面「用 LINE 傳送」帶的整段文字</td></tr>
   </tbody>
 </table></div>
-<p class="sub">可用變數：<code>{對象}</code>、<code>{稱謂}</code>、<code>{對象全稱}</code>、<code>{邀請人}</code>、<code>{活動}</code>、<code>{網址}</code>。</p>
+<p class="sub">可用變數：<code>{對象}</code>、<code>{對象全稱}</code>（跟 <code>{對象}</code> 一樣）、<code>{邀請人}</code>、<code>{活動}</code>、<code>{網址}</code>。</p>
 
 <div class="warn">
   <div class="h">變數代入不能用 <code>\w</code></div>
@@ -691,9 +696,8 @@ ATTACH_FOLDER  = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 <div class="tw"><table>
   <thead><tr><th>變數</th><th>代入</th></tr></thead>
   <tbody>
-    <tr><td><code>{對象}</code></td><td>簡嘉雯</td></tr>
-    <tr><td><code>{稱謂}</code></td><td>小姐</td></tr>
-    <tr><td><code>{對象全稱}</code></td><td>簡嘉雯小姐</td></tr>
+    <tr><td><code>{對象}</code></td><td>有填「卡片上叫他」就用它，沒填就是對象姓名。例：小雯</td></tr>
+    <tr><td><code>{對象全稱}</code></td><td>跟 <code>{對象}</code> 一樣。以前會接稱謂，稱謂拿掉後留著，舊的文案才不會壞</td></tr>
     <tr><td><code>{邀請人}</code></td><td>陳志成</td></tr>
     <tr><td><code>{活動名稱}</code></td><td>多場時自動用「、」串起來</td></tr>
     <tr><td><code>{活動日期}</code></td><td>同上</td></tr>
@@ -802,28 +806,26 @@ ATTACH_FOLDER  = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   它們一季才動一次，做四套一樣的列表介面不划算。活動有例外，見下面的匯入功能。
 </p>
 
-<h3>影片可複選，見證仍然單選</h3>
+<h3>拿掉稱謂</h3>
 
-<pre>邀請參加   [x] 福音茶會   [ ] 秋季靈恩會
-影片       [x] 真耶穌教會簡介影片   [x] 20週年紀念影片
-附件       ▾ 張祈真　求學之路</pre>
+<pre>對象姓名     [簡嘉雯      ]   必填，名單上認人用
+卡片上叫他   [小雯        ]   選填，空白就用姓名
+卡片上會叫他：小雯</pre>
 
-<p>影片比照「邀請參加」那排做成勾選，附件下拉維持單選（繼續用來挑一篇貼近對方處境的見證）。
-送出時兩邊<b>合併寫進同一個「附件」欄</b>。</p>
+<p>原本有「稱謂」和「改用稱呼」兩條路，要先勾一個框才會切換。資料看得出大家搞混了：
+144 筆裡稱謂欄出現「平安」8 次，還有「大美人」「平安ㄤ」——選了「平安」的那幾筆，
+LINE 訊息會變成「簡嘉雯<b>平安平安</b>，我是…」。</p>
+<p>2026-10-04 拿掉稱謂，只留姓名和「卡片上叫他」，不用切換。
+原本填了稱謂的卡片，封面從「簡嘉雯 小姐」變成「簡嘉雯」，舊資料不另外處理。</p>
 
-<div class="win">
-  <div class="h">試算表沒有加任何欄位</div>
-  <p>邀請名單的「附件」欄本來就吃逗號清單，只是以前維護介面只讓你挑一個。
-  要複選，改的是介面，不是資料。</p>
-</div>
-
-<p class="sub">影片不出現在附件下拉裡——它們已經在上面那排勾選了，
-兩個地方都列一次只會讓人以為要選兩次。</p>
+<h3>影片不在這裡選</h3>
+<p>每一張卡片都放一樣的影片，在附件分頁用「啟用」控制，見第 3 節。
+維護介面的「附件」只用來挑一篇貼近對方處境的見證。</p>
 
 <h3>新增邀請</h3>
 <div class="form">
   <div class="fld"><label>對象姓名 <span class="st">*</span></label><div class="in">簡嘉雯</div></div>
-  <div class="fld"><label>稱謂 <span class="st">*</span></label><div class="in sel">小姐</div></div>
+  <div class="fld"><label>卡片上叫他</label><div class="in">小雯</div><div class="hint">選填，空白就用姓名</div></div>
   <div class="fld"><label>邀請人 <span class="st">*</span></label><div class="in">陳志成</div></div>
   <div class="fld">
     <label>邀請參加（可複選）</label>
@@ -1133,7 +1135,14 @@ ATTACH_FOLDER  = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
   <p><b><code>/img/</code> 先不限制資料夾。</b>見下面「還沒決定」。</p>
 </div>
 
+<div class="win">
+  <div class="h">2026-10-04 追加定案</div>
+  <p><b>拿掉稱謂。</b>表單只留姓名和「卡片上叫他」。見第 6 節。</p>
+  <p><b>影片每張卡片都一樣。</b>附件分頁裡啟用的 YouTube 全放，不再逐張勾選。見第 3 節。</p>
+</div>
+
 <h3>還沒決定</h3>
+
 
 <ul class="plain">
   <li><b>LINE 內建瀏覽器能不能就地播放影片</b>　大部分人是從 LINE 點進來的，
@@ -1149,7 +1158,7 @@ ATTACH_FOLDER  = <span class="k">"&lt;附件資料夾 ID&gt;"</span></pre>
 </ul>
 
 <div class="foot">
-  規格 Rev 8 · 2026-09-24（依實際完成的系統回填）
+  規格 Rev 9 · 2026-10-04（依實際完成的系統回填）
 　|　原型：<a href="https://claude.ai/code/artifact/f6eca893-f4ad-4ee5-aef1-ae620ad7dc89">黎明邀請卡</a>
 </div>
 
