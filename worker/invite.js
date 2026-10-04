@@ -7,7 +7,7 @@ import CARD_HTML from "./card.html";
 import ADMIN_HTML from "./admin.html";
 import EVENT_HTML from "./event.html";
 import { readSheet, updateCell, appendRow, listFolder, fetchFile, thumbnailUrl } from "./google.js";
-import { fill, esc, json, notFound, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入, CODE_RE } from "./lib.js";
+import { fill, esc, json, notFound, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入, 連結化, CODE_RE } from "./lib.js";
 
 /* ── 對外的入口 ─────────────────────────────────
    index.js 只認得路徑，剩下的都在這個檔案裡
@@ -352,9 +352,13 @@ function renderCard(inv, env) {
 
   // 影片集中成一個區塊；見證附件維持原本的一份一區
   const 影片們 = inv.影片 || [];
+  // 影片上面那段話放設定檔，跟影片的「啟用」一樣在試算表維護——換了影片，說明也在同一個地方改。
+  // 一行一段；留白就不顯示
+  const 影片說明 = String(文案(詞, "影片說明", {})).split("\n").map((s) => s.trim()).filter(Boolean);
   const 影片區 = 影片們.length ? `
   <div class="sec">
     <div class="sec-h">${esc(文案(詞, "影片標題", {}))}</div>
+    ${影片說明.length ? `<div class="vdesc">${影片說明.map((p) => `<p>${連結化(p)}</p>`).join("")}</div>` : ""}
     <div class="vids">${影片們.map((a) => (a.影片 || []).map((id) => `
       <div class="vid" data-yt="${esc(id)}">
         <div class="vbox">
@@ -362,7 +366,9 @@ function renderCard(inv, env) {
           <span class="vplay" role="button" aria-label="播放 ${esc(a.名稱 || "影片")}"></span>
         </div>
         ${a.名稱 || a.說明 ? `<div class="vname">${esc(a.名稱 || "")}${
-          a.說明 ? `<span class="vs">${esc(a.說明)}</span>` : ""}</div>` : ""}
+          // 說明欄可以放完整版的網址。卡片裡播放看不到 YouTube 的說明欄，連結要放在這裡才點得到
+          a.說明 ? `<span class="vs">${連結化(a.說明)}</span>` : ""}</div>` : ""}
+
       </div>`).join("")).join("")}</div>
   </div>` : "";
 
