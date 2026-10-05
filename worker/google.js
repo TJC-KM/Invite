@@ -247,3 +247,91 @@ export async function thumbnailUrl(env, fileId, size = 600) {
   if (!data.thumbnailLink) return "";
   return data.thumbnailLink.replace(/=s\d+.*$/, `=s${size}`);
 }
+
+/* ── 搬資料用 ─────────────────────────────────────
+   「過去資料」要把列從一張分頁搬到另一張：先整批複製過去，確認寫進去了才刪原本的。
+   順序不能反——刪了才發現沒寫進去，那幾列就真的沒了
+   ──────────────────────────────────────────────── */
+
+const 表網址 = (env, 試算表) => `https://sheets.googleapis.com/v4/spreadsheets/${試算表 || env.SHEET_ID}`;
+
+// 標題列原樣回傳（空白的欄也保留，位置才對得上）
+export async function 標題列(env, tab, { 試算表 } = {}) {
+  const token = await getAccessToken(env);
+  const res = await fetch(`${表網址(env, 試算表)}/values/${encodeURIComponent(`'${tab}'!1:1`)}`,
+    { headers: { authorization: `Bearer ${token}` } });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`讀「${tab}」標題列失敗 ${res.status}`);
+  return ((data.values && data.values[0]) || []).map((h) => String(h).trim());
+}
+
+// 整列覆寫標題列。新分頁第一次用
+export async function 寫標題列(env, tab, 標題, { 試算表 } = {}) {
+  const token = await getAccessToken(env);
+  const res = await fetch(
+    `${表網址(env, 試算表)}/values/${encodeURIComponent(`'${tab}'!A1`)}?valueInputOption=RAW`,
+    {
+      method: "PUT",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ values: [標題] }),
+    });
+  if (!res.ok) throw new Error(`寫「${tab}」標題列失敗 ${res.status}`);
+}
+
+// 一次新增好幾列，照目標分頁的標題列組值。回傳實際寫進去的列數
+export async function appendRows(env, tab, 清單, { 試算表 } = {}) {
+  if (!清單.length) return 0;
+  const token = await getAccessToken(env);
+  const 標題 = await 標題列(env, tab, { 試算表 });
+  if (!標題.some(Boolean)) throw new Error(`分頁「${tab}」沒有標題列`);
+  const values = 清單.map((資料) => 標題.map((h) => (h ? 資料[h] ?? "" : "")));
+  const res = await fetch(
+    `${表網址(env, 試算表)}/values/${encodeURIComponent(`'${tab}'!A1`)}:append` +
+      `?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+    {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ values }),
+    });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`新增到「${tab}」失敗 ${res.status}：${JSON.stringify(data)}`);
+  return (data.updates && data.updates.updatedRows) || 0;
+}
+
+// 有哪些分頁，各自的 sheetId（刪列要用 sheetId，不是名稱）
+export async function 分頁們(env, { 試算表 } = {}) {
+  const token = await getAccessToken(env);
+  const res = await fetch(`${表網址(env, 試算表)}?fields=sheets.properties(title,sheetId)`,
+    { headers: { authorization: `Bearer ${token}` } });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`讀分頁清單失敗 ${res.status}`);
+  return (data.sheets || []).map((s) => ({ title: s.properties.title, sheetId: s.properties.sheetId }));
+}
+
+export async function 新增分頁(env, 名稱, { 試算表 } = {}) {
+  const token = await getAccessToken(env);
+  const res = await fetch(`${表網址(env, 試算表)}:batchUpdate`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ requests: [{ addSheet: { properties: { title: 名稱 } } }] }),
+  });
+  if (!res.ok) throw new Error(`新增分頁「${名稱}」失敗 ${res.status}`);
+}
+
+// 刪掉幾列（試算表列號，從 1 起算）。由下往上刪，前面的列號才不會跟著位移；
+// 全部放在同一個 batchUpdate，要嘛都成功、要嘛都不動
+export async function 刪除列(env, sheetId, 列號們, { 試算表 } = {}) {
+  const 由下往上 = [...new Set(列號們)].filter((n) => n > 1).sort((a, b) => b - a);
+  if (!由下往上.length) return;
+  const token = await getAccessToken(env);
+  const res = await fetch(`${表網址(env, 試算表)}:batchUpdate`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      requests: 由下往上.map((n) => ({
+        deleteDimension: { range: { sheetId, dimension: "ROWS", startIndex: n - 1, endIndex: n } },
+      })),
+    }),
+  });
+  if (!res.ok) throw new Error(`刪列失敗 ${res.status}：${(await res.text()).slice(0, 200)}`);
+}

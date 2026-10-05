@@ -6,7 +6,8 @@
 import CARD_HTML from "./card.html";
 import ADMIN_HTML from "./admin.html";
 import EVENT_HTML from "./event.html";
-import { readSheet, updateCell, appendRow, listFolder, fetchFile, thumbnailUrl } from "./google.js";
+import { readSheet, updateCell, appendRow, listFolder, fetchFile, thumbnailUrl,
+         標題列, 寫標題列, appendRows, 分頁們, 新增分頁, 刪除列 } from "./google.js";
 import { fill, esc, json, notFound, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 時間鍵, 代入, 連結化, CODE_RE } from "./lib.js";
 
 /* ── 對外的入口 ─────────────────────────────────
@@ -37,7 +38,7 @@ export async function 卡片(code, request, env, ctx) {
    資料層　—— 試算表是資料的家，KV 是它前面那層快取
    ──────────────────────────────────────────────── */
 
-const 分頁 = { 邀請: "邀請名單", 活動: "活動", 模板: "信件模板", 附件: "附件", 設定: "設定檔" };
+const 分頁 = { 邀請: "邀請名單", 活動: "活動", 模板: "信件模板", 附件: "附件", 設定: "設定檔", 過去: "過去資料" };
 const CACHE_TTL = 120; // 秒。只作用在公開卡片；維護介面一律讀即時資料
 
 // 「否」才算停用，空白一律當啟用——欄位沒填不該讓東西消失
@@ -51,15 +52,10 @@ async function loadInvite(code, env) {
     if (hit) return hit;
   }
 
-  const [邀請列, 設定] = await Promise.all([
-    readSheet(env, 分頁.邀請),
-    loadConfig(env),
-  ]);
+  const [找到, 設定] = await Promise.all([找邀請(env, code), loadConfig(env)]);
+  if (!找到) return null;
 
-  const r = 邀請列.find((x) => String(x.代碼 || "").toLowerCase() === code);
-  if (!r) return null;
-
-  const invite = 組合(r, 設定);
+  const invite = 組合(找到.r, 設定);
   if (env.CACHE) {
     // 存不進快取（KV 當天的寫入額度用完之類）就算了，卡片照樣要開得起來
     await env.CACHE.put(key, JSON.stringify(invite), { expirationTtl: CACHE_TTL }).catch(() => {});
@@ -253,6 +249,70 @@ function 找PDF(清單, a) {
   return f ? f.id : "";
 }
 
+/* ── 過去資料 ─────────────────────────────────────
+   活動日期都過了的邀請卡，搬到「過去資料」分頁，邀請名單才不會越來越長。
+   搬走之後連結照樣打得開：找卡片時邀請名單找不到，就去過去資料找
+   ──────────────────────────────────────────────── */
+
+// 這場活動過了沒。看「海報活動日期」（機器讀的那一欄），沒填就當還沒過
+const 過去了 = (e) => {
+  const d = String((e && e.海報活動日期) || "").trim();
+  return !!d && d < 台北日期();
+};
+
+async function 找邀請(env, code) {
+  const 同 = (x) => String(x.代碼 || "").toLowerCase() === code;
+  const 列 = await readSheet(env, 分頁.邀請);
+  const r = 列.find(同);
+  if (r) return { r, 分頁: 分頁.邀請 };
+  const 舊 = await readSheet(env, 分頁.過去).catch(() => []);   // 還沒搬過就沒有這張分頁
+  const r2 = 舊.find(同);
+  return r2 ? { r: r2, 分頁: 分頁.過去 } : null;
+}
+
+// 搬的條件：這張卡片邀的活動「全部」都過了。邀兩場、還有一場沒到的不搬；
+// 沒勾任何活動的也不搬——無從判斷它算不算過去
+async function 搬過去資料(env, cfg) {
+  const 過了 = new Set(cfg.活動.filter(過去了).map((e) => e.活動代號));
+  if (!過了.size) return { 搬了: [] };
+
+  const 列 = await readSheet(env, 分頁.邀請);
+  const 要搬 = 列.filter((r) => {
+    const 邀 = 逗號(r.活動);
+    return r.代碼 && 邀.length && 邀.every((c) => 過了.has(c));
+  });
+  if (!要搬.length) return { 搬了: [] };
+
+  // 1. 過去資料分頁和欄位。邀請名單有的欄位這裡都要有，不然搬過來那一欄就不見了
+  const 表們 = await 分頁們(env);
+  const 名單表 = 表們.find((t) => t.title === 分頁.邀請);
+  if (!名單表) throw new Error("找不到邀請名單分頁");
+  if (!表們.some((t) => t.title === 分頁.過去)) await 新增分頁(env, 分頁.過去);
+
+  const 名單標題 = (await 標題列(env, 分頁.邀請)).filter(Boolean);
+  let 舊標題 = await 標題列(env, 分頁.過去);
+  const 要的 = [...名單標題, "搬移時間"];
+  if (!舊標題.some(Boolean)) {
+    await 寫標題列(env, 分頁.過去, 要的);
+  } else {
+    const 少的 = 要的.filter((h) => !舊標題.includes(h));
+    if (少的.length) await 寫標題列(env, 分頁.過去, [...舊標題, ...少的]);
+  }
+
+  // 2. 先複製過去，確認列數對了才往下
+  const 時間 = 台北時間();
+  const 寫了 = await appendRows(env, 分頁.過去, 要搬.map((r) => ({ ...r, 搬移時間: 時間 })));
+  if (寫了 !== 要搬.length) throw new Error(`複製到過去資料只寫進 ${寫了} 列（應該 ${要搬.length} 列），沒有刪原本的`);
+
+  // 3. 再刪原本的。刪之前重讀一次，確認那一列還是同一個代碼——
+  //    這中間有人在試算表刪了別的列，列號就會位移，不核對會刪到別人
+  const 現在 = await readSheet(env, 分頁.邀請);
+  const 對得上 = 要搬.filter((r) => (現在.find((x) => x._row === r._row) || {}).代碼 === r.代碼);
+  await 刪除列(env, 名單表.sheetId, 對得上.map((r) => r._row));
+
+  return { 搬了: 要搬, 沒刪: 要搬.length - 對得上.length };
+}
+
 /* ── 開啟次數（規格第 3 節）───────────────────── */
 
 async function countOpen(code, env) {
@@ -260,9 +320,11 @@ async function countOpen(code, env) {
     // 列號和次數都用「現在」讀到的，不用快取裡的。
     // 快取是兩分鐘前的樣子：這中間有人在試算表刪了一列，
     // 快取裡的列號就會指到下一個人，次數會記到別人頭上
-    const 邀請列 = await readSheet(env, 分頁.邀請);
-    const r = 邀請列.find((x) => String(x.代碼 || "").toLowerCase() === code);
-    if (!r) return;
+    // 搬到「過去資料」的卡片照樣會被打開，次數就記在那一張分頁
+    const 找到 = await 找邀請(env, code);
+    if (!找到) return;
+    const { r, 分頁: 在 } = 找到;
+
 
     // 欄位位置寫死在這裡不安全（欄可能被搬動），所以照標題找欄
     const 標題 = Object.keys(r).filter((k) => k !== "_row");
@@ -273,8 +335,8 @@ async function countOpen(code, env) {
 
     const c1 = 欄("開啟次數");
     const c2 = 欄("最後開啟");
-    if (c1) await updateCell(env, 分頁.邀請, `${c1}${r._row}`, (Number(r.開啟次數) || 0) + 1);
-    if (c2) await updateCell(env, 分頁.邀請, `${c2}${r._row}`, 台北時間());
+    if (c1) await updateCell(env, 在, `${c1}${r._row}`, (Number(r.開啟次數) || 0) + 1);
+    if (c2) await updateCell(env, 在, `${c2}${r._row}`, 台北時間());
   } catch (e) {
     // 計數失敗不該影響任何人看卡片
   }
@@ -371,6 +433,7 @@ function renderCard(inv, env) {
         <dt>地點</dt><dd>${esc(ev.地點)}</dd>
       </dl>
       ${ev.標語 ? `<div class="tag">${ev.標語}</div>` : ""}
+      ${過去了(ev) ? `<div class="ended">這場活動已經結束了</div>` : ""}
     </div>
   </div>`).join("\n");
 
@@ -426,10 +489,12 @@ function renderCard(inv, env) {
 
   const 活動名 = 活動.map((e) => e.名稱).join("、");
 
-  // 一場一顆按鈕。複選時要知道他答應的是哪一場，只寫「我要參加」等於沒寫
-  const 參加鈕 = (活動.length ? 活動 : [null]).map((ev) => {
+  // 一場一顆按鈕。複選時要知道他答應的是哪一場，只寫「我要參加」等於沒寫。
+  // 已經結束的場次不給按
+  const 還能報 = 活動.filter((ev) => !過去了(ev));
+  const 參加鈕 = (活動.length ? 還能報 : [null]).map((ev) => {
     const 代號 = ev ? esc(ev.活動代號) : "";
-    const 單場 = !ev || 活動.length === 1;
+    const 單場 = !ev || 還能報.length === 1;
     const 變數 = { 邀請人, 對象: 全名, 活動: ev ? esc(ev.名稱) : "" };
     const 字 = 文案(詞, 單場 ? "參加按鈕" : "參加按鈕-多場", 變數);
     const 確認 = 文案(詞, 單場 ? "回覆確認" : "回覆確認-多場", 變數);
@@ -556,6 +621,25 @@ export async function adminPage(url, env) {
     ]);
   }
 
+  // 按「從海報資料夾匯入活動」時，順便把活動都過了的邀請卡搬到過去資料。
+  // 要在讀名單之前搬，下面列出來的才是搬完的樣子
+  const 要匯入 = url.searchParams.get("import") === "1";
+  let 搬移訊息 = "";
+  if (要匯入) {
+    try {
+      const { 搬了, 沒刪 } = await 搬過去資料(env, await loadConfig(env, { 即時: true }));
+      if (搬了.length) {
+        搬移訊息 = `<div class="ask" style="text-align:left">
+          已經把 ${搬了.length} 張活動都結束了的邀請卡搬到「過去資料」分頁，連結照樣打得開：<br>
+          <span style="font-size:.85rem">${搬了.map((r) => esc(`${r.對象姓名}（${r.邀請人}）`)).join("、")}</span>
+          ${沒刪 ? `<br><b>其中 ${沒刪} 張已複製過去，但邀請名單裡的那一列位置變了，沒有刪，請到試算表確認</b>` : ""}
+        </div>`;
+      }
+    } catch (e) {
+      搬移訊息 = `<div class="ask" style="text-align:left">搬到過去資料時出了問題，這次沒有搬：${esc(e.message)}</div>`;
+    }
+  }
+
   // 名單本身每次都讀最新的（那是這一頁的主角）；活動、模板、附件、設定檔走 30 秒的短快取。
   // 按「重新整理快取」時一律重讀
   const [全部, cfg] = await Promise.all([
@@ -637,13 +721,13 @@ export async function adminPage(url, env) {
   };
 
   // 匯入面板只在按下按鈕後出現，平常不打擾
-  const 要匯入 = url.searchParams.get("import") === "1";
   let 匯入面板 = "";
   if (要匯入) {
     const { 可匯入, 檔名不符 } = await 海報候選(env, cfg);
     匯入面板 = `
       <div class="find">
         <h2>從海報資料夾匯入活動</h2>
+        ${搬移訊息}
         <p class="hint" style="margin:0 0 10px">
           只列出日期還沒到、而且活動分頁裡還沒有的海報。
           匯入後「時間」和「標語」要自己補——那兩樣在海報圖片裡，檔名看不出來。
@@ -980,8 +1064,13 @@ async function 新增邀請(body, env, url) {
   if (!姓名) return json({ ok: false, error: "要填對象姓名" }, 400);
   if (!邀請人) return json({ ok: false, error: "要填邀請人" }, 400);
 
-  const 既有 = await readSheet(env, 分頁.邀請);
-  const 用過 = new Set(既有.map((r) => String(r.代碼 || "").toLowerCase()));
+  // 搬到過去資料的代碼也算用過——新邀請撞到舊代碼，舊連結就會打開別人的卡片
+  const [既有, 過去] = await Promise.all([
+    readSheet(env, 分頁.邀請),
+    readSheet(env, 分頁.過去).catch(() => []),
+  ]);
+  const 用過 = new Set([...既有, ...過去].map((r) => String(r.代碼 || "").toLowerCase()));
+
 
   let 代碼 = "";
   for (let i = 0; i < 20 && !代碼; i++) {
