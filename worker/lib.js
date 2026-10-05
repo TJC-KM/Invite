@@ -4,6 +4,7 @@
 // 只要開始冒出「這個函式是給回饋用的」念頭，就該搬去 feedback.js
 
 import NOTFOUND_HTML from "./notfound.html";
+import BUSY_HTML from "./busy.html";
 
 // 12 碼，字集拿掉 0 1 i l o（念出來或手打才不會混）。
 // 兩套系統的代碼是同一套規則，只宣告一次——
@@ -29,7 +30,19 @@ export function notFound(env) {
   });
 }
 
+// 程式出錯時給的頁面。最常見的原因是 Google 試算表每分鐘的讀取額度用完（429），
+// 過一分鐘就好——所以講「請稍後再試」，不要讓訪客看到 Cloudflare 的錯誤頁、以為連結壞了
+export function 忙碌頁(env) {
+  return new Response(fill(BUSY_HTML, {
+    churchSite: esc((env && env.CHURCH_SITE) || "https://li-ming-tjc.org"),
+  }), {
+    status: 503,
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "retry-after": "60" },
+  });
+}
+
 // LINE、Facebook 那類預覽爬蟲：照樣給網頁，但不算開啟次數。
+
 //
 // 不能寫 line：LINE 內建瀏覽器的 UA 也帶 Line/，等於從 LINE 點開的人全部不算。
 // LINE 真正的預覽爬蟲是 facebookexternalhit/1.1;line-poker，前面那個字就擋到了。

@@ -9,52 +9,64 @@
 
 import { 卡片, eventPage, adminPage, api, rsvp, imageProxy, thumbProxy } from "./invite.js";
 import { 回饋路由 } from "./feedback.js";
-import { notFound, 解碼, CODE_RE } from "./lib.js";
+import { notFound, 忙碌頁, 解碼, CODE_RE } from "./lib.js";
 
 export default {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const path = url.pathname.slice(1);
-
-    if (path === "") {
-      return Response.redirect(env.CHURCH_SITE || "https://li-ming-tjc.org", 302);
+    // 任何沒接住的錯誤都在這裡收：給「請稍後再試」，不要讓人看到 Cloudflare 的錯誤頁。
+    // 錯誤照樣記進 log（wrangler tail 看得到）
+    try {
+      return await 分派(request, env, ctx);
+    } catch (e) {
+      console.error("沒接住的錯誤", request.method, new URL(request.url).pathname, e && e.message);
+      return 忙碌頁(env);
     }
-
-    if (path === "robots.txt") {
-      return new Response("User-agent: *\nDisallow: /admin\nDisallow: /f/\n", {
-        headers: { "content-type": "text/plain; charset=utf-8" },
-      });
-    }
-
-    if (path.startsWith("img/")) {
-      return imageProxy(path.slice(4), env, ctx);
-    }
-
-    // PDF 第一頁的預覽圖
-    if (path.startsWith("thumb/")) {
-      return thumbProxy(path.slice(6), env, ctx);
-    }
-
-    // 公開活動頁。沒有任何個人資訊，可以貼到粉專、社群、群組
-    if (path.startsWith("e/")) {
-      return eventPage(解碼(path.slice(2)), env);
-    }
-
-    // 「我要參加」是公開的，不帶金鑰——但只認得完整正確的代碼
-    if (path === "api/rsvp") return rsvp(request, env);
-
-    // 維護介面和它的 API 全在 /admin 底下，Access 才能用單一路徑一次保護到
-    if (path === "admin" || path === "list") return adminPage(url, env);
-    if (path.startsWith("admin/api/")) return api(path.slice(10), request, url, env);
-
-    // 心得回饋整套都在 /f/ 底下（含 /f/admin、/f/api/…）
-    if (path === "f" || path.startsWith("f/")) {
-      return (await 回饋路由(path.replace(/^f\/?/, ""), request, url, env, ctx)) || notFound(env);
-    }
-
-    const code = path.toLowerCase();
-    if (!CODE_RE.test(code)) return notFound(env);
-
-    return (await 卡片(code, request, env, ctx)) || notFound(env);
   },
 };
+
+async function 分派(request, env, ctx) {
+  const url = new URL(request.url);
+  const path = url.pathname.slice(1);
+
+  if (path === "") {
+    return Response.redirect(env.CHURCH_SITE || "https://li-ming-tjc.org", 302);
+  }
+
+  if (path === "robots.txt") {
+    return new Response("User-agent: *\nDisallow: /admin\nDisallow: /f/\n", {
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  if (path.startsWith("img/")) {
+    return imageProxy(path.slice(4), env, ctx);
+  }
+
+  // PDF 第一頁的預覽圖
+  if (path.startsWith("thumb/")) {
+    return thumbProxy(path.slice(6), env, ctx);
+  }
+
+  // 公開活動頁。沒有任何個人資訊，可以貼到粉專、社群、群組
+  if (path.startsWith("e/")) {
+    return eventPage(解碼(path.slice(2)), env);
+  }
+
+  // 「我要參加」是公開的，不帶金鑰——但只認得完整正確的代碼
+  if (path === "api/rsvp") return rsvp(request, env);
+
+  // 維護介面和它的 API 全在 /admin 底下，Access 才能用單一路徑一次保護到
+  if (path === "admin" || path === "list") return adminPage(url, env);
+  if (path.startsWith("admin/api/")) return api(path.slice(10), request, url, env);
+
+  // 心得回饋整套都在 /f/ 底下（含 /f/admin、/f/api/…）
+  if (path === "f" || path.startsWith("f/")) {
+    return (await 回饋路由(path.replace(/^f\/?/, ""), request, url, env, ctx)) || notFound(env);
+  }
+
+  const code = path.toLowerCase();
+  if (!CODE_RE.test(code)) return notFound(env);
+
+  return (await 卡片(code, request, env, ctx)) || notFound(env);
+}
+

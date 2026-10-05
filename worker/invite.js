@@ -67,11 +67,26 @@ async function loadInvite(code, env) {
   return invite;
 }
 
-// 活動、模板、附件三張表一起快取。它們被所有邀請共用
-// 維護介面一律傳 { 即時: true }：那裡的人剛改完試算表，
-// 看到五分鐘前的舊資料只會以為壞了。公開卡片才需要快取擋在前面
-async function loadConfig(env, { 即時 = false } = {}) {
-  if (env.CACHE && !即時) {
+// 活動、模板、附件三張表一起快取。它們被所有邀請共用。
+//   公開卡片：KV 快取兩分鐘
+//   維護頁：傳 { 短快取: true }，只記在這個 Worker 的記憶體裡 30 秒。
+//     以前是每開一次都重讀四張分頁，一分鐘內連開十幾次就會把 Google 的讀取額度用完，
+//     那一分鐘裡連卡片都打不開。30 秒的舊資料換來不會把整個系統拖垮
+//   會寫入的動作（匯入、新增）：傳 { 即時: true }，一定讀最新的
+const 維護頁快取秒 = 30;
+let 維護頁快取 = null;   // { cfg, 時 }
+
+async function 清設定快取(env) {
+  維護頁快取 = null;
+  if (env.CACHE) await env.CACHE.delete("cfg:v1");
+}
+
+
+async function loadConfig(env, { 即時 = false, 短快取 = false } = {}) {
+  if (短快取 && 維護頁快取 && Date.now() - 維護頁快取.時 < 維護頁快取秒 * 1000) {
+    return 維護頁快取.cfg;
+  }
+  if (env.CACHE && !即時 && !短快取) {
     const hit = await env.CACHE.get("cfg:v1", "json");
     if (hit) return hit;
   }
@@ -114,6 +129,7 @@ async function loadConfig(env, { 即時 = false } = {}) {
     }));
 
   const cfg = { 活動, 模板, 附件, 文案, 檔案清單, 海報清單 };
+  維護頁快取 = { cfg, 時: Date.now() };   // 剛讀到的就是最新的，維護頁也順便用
   if (env.CACHE) {
     await env.CACHE.put("cfg:v1", JSON.stringify(cfg), { expirationTtl: CACHE_TTL }).catch(() => {});
   }
@@ -531,18 +547,22 @@ export async function eventPage(代號, env) {
 export async function adminPage(url, env) {
   const 站台 = env.SITE_ORIGIN || url.origin;
 
-  if (url.searchParams.get("refresh") === "1" && env.CACHE) {
+  const 重整 = url.searchParams.get("refresh") === "1";
+  if (重整 && env.CACHE) {
     const 列 = await readSheet(env, 分頁.邀請);
     await Promise.all([
-      env.CACHE.delete("cfg:v1"),
+      清設定快取(env),
       ...列.map((r) => env.CACHE.delete(`inv:${String(r.代碼 || "").toLowerCase()}`)),
     ]);
   }
 
+  // 名單本身每次都讀最新的（那是這一頁的主角）；活動、模板、附件、設定檔走 30 秒的短快取。
+  // 按「重新整理快取」時一律重讀
   const [全部, cfg] = await Promise.all([
     readSheet(env, 分頁.邀請),
-    loadConfig(env, { 即時: true }),
+    loadConfig(env, 重整 ? { 即時: true } : { 短快取: true }),
   ]);
+
 
   // 邀請人清單先算出來，這是唯一會無條件出現在頁面上的名單
   const 邀請人們 = [...全部.reduce((m, r) => {
@@ -886,7 +906,7 @@ async function 匯入活動(body, env) {
     進去的.push(x.代號);
   }
 
-  if (env.CACHE) await env.CACHE.delete("cfg:v1");
+  await 清設定快取(env);
   return json({ ok: true, 匯入: 進去的 });
 }
 
@@ -942,7 +962,7 @@ async function 補欄位(env) {
     }
   }
 
-  if (env.CACHE) await env.CACHE.delete("cfg:v1");
+  await 清設定快取(env);
   return json({ ok: true, 加了, 回填 });
 }
 
@@ -990,7 +1010,7 @@ async function 新增邀請(body, env, url) {
   });
 
   // 寫進試算表的同時就把快取清掉，連結產生當下就是對的（規格第 2 節）
-  if (env.CACHE) await env.CACHE.delete("cfg:v1");
+  await 清設定快取(env);
 
   const cfg = await loadConfig(env, { 即時: true });
   const 活動名 = 逗號(body.活動)
