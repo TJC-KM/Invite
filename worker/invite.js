@@ -7,7 +7,7 @@ import CARD_HTML from "./card.html";
 import ADMIN_HTML from "./admin.html";
 import EVENT_HTML from "./event.html";
 import { readSheet, updateCell, appendRow, listFolder, fetchFile, thumbnailUrl } from "./google.js";
-import { fill, esc, json, notFound, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 代入, 連結化, CODE_RE } from "./lib.js";
+import { fill, esc, json, notFound, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 時間鍵, 代入, 連結化, CODE_RE } from "./lib.js";
 
 /* ── 對外的入口 ─────────────────────────────────
    index.js 只認得路徑，剩下的都在這個檔案裡
@@ -553,11 +553,13 @@ export async function adminPage(url, env) {
 
   // 沒指定邀請人就什麼都不列。名單是別人的個資，不該一打開就攤在畫面上
   const 查詢 = String(url.searchParams.get("from") || "").trim();
-  // 新的在最上面：剛新增完跳回這一頁，要一眼看到自己剛建的那一筆。
-  // 用列號排——新增一律接在試算表最底下，列號就是建立的先後
+  // 依「建立時間」新的在最上面：剛新增完跳回這一頁，要一眼看到自己剛建的那一筆。
+  // 時間先補零再比（舊資料是 2026/9/24 這種寫法）；空白的排最後，同時間再照列號
   const 列 = 查詢
-    ? 全部.filter((r) => String(r.邀請人 || "").trim() === 查詢).sort((a, b) => b._row - a._row)
+    ? 全部.filter((r) => String(r.邀請人 || "").trim() === 查詢)
+        .sort((a, b) => 時間鍵(b.建立時間).localeCompare(時間鍵(a.建立時間)) || b._row - a._row)
     : [];
+
 
 
   const rows = 列
