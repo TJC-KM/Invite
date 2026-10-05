@@ -277,6 +277,8 @@ const 預設文案 = {
   地圖按鈕: "查看地圖",
   附件標題: "Testimony",
   影片標題: "影片",
+  // 信件模板下拉的最後一個選項「不套用——只用下面的開場白」。填「否」就不給選
+  允許不套用模板: "是",
 
   稱呼建議: "阿姨,叔叔,伯父,伯母,學長,學姐,女兒,女婿",
   預設地點: "黎明教會",
@@ -674,8 +676,28 @@ export async function adminPage(url, env) {
     </div>`;
   }).join("");
 
+  const 可選活動 = 啟用中(cfg.活動)
+    .filter((e) => 還沒過(e) || (編輯中 && 逗號(編輯中.活動).includes(e.活動代號)));
+
+  // 設定檔可以把「不套用模板」關掉。但正在修改的這一張本來就沒套模板的話，
+  // 選項一定要留著，不然它會被迫換成某個模板
+  const 不套用中 = !!編輯中 && !String(編輯中.信件模板 || "").trim();
+  const 給不套用 = String(文案(cfg.文案, "允許不套用模板", {})).trim() !== "否"
+    || 不套用中 || !啟用中(cfg.模板).length;
+
+  // 正在修改的這一張用的模板已經停用了：還是要列出來並選著，
+  // 不然瀏覽器會停在第一個模板，一按儲存信就被換掉
+  const 原模板 = 編輯中 && !不套用中 && !啟用中(cfg.模板).some((t) => t.模板代號 === 編輯中.信件模板)
+    ? (cfg.模板.find((t) => t.模板代號 === 編輯中.信件模板) || { 模板代號: 編輯中.信件模板 })
+    : null;
+  const 停用的原模板 = 原模板
+    ? `<option value="${esc(原模板.模板代號)}" selected>${esc(原模板.名稱 || 原模板.模板代號)}（已停用）</option>`
+    : "";
+
+
   const html = fill(ADMIN_HTML, {
     count: 全部.length,
+
     eventLinks: 活動列
       ? `<div class="find"><h2>活動公開頁</h2>
           <p class="hint" style="margin:0 0 10px">
@@ -708,11 +730,13 @@ export async function adminPage(url, env) {
 
     // 模板全文給前端用——「以模板為底稿」那顆按鈕要把它填進客製內文
     tmplBodies: JSON.stringify(
-      Object.fromEntries(啟用中(cfg.模板).map((t) => [t.模板代號, t.內文 || ""]))
+      Object.fromEntries([...(原模板 ? [原模板] : []), ...啟用中(cfg.模板)].map((t) => [t.模板代號, t.內文 || ""]))
     ),
 
-    eventChecks: 啟用中(cfg.活動)
-      .filter((e) => 還沒過(e) || (編輯中 && 逗號(編輯中.活動).includes(e.活動代號)))
+
+    // 只有一場可選的時候，「可複選」這幾個字沒有意義
+    eventMulti: 可選活動.length > 1 ? `<span class="opt">（可複選）</span>` : "",
+    eventChecks: 可選活動
       .map((e) => `
       <label class="check">
         <input type="checkbox" name="活動" value="${esc(e.活動代號)}"${
@@ -720,11 +744,16 @@ export async function adminPage(url, env) {
         <span>${esc(e.名稱)}<br><span class="d">${esc(e.日期 || "")} ${esc(e.時間 || "")}</span></span>
       </label>`).join(""),
 
-    tmplOptions: 啟用中(cfg.模板)
+    tmplOptions: 停用的原模板 + 啟用中(cfg.模板)
       .map((t) => `<option value="${esc(t.模板代號)}"${
         編輯中 && 編輯中.信件模板 === t.模板代號 ? " selected" : ""
       }>${esc(t.名稱 || t.模板代號)}</option>`)
-      .join(""),
+      .join("") + (給不套用
+        // 修改一張本來就不套用的邀請，要標成已選——沒標的話瀏覽器會停在第一個模板，
+        // 一按儲存就把那張卡片的信換掉
+        ? `<option value=""${不套用中 ? " selected" : ""}>不套用——只用下面的開場白</option>`
+        : ""),
+    noTmplHint: 給不套用 ? "<br>\n              模板選「不套用」時，這段就是整封信的內容" : "",
 
     // 54 篇見證照主題分組，不然選單會是一條看不完的長清單
     attachOptions: 分組附件(
