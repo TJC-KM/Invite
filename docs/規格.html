@@ -197,7 +197,7 @@ ul.plain li::before{
 
 <div class="wrap">
 
-<div class="eyebrow">Build Spec · Rev 12 · 已上線</div>
+<div class="eyebrow">Build Spec · Rev 13 · 已上線</div>
 <h1>邀請卡系統規格</h1>
 <p class="lede">
   個人化邀請卡的資料結構、命名規則與建置步驟。
@@ -206,6 +206,8 @@ ul.plain li::before{
 </p>
 
 <div class="verdict">
+  <p><b>Rev 13：舊網址的轉址頁做完了。</b>點舊連結會先看到「活動快報換新網址了」停 12 秒，再到新網址的同一頁；
+  舊內頁一樣適用，手機裡「加到主畫面」的舊快取也會自己清掉。見第 7 節。</p>
   <p><b>Rev 12：兩個網域只留一個。</b>活動快報搬到 <code>liming-tjc.org</code> 主網域，
   Wix 上的 <code>li-ming-tjc.org</code> 只負責轉址、2027-07-09 到期停用。
   邀請卡本身不受影響——它一直在 <code>invite.liming-tjc.org</code>；程式裡只有「教會官網」的備用預設值跟著改。見第 7 節。</p>
@@ -995,6 +997,31 @@ LINE 訊息會變成「簡嘉雯<b>平安平安</b>，我是…」。</p>
   沒有轉出 Wix——Wix 鎖住名稱伺服器，要繞第三家註冊商才轉得進 Cloudflare，省下的錢不值得。</p>
 </div>
 
+<h3>舊網址的轉址頁</h3>
+<p><code>li-ming-redirect</code> 只有三個檔案，Wix 那邊不用改任何設定（舊網域本來就指向 GitHub）：</p>
+<div class="tw"><table>
+  <thead><tr><th>檔案</th><th>做什麼</th></tr></thead>
+  <tbody>
+    <tr><td><code>index.html</code></td><td>舊首頁。大字顯示「活動快報換新網址了」和新網址，提醒書籤、主畫面要重新加；
+        <b>停 12 秒</b>才自動跳，也可以直接按「現在就前往」</td></tr>
+    <tr><td><code>404.html</code></td><td>跟 index.html 一模一樣。舊的內頁（例如 <code>/schedule.html</code>）在這個 repo 都不存在，
+        GitHub 會一律交給它——所以不管點哪個舊連結，都先看到通知，再到新網址的<b>同一頁</b></td></tr>
+    <tr><td><code>sw.js</code></td><td>活動快報可以「加到主畫面」，手機裡會留一份舊快取。手機回來檢查更新時拿到這一版，
+        就把舊快取清掉、自己移除</td></tr>
+  </tbody>
+</table></div>
+
+<div class="win">
+  <div class="h">一開始做的是「立刻跳走」，使用者看了說不行</div>
+  <p>第一版一打開就轉走，看的人根本不知道換了網址，下次還是點舊連結。
+  改成停 12 秒、大字寫出新網址——長輩讀字比較慢，要給足時間看清楚。秒數在程式裡的 <code>var 秒 = 12</code>。</p>
+  <p>跳轉要讓<b>整個視窗</b>走（<code>window.top</code>），不能只換掉框架裡那一塊：活動快報有些頁面是包在框架裡顯示的。</p>
+</div>
+
+<p class="sub">2026-10-13 實測：舊首頁、www、以及 schedule／posters／home／photos 幾個內頁，都先顯示通知再跳到新網址同一頁。
+內頁網址列會是 404，那是 GitHub 處理「找不到的頁面」的方式，不影響畫面與跳轉。
+頁面裡留了一行註解，之後要統計還有多少人從舊網址進來，把 Cloudflare Web Analytics 的那一行貼在那裡。</p>
+
 <div class="warn">
   <div class="h">加上自訂網域時，workers.dev 會被預設關掉</div>
   <p>設定檔裡一加 <code>routes</code>，<code>workers.dev</code> 那條就自動停用，
@@ -1256,7 +1283,8 @@ LINE 訊息會變成「簡嘉雯<b>平安平安</b>，我是…」。</p>
 </ul>
 
 <div class="foot">
-  規格 Rev 12 · 2026-10-13（依實際完成的系統回填）
+  規格 Rev 13 · 2026-10-13（依實際完成的系統回填）
+
 
 
 
