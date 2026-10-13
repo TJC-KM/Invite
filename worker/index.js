@@ -29,7 +29,7 @@ async function 分派(request, env, ctx) {
   const path = url.pathname.slice(1);
 
   if (path === "") {
-    return Response.redirect(env.CHURCH_SITE || "https://li-ming-tjc.org", 302);
+    return Response.redirect(env.CHURCH_SITE || "https://liming-tjc.org", 302);
   }
 
   if (path === "robots.txt") {

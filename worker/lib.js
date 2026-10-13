@@ -23,7 +23,7 @@ export function esc(s) {
 
 export function notFound(env) {
   return new Response(fill(NOTFOUND_HTML, {
-    churchSite: esc((env && env.CHURCH_SITE) || "https://li-ming-tjc.org"),
+    churchSite: esc((env && env.CHURCH_SITE) || "https://liming-tjc.org"),
   }), {
     status: 404,
     headers: { "content-type": "text/html; charset=utf-8" },
@@ -34,7 +34,7 @@ export function notFound(env) {
 // 過一分鐘就好——所以講「請稍後再試」，不要讓訪客看到 Cloudflare 的錯誤頁、以為連結壞了
 export function 忙碌頁(env) {
   return new Response(fill(BUSY_HTML, {
-    churchSite: esc((env && env.CHURCH_SITE) || "https://li-ming-tjc.org"),
+    churchSite: esc((env && env.CHURCH_SITE) || "https://liming-tjc.org"),
   }), {
     status: 503,
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "retry-after": "60" },

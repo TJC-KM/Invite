@@ -986,6 +986,10 @@ LINE 訊息會變成「簡嘉雯<b>平安平安</b>，我是…」。</p>
   子網域 <code>invite.liming-tjc.org</code> 由 <code>custom_domain</code> 自動建 DNS 記錄並簽憑證。</p>
   <p>教會原本的 <code>li-ming-tjc.org</code>（GitHub Pages）完全沒有動到。
   兩個網域可以並存，日後要把舊的轉出 Wix 再說。</p>
+  <p><b>2026-10-13 後續：</b>活動快報搬到 <code>liming-tjc.org</code> 主網域（Cloudflare DNS 灰色雲朵指向 GitHub Pages），
+  兩個網域只留這一個。<code>li-ming-tjc.org</code> 在 Wix 關掉自動續約，2027-07-09 到期停用；
+  在那之前由另一個 GitHub Pages repo（<code>li-ming-redirect</code>）顯示「換新網址了」並轉到新網址的同一頁。
+  沒有轉出 Wix——Wix 鎖住名稱伺服器，要繞第三家註冊商才轉得進 Cloudflare，省下的錢不值得。</p>
 </div>
 
 <div class="warn">
@@ -1225,14 +1229,21 @@ LINE 訊息會變成「簡嘉雯<b>平安平安</b>，我是…」。</p>
   <p><b>名單依建立時間排。</b>/admin 新的在上面。見第 6 節。</p>
 </div>
 
+<div class="win">
+  <div class="h">2026-10-13 追加定案</div>
+  <p><b>只留 liming-tjc.org 一個網域。</b>活動快報搬到主網域，li-ming-tjc.org 到期（2027-07-09）停用，之前只負責轉址。見第 7 節。
+  程式裡「教會官網」的備用預設值跟著改成 <code>https://liming-tjc.org</code>；實際用的是設定檔的 <code>CHURCH_SITE</code>，目前仍是 Canva 的網站。</p>
+</div>
+
 <h3>還沒決定</h3>
+
 
 
 <ul class="plain">
   <li><b>LINE 內建瀏覽器能不能就地播放影片</b>　大部分人是從 LINE 點進來的，
       而那個環境碰不到，只能用手機實測。播不動的話，退路是在 LINE 裡改成點了開 YouTube App</li>
   <li><b>邀請人要不要建一張表</b>　現在是自由輸入。建表可以避免「陳志成／陳誌成」這種不一致，但多一層維護</li>
-  <li><b>要不要把 li-ming-tjc.org 從 Wix 轉出來</b>　轉出後兩個網域都在 Cloudflare，要主打哪個都行。轉移約 5～7 天</li>
+
   <li><b>要不要用 AI 讀海報</b>　時間、地點、標語都印在海報上。Workers AI 現在有中文母語的多模態模型（GLM、Qwen），
   圖片本來就經過 Worker，整合成本幾乎是零。但 AI 讀錯日期時間會害人白跑一趟，<b>一定要人確認過才寫入</b></li>
   <li><b><code>/img/</code>、<code>/thumb/</code> 要不要限定資料夾</b>　現在給任何檔案 ID 都會抓——

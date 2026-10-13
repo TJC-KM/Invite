@@ -59,7 +59,7 @@ invite.liming-tjc.org/admin    →  Worker            維護介面（目前不�
 
 - 另開專案，不併進活動快報（`GoogleAppsScript/News`）——技術棧完全不同
 - 資料留在 Google 試算表，不改用資料庫
-- repo 放 `tjc-km`，子網域 `invite.li-ming-tjc.org`
+- repo 放 `tjc-km`，子網域 `invite.liming-tjc.org`
 - 網址代碼 12 碼、小寫、字集去掉易混淆字元，**不可流水號**
 - 教會資訊與雲端資料夾 ID 放 `wrangler.toml`，不進試算表
 

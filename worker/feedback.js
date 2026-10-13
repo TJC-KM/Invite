@@ -229,7 +229,7 @@ function 畫填寫頁({ env, r, cfg, code, 檔案, 主題 = "", 另寫 = "" }) {
     verse: 畫經文(文案(cfg, "經文", {})),
     churchEn: esc(env.CHURCH_NAME_EN || "TRUE JESUS CHURCH"),
     churchZh: esc(env.CHURCH_NAME || "真耶穌教會　黎明教會"),
-    churchSite: esc(env.CHURCH_SITE || "https://li-ming-tjc.org"),
+    churchSite: esc(env.CHURCH_SITE || "https://liming-tjc.org"),
     greet: esc(稱呼 ? `${稱呼}平安` : "平安"),
     letterTitle: esc(文案(cfg, "說明標題", {})),
     letter: 連結化(文案(cfg, "邀請說明", { 稱呼: 稱呼 })),
