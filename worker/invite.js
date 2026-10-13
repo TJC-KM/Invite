@@ -8,7 +8,7 @@ import ADMIN_HTML from "./admin.html";
 import EVENT_HTML from "./event.html";
 import { readSheet, updateCell, appendRow, listFolder, fetchFile, thumbnailUrl,
          標題列, 寫標題列, appendRows, 分頁們, 新增分頁, 刪除列 } from "./google.js";
-import { fill, esc, json, notFound, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 時間鍵, 代入, 連結化, CODE_RE } from "./lib.js";
+import { fill, esc, json, notFound, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 時間鍵, 代入, 連結化, CODE_RE, 教會網站 } from "./lib.js";
 
 /* ── 對外的入口 ─────────────────────────────────
    index.js 只認得路徑，剩下的都在這個檔案裡
@@ -511,7 +511,7 @@ function renderCard(inv, env) {
     inviteLead: 文案(詞, "邀請開頭", { 邀請人: `<b>${邀請人}</b>` }),
     sign: 文案(詞, "署名", { 邀請人: `<mark>${邀請人}</mark>` }),
     mapLabel: esc(文案(詞, "地圖按鈕", {})),
-    churchSite: esc(env.CHURCH_SITE || "https://liming-tjc.org"),
+    churchSite: esc(教會網站(env)),
     pageTitle: `${inv.邀請人} 邀請你參加${首場 ? 首場.名稱 : "聚會"}`,
     ogTitle: `${inv.邀請人} 邀請你參加${活動名 || "聚會"}`,
     ogDesc: 首場 ? `${首場.日期} ${首場.時間}　${首場.地點}` : "",
@@ -587,7 +587,7 @@ export async function eventPage(代號, env) {
     churchZh: esc(env.CHURCH_NAME || ""),
     churchAddress: esc(env.CHURCH_ADDRESS || ""),
     churchPhone: esc(env.CHURCH_PHONE || ""),
-    churchSite: esc(env.CHURCH_SITE || ""),
+    churchSite: esc(教會網站(env)),
 
     // 丟進 JS 的字串，用 JSON.stringify 才不會被引號或換行咬到
     shareText: JSON.stringify([e.名稱, e.日期, e.時間, e.地點].filter(Boolean).join("　")),

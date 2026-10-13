@@ -11,7 +11,7 @@ import FEEDBACK_HTML from "./feedback.html";
 import FADMIN_HTML from "./fadmin.html";
 import FREAD_HTML from "./fread.html";
 import { readSheet, updateCell, appendRow, getAccessToken } from "./google.js";
-import { fill, esc, json, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 時間鍵, 代入, 解碼, 連結化, CODE_RE } from "./lib.js";
+import { fill, esc, json, isPreviewBot, 欄名, 產生代碼, 台北時間, 台北日期, 時間鍵, 代入, 解碼, 連結化, CODE_RE, 教會網站 } from "./lib.js";
 
 const 分頁 = { 回饋: "回饋單", 推薦: "推薦", 設定: "設定檔", 主題: "主題" };
 
@@ -229,7 +229,7 @@ function 畫填寫頁({ env, r, cfg, code, 檔案, 主題 = "", 另寫 = "" }) {
     verse: 畫經文(文案(cfg, "經文", {})),
     churchEn: esc(env.CHURCH_NAME_EN || "TRUE JESUS CHURCH"),
     churchZh: esc(env.CHURCH_NAME || "真耶穌教會　黎明教會"),
-    churchSite: esc(env.CHURCH_SITE || "https://liming-tjc.org"),
+    churchSite: esc(教會網站(env)),
     greet: esc(稱呼 ? `${稱呼}平安` : "平安"),
     letterTitle: esc(文案(cfg, "說明標題", {})),
     letter: 連結化(文案(cfg, "邀請說明", { 稱呼: 稱呼 })),

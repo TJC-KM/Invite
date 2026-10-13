@@ -9,7 +9,7 @@
 
 import { 卡片, eventPage, adminPage, api, rsvp, imageProxy, thumbProxy } from "./invite.js";
 import { 回饋路由 } from "./feedback.js";
-import { notFound, 忙碌頁, 解碼, CODE_RE } from "./lib.js";
+import { notFound, 忙碌頁, 解碼, CODE_RE, 教會網站 } from "./lib.js";
 
 export default {
   async fetch(request, env, ctx) {
@@ -29,7 +29,7 @@ async function 分派(request, env, ctx) {
   const path = url.pathname.slice(1);
 
   if (path === "") {
-    return Response.redirect(env.CHURCH_SITE || "https://liming-tjc.org", 302);
+    return Response.redirect(教會網站(env), 302);
   }
 
   if (path === "robots.txt") {

@@ -21,9 +21,14 @@ export function esc(s) {
   }[c]));
 }
 
+// 「教會官網」連到哪裡。網址在 wrangler.jsonc 的 CHURCH_SITE（目前是 Canva 的網站），
+// 整個程式只看這一個地方；設定漏了也不要變成壞掉的連結，退回同一個網址
+const 預設教會網站 = "https://tjclimin20.my.canva.site/singlepageweb";
+export const 教會網站 = (env) => (env && env.CHURCH_SITE) || 預設教會網站;
+
 export function notFound(env) {
   return new Response(fill(NOTFOUND_HTML, {
-    churchSite: esc((env && env.CHURCH_SITE) || "https://liming-tjc.org"),
+    churchSite: esc(教會網站(env)),
   }), {
     status: 404,
     headers: { "content-type": "text/html; charset=utf-8" },
@@ -34,7 +39,7 @@ export function notFound(env) {
 // 過一分鐘就好——所以講「請稍後再試」，不要讓訪客看到 Cloudflare 的錯誤頁、以為連結壞了
 export function 忙碌頁(env) {
   return new Response(fill(BUSY_HTML, {
-    churchSite: esc((env && env.CHURCH_SITE) || "https://liming-tjc.org"),
+    churchSite: esc(教會網站(env)),
   }), {
     status: 503,
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "retry-after": "60" },

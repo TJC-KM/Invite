@@ -210,7 +210,7 @@ ul.plain li::before{
   舊內頁一樣適用，手機裡「加到主畫面」的舊快取也會自己清掉。見第 7 節。</p>
   <p><b>Rev 12：兩個網域只留一個。</b>活動快報搬到 <code>liming-tjc.org</code> 主網域，
   Wix 上的 <code>li-ming-tjc.org</code> 只負責轉址、2027-07-09 到期停用。
-  邀請卡本身不受影響——它一直在 <code>invite.liming-tjc.org</code>；程式裡只有「教會官網」的備用預設值跟著改。見第 7 節。</p>
+  邀請卡本身不受影響——它一直在 <code>invite.liming-tjc.org</code>；程式裡「教會官網」從此只連 Canva 的網站。見第 7 節。</p>
   <p><b>Rev 11：邀請名單不再越來越長，系統忙的時候也不會整個壞掉。</b></p>
   <p><b>過去資料</b>　活動都過了的邀請卡搬到新分頁「過去資料」，連結照樣打得開。
   第一次執行 145 筆搬了 139 筆。見第 3 節。
@@ -1262,7 +1262,8 @@ LINE 訊息會變成「簡嘉雯<b>平安平安</b>，我是…」。</p>
 <div class="win">
   <div class="h">2026-10-13 追加定案</div>
   <p><b>只留 liming-tjc.org 一個網域。</b>活動快報搬到主網域，li-ming-tjc.org 到期（2027-07-09）停用，之前只負責轉址。見第 7 節。
-  程式裡「教會官網」的備用預設值跟著改成 <code>https://liming-tjc.org</code>；實際用的是設定檔的 <code>CHURCH_SITE</code>，目前仍是 Canva 的網站。</p>
+  程式裡「教會官網」只看一個地方：設定檔的 <code>CHURCH_SITE</code>（Canva 的網站），六個畫面共用 <code>lib.js</code> 的 <code>教會網站()</code>；
+  設定漏了也退回同一個 Canva 網址，程式裡不再出現任何其他網域。</p>
 </div>
 
 <h3>還沒決定</h3>
